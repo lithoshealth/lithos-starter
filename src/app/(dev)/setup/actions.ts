@@ -7,6 +7,7 @@ import type { SetupActionState } from "@/lib/setup/action-state";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
 import { isSandbox, readLipidTreatment } from "@/lib/setup/steps";
+import { signOffAsClinician } from "@/lib/sandbox-review";
 
 function failure(error: unknown, hint?: string): SetupActionState {
   if (error instanceof LithosApiError) return { status: "error", httpStatus: error.status, errors: error.errors, hint };
@@ -73,14 +74,9 @@ export async function driveReviewAction(): Promise<SetupActionState> {
   const { encounterId } = await readIds();
   if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Create an encounter first." }] };
 
-  const client = getLithosClient();
   try {
-    const current = await client.get<{ status: string }>(`/v1/encounters/${encounterId}`);
-    if (current.status === "pending_review") {
-      await client.post(`/v1/sandbox/encounters/${encounterId}/start_review`, {});
-    }
-    // Empty body: approve every requested line and activate the plan.
-    await client.post(`/v1/sandbox/encounters/${encounterId}/complete`, {});
+    // Shared with the app's care page, so the walkthrough and the site sign off the same way.
+    await signOffAsClinician(getLithosClient(), encounterId);
   } catch (error) {
     const invalidCompletion = error instanceof LithosApiError && error.errors.some((e) => e.code === "sandbox.completion_invalid");
     return failure(error, invalidCompletion
@@ -110,6 +106,37 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
   } catch (error) {
     const exists = error instanceof LithosApiError && error.errors.some((e) => e.code === "webhook_endpoint.already_exists");
     return failure(error, exists ? "Your organization already has an active endpoint, and only one is allowed. The step above shows where it points." : undefined);
+  }
+}
+
+/**
+ * Point the organization's one webhook endpoint at a new address. Lithos allows
+ * a single active endpoint, and disabling is one-way — so this disables the
+ * current one and registers the new address, which issues a new signing secret.
+ * Needed more often than it sounds: a free tunnel's URL changes every restart.
+ */
+export async function repointWebhookAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+  const refused = refuseOutsideSandbox();
+  if (refused) return refused;
+
+  if (formData.get("confirm_repoint") !== "on") {
+    return { status: "error", errors: [{ code: "setup.confirm_repoint", message: "Tick the box to confirm the current endpoint will stop receiving deliveries." }] };
+  }
+  const currentId = String(formData.get("current_endpoint_id") ?? "");
+  const base = String(formData.get("public_url") ?? "").trim().replace(/\/+$/, "");
+  if (!/^https:\/\//.test(base)) {
+    return { status: "error", errors: [{ code: "setup.not_https", message: "Lithos only delivers to https:// URLs — localhost won't work. Use your deployed URL or a tunnel." }] };
+  }
+  const url = base.endsWith("/api/webhooks/lithos") ? base : `${base}/api/webhooks/lithos`;
+
+  const client = getLithosClient();
+  try {
+    await client.post(`/v1/webhook_endpoints/${currentId}/disable`, {});
+    const created = await client.post<{ id: string; url: string; signing_secret: string }>("/v1/webhook_endpoints", webhookEndpointRequest(url));
+    revalidatePath("/setup");
+    return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret };
+  } catch (error) {
+    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 7.");
   }
 }
 

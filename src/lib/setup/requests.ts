@@ -69,7 +69,7 @@ export const STEP_SOURCES = {
   organization: "src/lib/lithos/client.ts",
   patient: "src/lib/setup/requests.ts → patientRequest",
   encounter: "src/lib/setup/requests.ts → encounterRequest",
-  review: "src/app/setup/actions.ts → driveReviewAction",
+  review: "src/lib/sandbox-review.ts → signOffAsClinician",
   webhook_endpoint: "src/app/setup/actions.ts → registerWebhookAction",
   webhook_received: "src/app/api/webhooks/lithos/route.ts + src/lib/webhooks/signature.ts",
 } as const;

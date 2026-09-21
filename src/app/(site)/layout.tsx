@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { APP_NAME } from "@/lib/app-meta";
+import { lithosConnection } from "@/lib/lithos/connection";
 
 function BrandMark() {
   return (
@@ -20,7 +21,9 @@ export default function SiteLayout({ children }: Readonly<{ children: ReactNode 
       */}
       {process.env.NODE_ENV === "development" && (
         <div className="dev-bar" role="note">
-          Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link>
+          {lithosConnection().connected
+            ? <>Connected to the Lithos sandbox — forms on this site create real sandbox patients and encounters. <Link href="/setup">Setup →</Link></>
+            : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
         </div>
       )}
       <div className="demo-bar" role="note">Demo environment · sample patients only · no real medical care is provided here</div>

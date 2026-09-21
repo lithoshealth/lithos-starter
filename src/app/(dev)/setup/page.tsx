@@ -5,7 +5,9 @@ import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhoo
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
-import { StepAction, WebhookForm } from "./step-actions";
+import Link from "next/link";
+import { RepointForm, StepAction, WebhookForm } from "./step-actions";
+import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
 export const dynamic = "force-dynamic";
@@ -88,6 +90,7 @@ export default async function SetupPage() {
   const steps = await evaluateSetup(ids, host);
   const done = steps.filter((s) => s.status === "done").length;
   const current = steps.find((s) => s.status === "ready" || s.status === "blocked");
+  const connected = steps.slice(0, 3).every((s) => s.status === "done");
 
   return (
     <section className="stack setup">
@@ -101,7 +104,7 @@ export default async function SetupPage() {
           </p>
         </div>
         <form action={resetSetupAction}>
-          <button type="submit" className="btn btn-ghost">Start again</button>
+          <button type="submit" className="btn btn-ghost">Run again with new patient</button>
         </form>
       </div>
 
@@ -162,7 +165,18 @@ export default async function SetupPage() {
                 <StepAction action={driveReviewAction} label="Sign it off as the clinician" pendingLabel="Reviewing…" />
               )}
               {step.status === "ready" && step.key === "webhook_endpoint" && (
-                <WebhookForm defaultUrl={isLocal ? "" : `https://${host}`} />
+                <>
+                  <EndpointGuide />
+                  <WebhookForm defaultUrl={isLocal ? "" : `https://${host}`} />
+                </>
+              )}
+              {step.key === "webhook_endpoint" && step.endpoint && !step.endpoint.pointsHere && (
+                <RepointForm currentId={step.endpoint.id} currentUrl={step.endpoint.url} defaultUrl={isLocal ? "" : `https://${host}`}>
+                  <EndpointGuide />
+                </RepointForm>
+              )}
+              {step.key === "webhook_received" && (step.status === "ready" || step.status === "blocked") && (
+                <DeliveryGuide secretSet={Boolean(process.env.LITHOS_WEBHOOK_SECRET)} />
               )}
 
               {/* Open by default: seeing Lithos answer with real data is the point
@@ -182,6 +196,24 @@ export default async function SetupPage() {
           );
         })}
       </ol>
+
+      {/* The point of setup is the app, not the checklist: once connected, send
+          people back to use the site's own forms against real sandbox care. */}
+      <section className={connected ? "setup-handoff stack" : "setup-handoff setup-handoff-locked stack"}>
+        <p className="eyebrow">{connected ? "Connected" : "Once you're connected"}</p>
+        <h2>Now use the app itself.</h2>
+        <p>
+          {connected
+            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 6.</>
+            : <>Finish steps 1–3 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
+        </p>
+        {connected && (
+          <p>
+            <Link href="/start" className="btn btn-primary">Submit a care review as a visitor →</Link>{" "}
+            <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
+          </p>
+        )}
+      </section>
 
       <p className="fine-print">
         This page runs against the sandbox only and refuses anything else. Nothing on it reports back to Lithos — every

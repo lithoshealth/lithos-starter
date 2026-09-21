@@ -6,6 +6,8 @@ import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { CarePlan, EncounterStatus } from "@/lib/lithos/types";
 import { readJourneyStatus } from "@/lib/journey";
+import { isSandboxBaseUrl } from "@/lib/sandbox-review";
+import { ClinicianPanel } from "./clinician-panel";
 
 export const metadata: Metadata = { title: "Your care plan" };
 export const dynamic = "force-dynamic";
@@ -104,6 +106,10 @@ export default async function CarePage({ params }: { params: Promise<{ encounter
           <strong>A note from your clinician</strong>
           <p>{carePlan.clinician_notes}</p>
         </div>
+      )}
+
+      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && (encounter.status === "pending_review" || encounter.status === "in_review") && (
+        <ClinicianPanel encounterId={encounter.id} />
       )}
 
       <p><Link href={`/care/${encodeURIComponent(encounter.id)}`} className="btn btn-ghost">Refresh status</Link> <Link href="/" className="btn btn-ghost">Back to home</Link></p>

@@ -224,6 +224,14 @@ summary { cursor: pointer; font-weight: 700; }
 .setup-json { max-height: 22rem; overflow-y: auto; margin: 0.25rem 0 0; padding: 0.75rem 0.9rem; border-radius: var(--radius-sm); background: #1b2130; color: #e7ecf3; font-size: 0.78rem; line-height: 1.5; overflow-x: auto; white-space: pre; }
 .setup-secret { border: 1px solid var(--success); border-radius: var(--radius-sm); padding: 1rem; background: var(--success-soft); }
 .setup-secret ol { margin: 0; padding-left: 1.2rem; }
+.setup-guide { border-top: 1px solid var(--line); padding-top: 0.75rem; }
+.setup-guide h3 { font-size: 1rem; font-family: var(--font-sans), system-ui, sans-serif; font-weight: 700; }
+.setup-guide ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
+.setup-guide-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.setup-guide-options > div { display: grid; gap: 0.4rem; align-content: start; }
+.setup-handoff { border: 1px solid var(--primary); border-radius: var(--radius); padding: 1.35rem; background: var(--primary-soft); }
+.setup-handoff-locked { border-color: var(--line); background: var(--panel); opacity: 0.7; }
+@media (max-width: 40rem) { .setup-guide-options { grid-template-columns: 1fr; } }
 
 /* ---------- responsive ---------- */
 @media (max-width: 66rem) {
@@ -248,3 +256,14 @@ summary { cursor: pointer; font-weight: 700; }
 
 /* Form feedback area; useScrollToFeedback scrolls it clear of the sticky header. */
 .feedback-anchor:empty { display: none; }
+
+/* Sandbox-only controls: visibly not part of the patient's experience. */
+.sandbox-panel { border: 1px dashed var(--warning-ink); border-radius: var(--radius-sm); padding: 1rem 1.15rem; background: var(--warning-soft); }
+.sandbox-panel .eyebrow { color: var(--warning-ink); }
+
+/* Grid children default to min-width: auto, so one long unbroken line — a
+   JSON response, a URL — widens the whole card past the screen. Let them
+   shrink, and let the blocks inside scroll instead. */
+.setup-steps > li, .setup-step > *, .setup-guide-options > div, .setup-handoff, .setup-detail { min-width: 0; }
+.setup-step p, .setup-step code, .setup-handoff code, .setup-guide code { overflow-wrap: anywhere; }
+.setup-json { max-width: 100%; }

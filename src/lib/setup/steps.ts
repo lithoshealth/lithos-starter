@@ -41,6 +41,8 @@ export type StepState = {
   summary: string;
   exchange?: Exchange;
   diagnosis?: Diagnosis;
+  /** Step 7 only: the organization's active endpoint, so the page can offer to re-point it. */
+  endpoint?: { id: string; url: string; pointsHere: boolean };
 };
 
 /** Ids the walkthrough has created, carried in a cookie so a reload doesn't lose the thread. */
@@ -268,6 +270,7 @@ function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange },
   return {
     key: "webhook_endpoint", status: "done",
     summary: `Registered: ${read.endpoint.url}`, exchange: read.exchange,
+    endpoint: { id: read.endpoint.id, url: read.endpoint.url, pointsHere },
     diagnosis: pointsHere || !thisHost ? undefined : {
       title: "Your endpoint points somewhere other than this app",
       fix: `Lithos will deliver to ${read.endpoint.url}, but you're viewing this on ${thisHost}. That's fine if that's your deployed copy — open /setup there to see deliveries arrive. Your organization can have one active endpoint at a time.`,
