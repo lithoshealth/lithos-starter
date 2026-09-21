@@ -9,7 +9,8 @@ import type {
 } from "./lithos/types";
 import type { LithosClient } from "./lithos/client";
 
-export type JourneyStage = "validation" | "patient" | "care_plan" | "encounter" | "configuration";
+/** `connection`: the form was valid, but the app has no Lithos credentials to send it with. */
+export type JourneyStage = "validation" | "connection" | "patient" | "care_plan" | "encounter" | "configuration";
 
 export type JourneyState =
   | { status: "idle" }

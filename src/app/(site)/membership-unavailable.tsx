@@ -1,27 +1,27 @@
 import Link from "next/link";
 
 /**
- * The membership pages are the only ones that need Eucardia's own database —
- * the clinical journey talks to Lithos and works without it. Rather than a 500
- * on a deployment with no `DATABASE_URL`, say what's missing, in the voice of
- * the page the visitor is standing on.
+ * Member pages (welcome, dashboard, a member's care review) read from the
+ * partner's own database. Without one there's no member to show. Says exactly
+ * that — and makes no claim about the Lithos side, which is a separate question
+ * the setup walkthrough answers.
  */
 export function MembershipUnavailable() {
   return (
     <section className="form-card stack">
       <p className="eyebrow">Membership</p>
-      <h1>Signups aren&rsquo;t available on this deployment.</h1>
+      <h1>There&rsquo;s no member database connected.</h1>
       <p className="lede">
-        Eucardia&rsquo;s member database isn&rsquo;t connected here, so joining, member dashboards and member-initiated
-        care reviews are switched off. The marketing site and the clinical journey against the Lithos sandbox both work.
+        Member pages read from your own records — the members who exist in your database before Lithos ever sees them.
+        This copy of the app doesn&rsquo;t have one, so there&rsquo;s no member to show.
       </p>
       <p className="demo-note">
-        <strong>For whoever is running this demo:</strong> set <code>DATABASE_URL</code> on the deployment, or run it
-        locally with <code>./scripts/db-up.sh</code> and <code>npm run dev</code>.
+        Run <code>./scripts/db-up.sh</code> locally, or set <code>DATABASE_URL</code> where it&rsquo;s deployed.
+        Connecting to Lithos is a separate step, and needs no database: the setup walkthrough covers it.
       </p>
       <p>
-        <Link href="/" className="btn btn-ghost">Back to Eucardia</Link>{" "}
-        <Link href="/start" className="btn btn-primary">Start a care review instead</Link>
+        <Link href="/" className="btn btn-ghost">Back to the app</Link>{" "}
+        <Link href="/setup" className="btn btn-primary">Open the setup walkthrough</Link>
       </p>
     </section>
   );

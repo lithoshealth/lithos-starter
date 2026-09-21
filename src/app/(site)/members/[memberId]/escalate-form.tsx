@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { escalateAction, type ActionState } from "./actions";
+import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
+import { NotConnected } from "../../not-connected";
 
 const SCREENING: Array<[string, string]> = [
   ["established_atherosclerotic_cardiovascular_disease", "Diagnosed heart disease, stroke/TIA, or peripheral artery disease"],
@@ -40,7 +42,13 @@ export function EscalateForm({
       {state.status === "blocked" && (
         <div className="error-box"><h2>Not eligible — no encounter created</h2><ul>{state.reasons.map((r) => <li key={r}>{r}</li>)}</ul></div>
       )}
-      {state.status === "error" && (
+      {state.status === "error" && state.errors.some((e) => e.code === NOT_CONNECTED_CODE) && (
+        <NotConnected
+          action="Escalating creates this member as a Lithos patient, with a care plan and an encounter"
+          outcome="a licensed clinician reviews the member and decides on treatment"
+        />
+      )}
+      {state.status === "error" && !state.errors.some((e) => e.code === NOT_CONNECTED_CODE) && (
         <div className="error-box"><h2>Escalation failed</h2>{state.httpStatus && <p className="muted">HTTP {state.httpStatus}</p>}<ul>{state.errors.map((e, i) => <li key={`${e.code}-${i}`}>{e.message} <code className="muted">{e.code}</code></li>)}</ul></div>
       )}
       {state.status === "ok" && <div className="notes"><strong>Escalated.</strong> <p>{state.message}</p></div>}

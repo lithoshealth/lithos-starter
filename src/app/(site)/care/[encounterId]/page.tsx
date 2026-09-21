@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { lithosConnection } from "@/lib/lithos/connection";
+import { NotConnected } from "../../not-connected";
 import Link from "next/link";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
@@ -35,6 +37,16 @@ function formatDate(value: string): string {
 
 export default async function CarePage({ params }: { params: Promise<{ encounterId: string }> }) {
   const { encounterId } = await params;
+  if (!lithosConnection().connected) {
+    return (
+      <section className="status-card panel stack">
+        <NotConnected
+          action="This page reads an encounter's status"
+          outcome="it holds the clinical record — the review, the decision, the prescription"
+        />
+      </section>
+    );
+  }
   let result:
     | { ok: true; value: Awaited<ReturnType<typeof readJourneyStatus>> }
     | { ok: false; error: LithosApiError };

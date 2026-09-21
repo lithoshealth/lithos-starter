@@ -201,6 +201,9 @@ summary { cursor: pointer; font-weight: 700; }
 .dev-header { border-bottom: 1px solid var(--line); background: var(--panel); }
 .dev-brand { font-weight: 750; letter-spacing: 0.01em; }
 
+.not-connected { border: 1px solid var(--primary); border-radius: var(--radius); padding: 1.35rem; background: var(--primary-soft); }
+.not-connected h2 { font-size: 1.3rem; }
+
 /* ---------- setup walkthrough ---------- */
 .setup { max-width: 52rem; margin-inline: auto; }
 .setup-progress { height: 0.5rem; border-radius: 999px; background: var(--line); overflow: hidden; }
@@ -242,3 +245,6 @@ summary { cursor: pointer; font-weight: 700; }
   .tracker { grid-template-columns: 1fr; }
   .page-heading { flex-direction: column; }
 }
+
+/* Form feedback area; useScrollToFeedback scrolls it clear of the sticky header. */
+.feedback-anchor:empty { display: none; }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
 import { getLithosClient } from "@/lib/lithos/client";
+import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { ApiError, Inquiry } from "@/lib/lithos/types";
 import { upsertInquiry } from "@/lib/projections";
@@ -26,6 +27,7 @@ export async function escalateAction(_prev: ActionState, formData: FormData): Pr
     return { status: "error", errors: [{ code: "eucardia.consent_required", message: "Telehealth consent and identity confirmation are required before escalating." }] };
   }
   const screening = Object.fromEntries(SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])) as ScreeningAnswers;
+  if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };
 
   // Tri-state on purpose: unanswered stays undefined, so it is never mistaken
   // for "no" on the way to Lithos.

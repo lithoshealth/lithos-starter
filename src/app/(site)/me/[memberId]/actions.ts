@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
 import type { CareRequestState } from "@/lib/care-request-state";
+import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 
 const SCREENING_KEYS: Array<keyof ScreeningAnswers> = [
   "established_atherosclerotic_cardiovascular_disease", "recent_cardiac_condition", "drug_hypersensitivity",
@@ -34,6 +35,9 @@ export async function requestCareAction(_prev: CareRequestState, formData: FormD
   }
 
   const screening = Object.fromEntries(SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])) as ScreeningAnswers;
+
+  // The answers are valid; whether there's anywhere to send them is a separate question.
+  if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };
 
   const result = await escalateMember({
     memberId,

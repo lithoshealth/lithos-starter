@@ -1,8 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
+import { useScrollToFeedback } from "@/lib/use-scroll-to-feedback";
 import { requestCareAction } from "../actions";
 import { INITIAL_CARE_REQUEST_STATE } from "@/lib/care-request-state";
+import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
+import { NotConnected } from "../../../not-connected";
 
 // Same eight fields the protocol requires, in the member's own words. The field
 // names are the Lithos intake contract — don't rename them.
@@ -26,11 +29,13 @@ const OPTIONS: Array<[string, string, string]> = [
 
 export function CareReviewForm({ memberId, askInsurance }: { memberId: string; askInsurance: boolean }) {
   const [state, action, pending] = useActionState(requestCareAction, INITIAL_CARE_REQUEST_STATE);
+  const feedbackRef = useScrollToFeedback(state, state.status !== "idle");
 
   return (
     <form action={action} className="stack">
       <input type="hidden" name="member_id" value={memberId} />
 
+      <div ref={feedbackRef} className="feedback-anchor">
       {state.status === "blocked" && (
         <section className="error-box" aria-live="polite">
           <h2>We can&rsquo;t start a care review right now</h2>
@@ -41,7 +46,13 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
           <ul>{state.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
         </section>
       )}
-      {state.status === "error" && (
+      {state.status === "error" && state.errors.some((e) => e.code === NOT_CONNECTED_CODE) && (
+        <NotConnected
+          action="Sending this request escalates you from coaching into medical care"
+          outcome="a licensed clinician reads your history and decides with you what to add"
+        />
+      )}
+      {state.status === "error" && !state.errors.some((e) => e.code === NOT_CONNECTED_CODE) && (
         <section className="error-box" aria-live="polite">
           <h2>We couldn&rsquo;t send your request</h2>
           {state.httpStatus && <p className="muted">The clinical service responded with HTTP {state.httpStatus}.</p>}
@@ -55,6 +66,7 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
           </ul>
         </section>
       )}
+      </div>
 
       <fieldset className="form-section">
         <h2>What you&rsquo;d like to start</h2>

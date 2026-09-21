@@ -1,8 +1,10 @@
 "use client";
 
+import { useScrollToFeedback } from "@/lib/use-scroll-to-feedback";
 import { useActionState, useEffect, useRef } from "react";
 import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
+import { NotConnected } from "../not-connected";
 
 // Field names are the Lithos lipid_management intake contract — keep them as-is.
 const screenings = [
@@ -18,6 +20,7 @@ const screenings = [
 
 export function IntakeForm() {
   const [state, action, pending] = useActionState(createJourneyAction, INITIAL_JOURNEY_STATE);
+  const feedbackRef = useScrollToFeedback(state, state.status === "failed");
   const retrying = state.status === "failed" && Boolean(state.patientId);
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +33,15 @@ export function IntakeForm() {
 
   return (
     <form action={action} className="stack">
-      {state.status === "failed" && (
+      <div ref={feedbackRef} className="feedback-anchor">
+{state.status === "failed" && state.stage === "connection" && (
+        <NotConnected
+          action="Submitting this form creates a patient, a care plan and an encounter"
+          outcome="a licensed clinician reviews the intake and decides on treatment"
+        />
+      )}
+
+      {state.status === "failed" && state.stage !== "connection" && (
         <section className="error-box" aria-live="polite">
           <h2>{state.stage === "validation" ? "Please check your details" : "We couldn't complete your intake"}</h2>
           {state.httpStatus && <p className="muted">The clinical service responded with HTTP {state.httpStatus}.</p>}
@@ -45,6 +56,7 @@ export function IntakeForm() {
           {retrying && <p className="muted">Your details were saved — retrying will pick up where it left off.</p>}
         </section>
       )}
+      </div>
 
       {state.status === "failed" && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
       {state.status === "failed" && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}

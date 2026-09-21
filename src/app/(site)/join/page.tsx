@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { isDbConfigured } from "@/lib/db";
-import { MembershipUnavailable } from "../membership-unavailable";
 import { JoinForm } from "./join-form";
 
 export const metadata: Metadata = { title: "Join Eucardia" };
-// Dynamic on purpose: whether signups are available depends on DATABASE_URL at
-// request time. Prerendered, a build without it would bake in "unavailable".
+// Dynamic: reads ?plan= per request. The form always renders — if there's no
+// member database, the submit explains that (see join/actions.ts).
 export const dynamic = "force-dynamic";
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<{ plan?: string }> }) {
-  if (!isDbConfigured()) return <MembershipUnavailable />;
-
   const { plan } = await searchParams;
   const initialPlan = plan === "essential" ? "essential" : "complete";
 
