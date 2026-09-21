@@ -165,8 +165,10 @@ export default async function SetupPage() {
                 <WebhookForm defaultUrl={isLocal ? "" : `https://${host}`} />
               )}
 
+              {/* Open by default: seeing Lithos answer with real data is the point
+                  of each step. The block scrolls, so the page stays walkable. */}
               {step.exchange && (
-                <details className="setup-detail">
+                <details className="setup-detail" open>
                   <summary>
                     What Lithos returned — <code>{step.exchange.method} {step.exchange.path}</code>
                     {step.exchange.status ? ` · ${step.exchange.status}` : ""}
