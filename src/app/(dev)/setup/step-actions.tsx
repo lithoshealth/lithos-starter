@@ -56,7 +56,7 @@ function SecretOnce({ url, signingSecret }: { url: string; signingSecret: string
       <pre className="setup-json">{`LITHOS_WEBHOOK_SECRET=${signingSecret}`}</pre>
       <p className="muted">
         In development the app picks it up on the next request. On a deployed copy, set it in your host&rsquo;s
-        environment settings and redeploy. Then go to step 8.
+        environment settings and redeploy. Then go to step 6.
       </p>
     </div>
   );

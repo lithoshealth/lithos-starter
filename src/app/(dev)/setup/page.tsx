@@ -15,17 +15,9 @@ export const dynamic = "force-dynamic";
 // Written so the page reads the same whatever the app is called — the starter
 // may be rebranded per prospect, so nothing here says "Eucardia".
 const STEPS: Record<StepKey, { title: string; what: string }> = {
-  credentials: {
-    title: "Add your sandbox credentials",
-    what: "Two values Lithos issues when your sandbox organization is set up: a client ID (it starts with client_) and a client secret, shown to you once. They identify your organization to Lithos. They stay on your server — the browser never sees them.",
-  },
-  token: {
-    title: "Mint an access token",
-    what: "Your server trades the client id and secret for a short-lived bearer token. Every API call carries it; the starter caches and refreshes it for you.",
-  },
-  organization: {
-    title: "Make your first API call",
-    what: "Lists the treatments your organization is allowed to prescribe — your formulary. It proves the token is tied to a real Lithos organization.",
+  connect: {
+    title: "Connect to Lithos",
+    what: "Add your client ID and secret — two values Lithos issues when your sandbox organization is set up. They stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
   },
   patient: {
     title: "Create a patient",
@@ -90,7 +82,7 @@ export default async function SetupPage() {
   const steps = await evaluateSetup(ids, host);
   const done = steps.filter((s) => s.status === "done").length;
   const current = steps.find((s) => s.status === "ready" || s.status === "blocked");
-  const connected = steps.slice(0, 3).every((s) => s.status === "done");
+  const connected = steps[0]?.status === "done";
 
   return (
     <section className="stack setup">
@@ -99,7 +91,7 @@ export default async function SetupPage() {
           <p className="eyebrow">Lithos sandbox · setup</p>
           <h1>From clone to your first encounter.</h1>
           <p className="lede">
-            Eight steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
+            Six steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
             your own way, it still turns green. About fifteen minutes to a first encounter.
           </p>
         </div>
@@ -135,6 +127,28 @@ export default async function SetupPage() {
               </div>
 
               {step.status !== "locked" && <p>{meta.what}</p>}
+
+              {step.checks && (
+                <ul className="setup-checks">
+                  {step.checks.map((check) => (
+                    <li key={check.key} className={`setup-check setup-check-${check.status}`}>
+                      <div className="setup-check-line">
+                        <span className="setup-check-mark" aria-hidden="true">{check.status === "done" ? "✓" : check.status === "blocked" ? "✗" : "–"}</span>
+                        <span><strong>{check.label}</strong> <span className="muted">— {check.summary}</span></span>
+                      </div>
+                      {check.exchange && (
+                        <details className="setup-detail" open>
+                          <summary>
+                            What Lithos returned — <code>{check.exchange.method} {check.exchange.path}</code>
+                            {check.exchange.status ? ` · ${check.exchange.status}` : ""}
+                          </summary>
+                          <Json value={check.exchange.response} />
+                        </details>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {step.diagnosis && (
                 <div className={step.status === "blocked" ? "error-box" : "demo-note"}>
@@ -204,8 +218,8 @@ export default async function SetupPage() {
         <h2>Now use the app itself.</h2>
         <p>
           {connected
-            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 6.</>
-            : <>Finish steps 1–3 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
+            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
+            : <>Connect in step 1 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
         </p>
         {connected && (
           <p>

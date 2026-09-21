@@ -267,3 +267,12 @@ summary { cursor: pointer; font-weight: 700; }
 .setup-steps > li, .setup-step > *, .setup-guide-options > div, .setup-handoff, .setup-detail { min-width: 0; }
 .setup-step p, .setup-step code, .setup-handoff code, .setup-guide code { overflow-wrap: anywhere; }
 .setup-json { max-width: 100%; }
+
+/* The Connect step's three checks. */
+.setup-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.setup-check { display: grid; gap: 0.4rem; min-width: 0; }
+.setup-check-line { display: flex; gap: 0.55rem; align-items: baseline; }
+.setup-check-mark { flex: none; display: inline-grid; place-items: center; width: 1.3rem; height: 1.3rem; border-radius: 50%; font-size: 0.75rem; font-weight: 800; background: var(--line); color: var(--muted); }
+.setup-check-done .setup-check-mark { background: var(--success-soft); color: var(--success); }
+.setup-check-blocked .setup-check-mark { background: var(--danger-soft); color: var(--danger); }
+.setup-check-skipped { opacity: 0.6; }

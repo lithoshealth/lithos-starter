@@ -64,9 +64,7 @@ export function webhookEndpointRequest(url: string) {
 
 /** Where the walkthrough's integration code lives, per step — shown so the prospect knows what to read. */
 export const STEP_SOURCES = {
-  credentials: ".env.example",
-  token: "src/lib/lithos/auth.ts",
-  organization: "src/lib/lithos/client.ts",
+  connect: "scripts/setup.mjs · src/lib/lithos/auth.ts (token) · src/lib/lithos/client.ts (requests)",
   patient: "src/lib/setup/requests.ts → patientRequest",
   encounter: "src/lib/setup/requests.ts → encounterRequest",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",

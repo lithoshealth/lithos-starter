@@ -182,11 +182,14 @@ async function main() {
     process.exit(1);
   }
 
+  // The same three checks as step 1 of /setup, so the terminal and the page tell one story.
   const lipid = result.treatments.filter((t) => t.categories?.includes("lipid_management")).map((t) => t.name);
+  const count = `${result.treatments.length} treatment${result.treatments.length === 1 ? "" : "s"}`;
   console.log(green("✓ connected"));
-  console.log(`\n  Your organization can prescribe ${result.treatments.length} treatment${result.treatments.length === 1 ? "" : "s"}${lipid.length ? ` — lipid: ${lipid.join(", ")}` : ""}.`);
-  console.log(`  Saved to ${ENV_FILE} ${dim("(gitignored, readable only by you)")}.\n`);
-  console.log(`Next: ${bold("http://localhost:3001/setup")} ${dim("— run npm run dev first if it isn't already running.")}\n`);
+  console.log(`\n  ${green("✓")} Credentials in ${ENV_FILE} ${dim("(gitignored, readable only by you)")}`);
+  console.log(`  ${green("✓")} Access token minted`);
+  console.log(`  ${green("✓")} Your organization's formulary read — ${count}${lipid.length ? `, lipid: ${lipid.join(", ")}` : ""}\n`);
+  console.log(`Step 1 of the walkthrough is done. Next: ${bold("http://localhost:3001/setup")} ${dim("— run npm run dev first if it isn't already running.")}\n`);
 }
 
 main().catch((error) => {

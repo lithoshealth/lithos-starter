@@ -136,7 +136,7 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     revalidatePath("/setup");
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret };
   } catch (error) {
-    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 7.");
+    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 5.");
   }
 }
 

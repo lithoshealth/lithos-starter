@@ -19,8 +19,26 @@ import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
 
 export type StepKey =
-  | "credentials" | "token" | "organization" | "patient"
-  | "encounter" | "review" | "webhook_endpoint" | "webhook_received";
+  | "connect" | "patient" | "encounter" | "review" | "webhook_endpoint" | "webhook_received";
+
+/**
+ * "Connect" is one step with three checks. Adding credentials is the only thing
+ * a person does; minting a token and reading the formulary are how the app
+ * proves it worked. They used to be steps 2 and 3, which went green the moment
+ * step 1 did — steps nobody took.
+ */
+type ConnectCheckKey = "credentials" | "token" | "organization";
+
+export type ConnectCheck = {
+  key: ConnectCheckKey;
+  label: string;
+  status: "done" | "blocked" | "skipped";
+  summary: string;
+  exchange?: Exchange;
+};
+
+/** What each connection check returns before it's folded into the Connect step. */
+type InternalCheck = { key: ConnectCheckKey; status: StepStatus; summary: string; exchange?: Exchange; diagnosis?: Diagnosis };
 
 export type StepStatus = "done" | "ready" | "blocked" | "locked";
 
@@ -41,8 +59,10 @@ export type StepState = {
   summary: string;
   exchange?: Exchange;
   diagnosis?: Diagnosis;
-  /** Step 7 only: the organization's active endpoint, so the page can offer to re-point it. */
+  /** The webhook endpoint step only: the organization's active endpoint, so the page can offer to re-point it. */
   endpoint?: { id: string; url: string; pointsHere: boolean };
+  /** The Connect step only: its three checks, each with its own exchange. */
+  checks?: ConnectCheck[];
 };
 
 /** Ids the walkthrough has created, carried in a cookie so a reload doesn't lose the thread. */
@@ -80,7 +100,7 @@ function exchangeFromError(method: "GET" | "POST", path: string, error: unknown)
 
 // ---------------------------------------------------------------- 1. credentials
 
-function checkCredentials(): StepState {
+function checkCredentials(): InternalCheck {
   const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
   if (missing.length > 0) {
     // With no .env.local at all, every variable is missing — including the two
@@ -106,7 +126,7 @@ function checkCredentials(): StepState {
       },
     };
   }
-  return { key: "credentials", status: "done", summary: `Sandbox, client ${process.env.LITHOS_CLIENT_ID!.slice(0, 18)}…` };
+  return { key: "credentials", status: "done", summary: `sandbox, client ${process.env.LITHOS_CLIENT_ID!.slice(0, 18)}…` };
 }
 
 // ---------------------------------------------------------------- 2. token
@@ -116,7 +136,7 @@ function checkCredentials(): StepState {
  * needs the raw status and body to explain a failure — TokenManager, rightly,
  * only throws.
  */
-async function checkToken(): Promise<StepState> {
+async function checkToken(): Promise<InternalCheck> {
   const path = "/v1/oauth2/token";
   try {
     const response = await fetch(process.env.LITHOS_TOKEN_URL!, {
@@ -133,7 +153,7 @@ async function checkToken(): Promise<StepState> {
     const exchange: Exchange = { method: "POST", path, status: response.status, response: redactToken(body) };
     if (response.ok) {
       const expires = (body as { expires_in?: number })?.expires_in;
-      return { key: "token", status: "done", summary: `Token minted${expires ? `, valid ${Math.round(expires / 60)} min` : ""}.`, exchange };
+      return { key: "token", status: "done", summary: expires ? `valid for ${Math.round(expires / 60)} minutes` : "issued", exchange };
     }
     return {
       key: "token", status: "blocked", summary: `Token endpoint answered ${response.status}.`, exchange,
@@ -158,7 +178,7 @@ export async function readLipidTreatment(): Promise<CatalogTreatment | undefined
   return catalog.data.find((t) => t.status !== "inactive" && t.categories?.includes("lipid_management"));
 }
 
-async function checkOrganization(): Promise<StepState> {
+async function checkOrganization(): Promise<InternalCheck> {
   const path = "/v1/catalog_treatments";
   try {
     const catalog = await getLithosClient().get<{ data: CatalogTreatment[] }>(path);
@@ -188,7 +208,7 @@ async function checkOrganization(): Promise<StepState> {
     }
     return {
       key: "organization", status: "done",
-      summary: `${catalog.data.length} treatments available — lipid: ${lipid.map((t) => t.name).join(", ")}.`, exchange,
+      summary: `${catalog.data.length} treatments available (lipid: ${lipid.map((t) => t.name).join(", ")})`, exchange,
     };
   } catch (error) {
     const codes = errorCodes(error);
@@ -396,29 +416,47 @@ function diagnoseDelivery(failing: WebhookDelivery | undefined, attempts: Return
  * being evaluated — there's no point minting a token with no credentials, and
  * the error it would produce would only bury the real one.
  */
+const CHECK_LABELS: Record<ConnectCheckKey, string> = {
+  credentials: "Credentials in .env.local",
+  token: "Access token minted",
+  organization: "Your organization's formulary read",
+};
+
+/** Run the three connection checks in order; stop at the first that fails. */
+async function checkConnect(): Promise<StepState> {
+  const results: InternalCheck[] = [];
+  const credentials = checkCredentials();
+  results.push(credentials);
+  if (credentials.status === "done") {
+    const token = await checkToken();
+    results.push(token);
+    if (token.status === "done") results.push(await checkOrganization());
+  }
+
+  const order: ConnectCheckKey[] = ["credentials", "token", "organization"];
+  const checks: ConnectCheck[] = order.map((key) => {
+    const r = results.find((x) => x.key === key);
+    return r
+      ? { key, label: CHECK_LABELS[key], status: r.status === "done" ? "done" : "blocked", summary: r.summary, exchange: r.exchange }
+      : { key, label: CHECK_LABELS[key], status: "skipped", summary: "Not checked yet." };
+  });
+
+  const failed = results.find((r) => r.status !== "done");
+  if (failed) {
+    return { key: "connect", status: "blocked", summary: failed.summary, diagnosis: failed.diagnosis, checks };
+  }
+  return { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks };
+}
+
 export async function evaluateSetup(ids: JourneyIds, thisHost: string | null): Promise<StepState[]> {
   const steps: StepState[] = [];
   const lockedFrom = (keys: StepKey[], reason: string) =>
     keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
 
-  const credentials = checkCredentials();
-  steps.push(credentials);
-  if (credentials.status !== "done") {
-    lockedFrom(["token", "organization", "patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on credentials.");
-    return steps;
-  }
-
-  const token = await checkToken();
-  steps.push(token);
-  if (token.status !== "done") {
-    lockedFrom(["organization", "patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on a token.");
-    return steps;
-  }
-
-  const organization = await checkOrganization();
-  steps.push(organization);
-  if (organization.status !== "done") {
-    lockedFrom(["patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on your organization.");
+  const connect = await checkConnect();
+  steps.push(connect);
+  if (connect.status !== "done") {
+    lockedFrom(["patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on the connection.");
     return steps;
   }
 
