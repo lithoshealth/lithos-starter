@@ -12,7 +12,7 @@ const REQUIRED = ["LITHOS_API_BASE_URL", "LITHOS_TOKEN_URL", "LITHOS_CLIENT_ID",
 
 export type LithosConnection = { connected: true } | { connected: false; missing: string[] };
 
-export function lithosConnection(env: NodeJS.ProcessEnv = process.env): LithosConnection {
+export function lithosConnection(env: Record<string, string | undefined> = process.env): LithosConnection {
   const missing = REQUIRED.filter((name) => !env[name]);
   return missing.length === 0 ? { connected: true } : { connected: false, missing };
 }

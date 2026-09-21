@@ -81,12 +81,16 @@ function exchangeFromError(method: "GET" | "POST", path: string, error: unknown)
 function checkCredentials(): StepState {
   const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
   if (missing.length > 0) {
+    // With no .env.local at all, every variable is missing — including the two
+    // URLs the template fills in. Listing all four would contradict "the URLs
+    // come prefilled", so say what's actually true.
+    const noFile = missing.includes("LITHOS_API_BASE_URL") && missing.includes("LITHOS_CLIENT_ID");
     return {
       key: "credentials", status: "blocked",
-      summary: `Missing ${missing.join(", ")}.`,
+      summary: noFile ? "Not connected yet — no credentials in this app." : `Missing ${missing.join(", ")}.`,
       diagnosis: {
-        title: "Your Lithos sandbox credentials aren't configured",
-        fix: "Copy .env.example to .env.local and fill in LITHOS_CLIENT_ID and LITHOS_CLIENT_SECRET — the two URLs come prefilled. Save and reload this page; in development the server picks up .env.local changes by itself. No credentials yet? Ask your Lithos contact for a sandbox organization — it takes minutes once someone is on it.",
+        title: "Connect this app to your Lithos sandbox",
+        fix: "In a second terminal, in this folder, run `npm run setup` and paste your client ID and secret when it asks. It saves them to .env.local and checks them with Lithos on the spot — then reload this page. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
       },
     };
   }

@@ -14,14 +14,16 @@ and the marketing copy on the patient-facing pages is yours to replace.
 
 ## Quick start
 
-You need Node 20+ and Lithos sandbox credentials (a client id and secret). No
+You need Node 20+ and Lithos sandbox credentials: a **client ID** (it starts with
+`client_`) and a **client secret**, issued when Lithos sets up your sandbox
+organization. The secret is shown once, so it's in whatever Lithos sent you. No
 credentials yet? Ask your Lithos contact for a sandbox organization.
 
 ```sh
 git clone https://github.com/lithoshealth/lithos-starter.git
 cd lithos-starter
 npm install
-cp .env.example .env.local   # fill in the four LITHOS_ values
+npm run setup    # paste your client ID and secret; it checks them with Lithos
 npm run dev
 ```
 
@@ -98,8 +100,8 @@ your programs from your Lithos contact before relying on any rule in it.
 
 ## Environment
 
-See `.env.example`. Only the four `LITHOS_` values are needed for the
-walkthrough; `LITHOS_WEBHOOK_SECRET` comes from step 7; everything else is for
+See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the
+walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 7; everything else is for
 the membership side or for deploying.
 
 ```sh

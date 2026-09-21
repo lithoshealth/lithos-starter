@@ -6,7 +6,7 @@ const FULL = {
   LITHOS_TOKEN_URL: "https://api.sandbox.lithoshealth.com/v1/oauth2/token",
   LITHOS_CLIENT_ID: "client_test",
   LITHOS_CLIENT_SECRET: "secret_test",
-} as NodeJS.ProcessEnv;
+};
 
 describe("lithosConnection", () => {
   it("is connected when all four values are present", () => {
@@ -14,11 +14,11 @@ describe("lithosConnection", () => {
   });
 
   it("names exactly what's missing — the fresh-clone case is the id and secret", () => {
-    const freshClone = { ...FULL, LITHOS_CLIENT_ID: "", LITHOS_CLIENT_SECRET: "" } as NodeJS.ProcessEnv;
+    const freshClone = { ...FULL, LITHOS_CLIENT_ID: "", LITHOS_CLIENT_SECRET: "" };
     expect(lithosConnection(freshClone)).toEqual({ connected: false, missing: ["LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET"] });
   });
 
   it("treats an empty environment as not connected rather than throwing", () => {
-    expect(lithosConnection({} as NodeJS.ProcessEnv).connected).toBe(false);
+    expect(lithosConnection({}).connected).toBe(false);
   });
 });

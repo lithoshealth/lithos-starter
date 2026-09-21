@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 const STEPS: Record<StepKey, { title: string; what: string }> = {
   credentials: {
     title: "Add your sandbox credentials",
-    what: "Your client id and secret, in .env.local — the API and token URLs come prefilled. They live on the server only; the browser never sees them.",
+    what: "Two values Lithos issues when your sandbox organization is set up: a client ID (it starts with client_) and a client secret, shown to you once. They identify your organization to Lithos. They stay on your server — the browser never sees them.",
   },
   token: {
     title: "Mint an access token",
