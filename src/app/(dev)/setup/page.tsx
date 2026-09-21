@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { APP_NAME } from "@/lib/app-meta";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
+import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
 import { StepAction, WebhookForm } from "./step-actions";
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 const STEPS: Record<StepKey, { title: string; what: string }> = {
   credentials: {
     title: "Add your sandbox credentials",
-    what: "Four values in .env.local: the API and token URLs, and your client id and secret. They live on the server only — the browser never sees them.",
+    what: "Your client id and secret, in .env.local — the API and token URLs come prefilled. They live on the server only; the browser never sees them.",
   },
   token: {
     title: "Mint an access token",
@@ -80,13 +81,7 @@ function Json({ value }: { value: unknown }) {
 }
 
 export default async function SetupPage() {
-  const raw = (await cookies()).get("setup_journey")?.value;
-  let ids: JourneyIds = {};
-  try {
-    ids = raw ? (JSON.parse(raw) as JourneyIds) : {};
-  } catch {
-    ids = {};
-  }
+  const ids = await readJourneyIds();
 
   const host = (await headers()).get("host");
   const isLocal = !host || /^(localhost|127\.0\.0\.1)(:|$)/.test(host);

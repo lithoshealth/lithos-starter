@@ -86,7 +86,7 @@ function checkCredentials(): StepState {
       summary: `Missing ${missing.join(", ")}.`,
       diagnosis: {
         title: "Your Lithos sandbox credentials aren't configured",
-        fix: "Copy .env.example to .env.local and fill in the four LITHOS_ values you were sent, then restart `npm run dev`. No credentials yet? Ask your Lithos contact for a sandbox organization — it takes minutes once someone is on it.",
+        fix: "Copy .env.example to .env.local and fill in LITHOS_CLIENT_ID and LITHOS_CLIENT_SECRET — the two URLs come prefilled. Save and reload this page; in development the server picks up .env.local changes by itself. No credentials yet? Ask your Lithos contact for a sandbox organization — it takes minutes once someone is on it.",
       },
     };
   }

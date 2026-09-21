@@ -25,7 +25,8 @@ cp .env.example .env.local   # fill in the four LITHOS_ values
 npm run dev
 ```
 
-Then open **http://localhost:3001/setup**.
+Then open **http://localhost:3001/setup** — in development, every page of the app
+also has a link to it at the top.
 
 ## The setup walkthrough
 

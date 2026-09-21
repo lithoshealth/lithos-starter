@@ -195,6 +195,12 @@ summary { cursor: pointer; font-weight: 700; }
 .price strong { font-family: var(--font-display), Georgia, serif; font-size: 1.9rem; color: var(--ink); }
 .price span { color: var(--muted); }
 
+/* ---------- developer chrome ---------- */
+.dev-bar { padding: 0.45rem 1rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: #fff; background: var(--ink); }
+.dev-bar a { color: #9fe0d6; }
+.dev-header { border-bottom: 1px solid var(--line); background: var(--panel); }
+.dev-brand { font-weight: 750; letter-spacing: 0.01em; }
+
 /* ---------- setup walkthrough ---------- */
 .setup { max-width: 52rem; margin-inline: auto; }
 .setup-progress { height: 0.5rem; border-radius: 999px; background: var(--line); overflow: hidden; }

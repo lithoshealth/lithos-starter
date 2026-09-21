@@ -1,28 +1,12 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { SetupActionState } from "@/lib/setup/action-state";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
-import { isSandbox, readLipidTreatment, type JourneyIds } from "@/lib/setup/steps";
-
-const COOKIE = "setup_journey";
-
-async function readIds(): Promise<JourneyIds> {
-  const raw = (await cookies()).get(COOKIE)?.value;
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw) as JourneyIds;
-  } catch {
-    return {};
-  }
-}
-
-async function writeIds(ids: JourneyIds): Promise<void> {
-  (await cookies()).set(COOKIE, JSON.stringify(ids), { httpOnly: true, sameSite: "lax", path: "/setup", maxAge: 60 * 60 * 24 * 30 });
-}
+import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
+import { isSandbox, readLipidTreatment } from "@/lib/setup/steps";
 
 function failure(error: unknown, hint?: string): SetupActionState {
   if (error instanceof LithosApiError) return { status: "error", httpStatus: error.status, errors: error.errors, hint };
@@ -130,6 +114,6 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
 }
 
 export async function resetSetupAction(): Promise<void> {
-  (await cookies()).delete({ name: COOKIE, path: "/setup" });
+  await clearJourneyIds();
   revalidatePath("/setup");
 }

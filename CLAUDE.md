@@ -27,6 +27,9 @@ the header and titles; page copy still names the demo brand. Start with `README.
 - Integration code lives in `src/lib/`: `lithos/` (token cache, client, error
   envelope, types), `webhooks/` (signature verification, handler, attempt log),
   `events/` (event store), `setup/` (the walkthrough).
+- **Two route groups, two kinds of chrome.** `src/app/(site)/` is the patient-facing
+  app; `src/app/(dev)/` is the developer walkthrough. The root layout is only the
+  document shell. Route groups don't change URLs.
 - **The setup walkthrough derives every step from a live API call.** Never mark a
   step done from local state alone — that's what makes it trustworthy.
 - **Webhooks are thin.** An event carries a type and a `resource_id`; re-read the
