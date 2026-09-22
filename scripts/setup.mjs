@@ -132,7 +132,9 @@ async function main() {
   console.log("You need two values from Lithos: a client ID and a client secret. They're");
   console.log("issued when your sandbox organization is set up — the secret is shown once,");
   console.log("so it's in whatever Lithos sent you, or in your password manager.");
-  console.log(dim("No credentials yet? Ask your Lithos contact for a sandbox organization.\n"));
+  console.log("Use a sandbox organization that's just for this starter, not the one you'll build");
+  console.log("your own app on — they'd share one webhook endpoint and one set of patients.");
+  console.log(dim("No credentials yet, or only one set? Ask your Lithos contact for a sandbox organization.\n"));
 
   const { source, text } = readEnvFile();
   const existingId = currentValue(text, "LITHOS_CLIENT_ID");

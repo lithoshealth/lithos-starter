@@ -19,6 +19,13 @@ You need Node 20+ and Lithos sandbox credentials: a **client ID** (it starts wit
 organization. The secret is shown once, so it's in whatever Lithos sent you. No
 credentials yet? Ask your Lithos contact for a sandbox organization.
 
+**Use a separate sandbox organization for this starter** — not the one you'll build
+your own integration on. An organization has one webhook endpoint and one shared
+set of patients, and sandbox records can't be deleted: run both apps on the same
+credentials and only one of them receives webhooks, patients mix across the two,
+and the starter's sample patients stay in the organization you build on. If you
+only have one, ask your Lithos contact for a second.
+
 ```sh
 git clone https://github.com/lithoshealth/lithos-starter.git
 cd lithos-starter
