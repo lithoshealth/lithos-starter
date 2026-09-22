@@ -154,6 +154,8 @@ export default async function SetupPage() {
                 <div className={step.status === "blocked" ? "error-box" : "demo-note"}>
                   <h2>{step.diagnosis.title}</h2>
                   <p>{step.diagnosis.fix}</p>
+                  {step.diagnosis.command && <pre className="setup-command">{step.diagnosis.command}</pre>}
+                  {step.diagnosis.then && <p>{step.diagnosis.then}</p>}
                 </div>
               )}
 

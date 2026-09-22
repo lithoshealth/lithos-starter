@@ -51,7 +51,8 @@ export type Exchange = {
 };
 
 /** When something is wrong: what, and exactly what to do about it. */
-export type Diagnosis = { title: string; fix: string };
+/** When something is wrong: what, and what to do. `command`, if set, is shown as its own copyable block between `fix` and `then`. */
+export type Diagnosis = { title: string; fix: string; command?: string; then?: string };
 
 export type StepState = {
   key: StepKey;
@@ -109,10 +110,12 @@ function checkCredentials(): InternalCheck {
     const noFile = missing.includes("LITHOS_API_BASE_URL") && missing.includes("LITHOS_CLIENT_ID");
     return {
       key: "credentials", status: "blocked",
-      summary: noFile ? "Not connected yet — no credentials in this app." : `Missing ${missing.join(", ")}.`,
+      summary: noFile ? "none yet" : `missing ${missing.join(", ")}`,
       diagnosis: {
         title: "Connect this app to your Lithos sandbox",
-        fix: "In a second terminal, in this folder, run `npm run setup` and paste your client ID and secret when it asks. It saves them to .env.local and checks them with Lithos on the spot — then reload this page. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
+        fix: "In a second terminal, in this folder, run:",
+        command: "npm run setup",
+        then: "Paste your client ID and secret when it asks. It saves them to .env.local and checks them with Lithos on the spot — then reload this page. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
       },
     };
   }
@@ -443,7 +446,8 @@ async function checkConnect(): Promise<StepState> {
 
   const failed = results.find((r) => r.status !== "done");
   if (failed) {
-    return { key: "connect", status: "blocked", summary: failed.summary, diagnosis: failed.diagnosis, checks };
+    const summary = failed.key === "credentials" ? "Not connected yet." : failed.summary;
+    return { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks };
   }
   return { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks };
 }

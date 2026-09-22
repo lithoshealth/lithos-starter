@@ -280,3 +280,6 @@ summary { cursor: pointer; font-weight: 700; }
 /* The dev bar when Lithos's deliveries to this app are failing. */
 .dev-bar-warning { background: var(--danger); }
 .dev-bar-warning a { color: #fff; text-decoration: underline; }
+
+/* The one command a stuck step needs — big enough to find, easy to copy. */
+.setup-command { margin: 0.5rem 0; padding: 0.7rem 1rem; border-radius: var(--radius-sm); background: var(--ink); color: #fff; font-size: 1.05rem; font-weight: 700; white-space: pre-wrap; user-select: all; }
