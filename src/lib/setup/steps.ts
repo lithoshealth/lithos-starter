@@ -365,8 +365,9 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
 
   if (deliveries.length === 0) {
     return {
+      // No box here: step 6 has already proved the endpoint reaches this app,
+      // and the guide below says what's actually missing — an event since then.
       key: "webhook_received", status: "ready", summary: "Lithos hasn't delivered anything about your encounter yet.", exchange,
-      diagnosis: diagnoseDelivery(undefined, readWebhookAttempts()),
     };
   }
 

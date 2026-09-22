@@ -6,7 +6,7 @@ import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
 import Link from "next/link";
-import { ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
+import { NewSecretForm, ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
@@ -87,6 +87,9 @@ export default async function SetupPage() {
   const done = steps.filter((s) => s.status === "done").length;
   const current = steps.find((s) => s.status === "ready" || s.status === "blocked");
   const connected = steps[0]?.status === "done";
+  // The endpoint, when it reaches this app — step 7 can re-register it for a new secret.
+  const endpointHere = steps.find((s) => s.key === "webhook_endpoint")?.endpoint;
+  const endpointHereOk = endpointHere?.pointsHere ? endpointHere : undefined;
 
   return (
     <section className="stack setup">
@@ -212,7 +215,12 @@ export default async function SetupPage() {
                 </RepointForm>
               )}
               {step.key === "webhook_received" && (step.status === "ready" || step.status === "blocked") && (
-                <DeliveryGuide secretSet={Boolean(process.env.LITHOS_WEBHOOK_SECRET)} />
+                <>
+                  <DeliveryGuide secretSet={Boolean(process.env.LITHOS_WEBHOOK_SECRET)} />
+                  {!process.env.LITHOS_WEBHOOK_SECRET && endpointHereOk && (
+                    <NewSecretForm currentId={endpointHereOk.id} url={endpointHereOk.url} />
+                  )}
+                </>
               )}
 
               {/* Open by default: seeing Lithos answer with real data is the point

@@ -48,8 +48,9 @@ export function DeliveryGuide({ secretSet }: { secretSet: boolean }) {
     <div className="setup-guide stack">
       {!secretSet && (
         <p className="demo-note">
-          <strong>This app can&rsquo;t verify deliveries yet:</strong> <code>LITHOS_WEBHOOK_SECRET</code> isn&rsquo;t set.
-          Add the line step 6 gave you to <code>.env.local</code>. Until then it refuses every delivery — on purpose.
+          <strong>This app can&rsquo;t verify deliveries yet:</strong> <code>LITHOS_WEBHOOK_SECRET</code> isn&rsquo;t set, so
+          it refuses every delivery — on purpose. Lithos showed the secret once, when you registered; if you don&rsquo;t
+          have it, get a new one below.
         </p>
       )}
       <h3>How to make one arrive</h3>

@@ -8,8 +8,11 @@ import type { ApiError } from "../lithos/types";
 export type SetupActionState =
   | { status: "idle" }
   | { status: "ok" }
-  /** The signing secret — returned exactly once by Lithos, shown exactly once here, stored nowhere. */
-  | { status: "secret"; endpointId: string; url: string; signingSecret: string }
+  /**
+   * The signing secret — returned exactly once by Lithos. In development it's
+   * also saved to .env.local (`saved`); otherwise it's shown once, stored nowhere.
+   */
+  | { status: "secret"; endpointId: string; url: string; signingSecret: string; saved: boolean }
   | { status: "error"; httpStatus?: number; errors: ApiError[]; hint?: string };
 
 export const INITIAL_SETUP_ACTION_STATE: SetupActionState = { status: "idle" };

@@ -10,6 +10,7 @@ import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps
 import { programFor } from "@/lib/setup/programs";
 import { signOffAsClinician } from "@/lib/sandbox-review";
 import { reachesThisApp } from "@/lib/setup/reachability";
+import { saveToEnvLocal } from "@/lib/setup/env-file";
 
 function failure(error: unknown, hint?: string): SetupActionState {
   if (error instanceof LithosApiError) return { status: "error", httpStatus: error.status, errors: error.errors, hint };
@@ -141,7 +142,8 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
       "/v1/webhook_endpoints", webhookEndpointRequest(url),
     );
     revalidatePath("/setup");
-    return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret };
+    const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
+    return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {
     const exists = error instanceof LithosApiError && error.errors.some((e) => e.code === "webhook_endpoint.already_exists");
     return failure(error, exists ? "Your organization already has an active endpoint, and only one is allowed. The step above shows where it points." : undefined);
@@ -178,7 +180,8 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     await client.post(`/v1/webhook_endpoints/${currentId}/disable`, {});
     const created = await client.post<{ id: string; url: string; signing_secret: string }>("/v1/webhook_endpoints", webhookEndpointRequest(url));
     revalidatePath("/setup");
-    return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret };
+    const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
+    return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {
     return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 6.");
   }
