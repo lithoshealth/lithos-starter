@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Start a care review" };
 export default function StartPage() {
   return (
     <section className="form-card stack">
-      <p className="eyebrow">About 5 minutes</p>
+      <p className="eyebrow">About 2 minutes</p>
       <h1>Let’s add medical care to your membership.</h1>
       <p className="lede">
         A care review is how coaching hands over to a clinician. Tell us about your history, what you’re taking now, and
