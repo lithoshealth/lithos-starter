@@ -276,3 +276,7 @@ summary { cursor: pointer; font-weight: 700; }
 .setup-check-done .setup-check-mark { background: var(--success-soft); color: var(--success); }
 .setup-check-blocked .setup-check-mark { background: var(--danger-soft); color: var(--danger); }
 .setup-check-skipped { opacity: 0.6; }
+
+/* The dev bar when Lithos's deliveries to this app are failing. */
+.dev-bar-warning { background: var(--danger); }
+.dev-bar-warning a { color: #fff; text-decoration: underline; }

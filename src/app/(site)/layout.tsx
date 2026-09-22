@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { APP_NAME } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
+import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
 
 function BrandMark() {
   return (
@@ -11,7 +12,12 @@ function BrandMark() {
   );
 }
 
-export default function SiteLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function SiteLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const dev = process.env.NODE_ENV === "development";
+  const connected = lithosConnection().connected;
+  // After setup is when webhooks break (a restarted tunnel), so keep watching.
+  const health = dev && connected ? await webhookHealth() : null;
+
   return (
     <>
       {/*
@@ -19,9 +25,14 @@ export default function SiteLayout({ children }: Readonly<{ children: ReactNode 
         the link people click — which lands here, on a patient-facing page, with
         nothing saying the walkthrough exists. Never rendered in a production build.
       */}
-      {process.env.NODE_ENV === "development" && (
+      {dev && health?.state === "failing" && (
+        <div className="dev-bar dev-bar-warning" role="alert">
+          Webhooks failing. {describeFailure(health)} <Link href="/setup">Fix it in setup →</Link>
+        </div>
+      )}
+      {dev && health?.state !== "failing" && (
         <div className="dev-bar" role="note">
-          {lithosConnection().connected
+          {connected
             ? <>Connected to the Lithos sandbox — forms on this site create real sandbox patients and encounters. <Link href="/setup">Setup →</Link></>
             : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
         </div>

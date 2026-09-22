@@ -33,7 +33,11 @@ cloudflared tunnel --url http://localhost:3001`}</pre>
         </div>
       </div>
       <h3>2. Register the address</h3>
-      <p>Paste it below. Lithos returns a signing secret — once — and you&rsquo;ll add it to <code>.env.local</code>.</p>
+      <p>
+        Paste it below. First the app checks the address really reaches <em>it</em> — so a placeholder, a typo, a stopped
+        tunnel or Vercel&rsquo;s protection is caught here, not after Lithos has started failing deliveries in silence.
+        Then Lithos returns a signing secret — once — and you&rsquo;ll add it to <code>.env.local</code>.
+      </p>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointReque
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
 import { isSandbox, readLipidTreatment } from "@/lib/setup/steps";
 import { signOffAsClinician } from "@/lib/sandbox-review";
+import { reachesThisApp } from "@/lib/setup/reachability";
 
 function failure(error: unknown, hint?: string): SetupActionState {
   if (error instanceof LithosApiError) return { status: "error", httpStatus: error.status, errors: error.errors, hint };
@@ -97,6 +98,11 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
   }
   const url = base.endsWith("/api/webhooks/lithos") ? base : `${base}/api/webhooks/lithos`;
 
+  // Prove the address reaches this app before Lithos starts delivering to it —
+  // Lithos keeps delivering to a bad address without telling anyone.
+  const reach = await reachesThisApp(url.replace(/\/api\/webhooks\/lithos$/, ""));
+  if (!reach.ok) return { status: "error", errors: [{ code: "setup.address_unreachable", message: reach.message }] };
+
   try {
     const created = await getLithosClient().post<{ id: string; url: string; signing_secret: string }>(
       "/v1/webhook_endpoints", webhookEndpointRequest(url),
@@ -128,6 +134,11 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     return { status: "error", errors: [{ code: "setup.not_https", message: "Lithos only delivers to https:// URLs — localhost won't work. Use your deployed URL or a tunnel." }] };
   }
   const url = base.endsWith("/api/webhooks/lithos") ? base : `${base}/api/webhooks/lithos`;
+
+  // Check first: disabling the current endpoint is one-way, so never trade a
+  // working address for one that doesn't reach this app.
+  const reach = await reachesThisApp(url.replace(/\/api\/webhooks\/lithos$/, ""));
+  if (!reach.ok) return { status: "error", errors: [{ code: "setup.address_unreachable", message: reach.message }] };
 
   const client = getLithosClient();
   try {
