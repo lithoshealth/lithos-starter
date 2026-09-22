@@ -49,6 +49,8 @@ export type Exchange = {
   path: string;
   status?: number;
   response?: unknown;
+  /** Anything done to the response before showing it, said plainly. */
+  note?: string;
 };
 
 /** When something is wrong: what, and exactly what to do about it. */
@@ -74,7 +76,10 @@ export type StepState = {
 /** What the walkthrough has chosen and created, carried in a cookie so a reload doesn't lose the thread. */
 export type JourneyIds = { program?: ProgramKey; patientId?: string; carePlanId?: string; encounterId?: string };
 
-type CatalogTreatment = { id: string; name: string; categories?: string[]; status?: string };
+type CatalogTreatment = {
+  id: string; name: string; categories?: string[]; status?: string; brand_name?: string; form?: string;
+  dosages?: Array<{ id: string; strength?: string; description?: string; default_days_supply?: number }>;
+};
 type WebhookEndpoint = { id: string; url: string; status: string; last_success_at: string | null };
 type WebhookDelivery = {
   id: string; status: string; event_type: string; resource_id: string; last_response_code: number | null;
@@ -477,9 +482,23 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
 
   const chosen = programs.find((p) => p.key === ids.program && p.selectable);
   if (chosen) {
+    // The reveal for this step: what the choice means in API terms — the ids
+    // step 4 sends as catalog_treatment_id, and the dose ladders a clinician
+    // prescribes from.
+    const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(chosen.key));
     return {
       key: "program", status: "done", programs, chosenProgram: chosen.key,
       summary: `${chosen.label} — ${chosen.treatments.length} treatment${chosen.treatments.length === 1 ? "" : "s"} in your formulary`,
+      exchange: {
+        method: "GET", path: "/v1/catalog_treatments", status: 200,
+        note: `Filtered here to ${chosen.label.toLowerCase()}, and trimmed to the fields that matter now — the endpoint itself has no program filter.`,
+        response: {
+          data: treatments.map((t) => ({
+            id: t.id, name: t.name, brand_name: t.brand_name, form: t.form,
+            dosages: (t.dosages ?? []).map((d) => ({ id: d.id, strength: d.strength, default_days_supply: d.default_days_supply, description: d.description })),
+          })),
+        },
+      },
     };
   }
   return { key: "program", status: "ready", summary: "Not chosen yet.", programs };

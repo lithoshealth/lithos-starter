@@ -163,8 +163,21 @@ export default async function SetupPage() {
                 </div>
               )}
 
-              {step.programs && step.status !== "locked" && (
-                <ProgramPicker programs={step.programs} chosen={step.chosenProgram} />
+              {step.programs && step.status !== "locked" && step.status !== "done" && (
+                <ProgramPicker programs={step.programs} />
+              )}
+              {step.programs && step.status === "done" && step.chosenProgram && (
+                <>
+                  <p className="notes">
+                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>. Step 4 will
+                    request one of the treatments below: its <code>id</code> is what you send as <code>catalog_treatment_id</code>, and
+                    its <code>dosages</code> — starting dose first — are what the clinician prescribes from.
+                  </p>
+                  <details className="setup-detail">
+                    <summary>Change program</summary>
+                    <ProgramPicker programs={step.programs} chosen={step.chosenProgram} />
+                  </details>
+                </>
               )}
 
               {preview && (
@@ -211,6 +224,7 @@ export default async function SetupPage() {
                     What Lithos returned — <code>{step.exchange.method} {step.exchange.path}</code>
                     {step.exchange.status ? ` · ${step.exchange.status}` : ""}
                   </summary>
+                  {step.exchange.note && <p className="muted">{step.exchange.note}</p>}
                   <Json value={step.exchange.response} />
                 </details>
               )}
