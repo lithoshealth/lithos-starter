@@ -39,6 +39,17 @@ export async function chooseProgramAction(_prev: SetupActionState, formData: For
   return { status: "ok" };
 }
 
+/**
+ * "Change program" goes back to the choice itself: step 2 returns to the picker
+ * and the steps after it wait again. The patient and encounter are kept — they
+ * reappear once a program is chosen again.
+ */
+export async function clearProgramAction(): Promise<void> {
+  const { program: _dropped, ...rest } = await readIds();
+  await writeIds(rest);
+  revalidatePath("/setup");
+}
+
 export async function createPatientAction(): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;

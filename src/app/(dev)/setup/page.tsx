@@ -4,7 +4,7 @@ import { APP_NAME } from "@/lib/app-meta";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
+import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
 import Link from "next/link";
 import { ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
@@ -173,10 +173,9 @@ export default async function SetupPage() {
                     request one of the treatments below: its <code>id</code> is what you send as <code>catalog_treatment_id</code>, and
                     its <code>dosages</code> — starting dose first — are what the clinician prescribes from.
                   </p>
-                  <details className="setup-detail">
-                    <summary>Change program</summary>
-                    <ProgramPicker programs={step.programs} chosen={step.chosenProgram} />
-                  </details>
+                  <form action={clearProgramAction}>
+                    <button type="submit" className="btn btn-ghost">Change program</button>
+                  </form>
                 </>
               )}
 

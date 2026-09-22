@@ -3,7 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
 import { chooseProgramAction, registerWebhookAction, repointWebhookAction } from "./actions";
-import type { ProgramKey, ProgramOption } from "@/lib/setup/programs";
+import type { ProgramOption } from "@/lib/setup/programs";
 
 function ActionError({ state }: { state: SetupActionState }) {
   if (state.status !== "error") return null;
@@ -49,9 +49,9 @@ export function StepAction({
  * for it — including the ones it can't pick yet, because seeing what exists is
  * part of the point.
  */
-export function ProgramPicker({ programs, chosen }: { programs: ProgramOption[]; chosen?: ProgramKey }) {
+export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
   const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE);
-  const preselected = chosen ?? programs.find((p) => p.selectable)?.key;
+  const preselected = programs.find((p) => p.selectable)?.key;
   return (
     <form action={run} className="stack">
       <fieldset className="program-picker">
@@ -73,7 +73,7 @@ export function ProgramPicker({ programs, chosen }: { programs: ProgramOption[];
       </fieldset>
       <div>
         <button type="submit" className="btn btn-primary" disabled={pending || !preselected}>
-          {pending ? "Saving…" : chosen ? "Change program" : "Use this program"}
+          {pending ? "Saving…" : "Use this program"}
         </button>
       </div>
       <ActionError state={state} />
