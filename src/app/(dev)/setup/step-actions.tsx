@@ -24,17 +24,29 @@ function ActionError({ state }: { state: SetupActionState }) {
   );
 }
 
+/**
+ * Where a form lands if it submits before the page's JavaScript has loaded
+ * (React's permalink): a full reload would otherwise start at the top of the
+ * page. With JavaScript, the page updates in place and this isn't used.
+ */
+function stepAnchor(step: string): string {
+  return `/setup#step-${step}`;
+}
+
 /** One button, one real API call. The page re-reads Lithos afterwards to decide whether it worked. */
 export function StepAction({
   action,
   label,
   pendingLabel,
+  step,
 }: {
   action: (state: SetupActionState) => Promise<SetupActionState>;
   label: string;
   pendingLabel: string;
+  /** The step this button belongs to — where the page lands if it has to reload. */
+  step: string;
 }) {
-  const [state, run, pending] = useActionState(action, INITIAL_SETUP_ACTION_STATE);
+  const [state, run, pending] = useActionState(action, INITIAL_SETUP_ACTION_STATE, stepAnchor(step));
   return (
     <form action={run} className="stack">
       <div>
@@ -51,7 +63,7 @@ export function StepAction({
  * part of the point.
  */
 export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
-  const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE);
+  const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("program"));
   const preselected = programs.find((p) => p.selectable)?.key;
   return (
     <form action={run} className="stack">
@@ -116,7 +128,7 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
 }
 
 export function WebhookForm({ defaultUrl }: { defaultUrl: string }) {
-  const [state, run, pending] = useActionState(registerWebhookAction, INITIAL_SETUP_ACTION_STATE);
+  const [state, run, pending] = useActionState(registerWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_endpoint"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
 
   return (
@@ -138,7 +150,7 @@ export function WebhookForm({ defaultUrl }: { defaultUrl: string }) {
 export function RepointForm({
   currentId, currentUrl, defaultUrl, children,
 }: { currentId: string; currentUrl: string; defaultUrl: string; children?: ReactNode }) {
-  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE);
+  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_endpoint"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
 
   return (
@@ -174,7 +186,7 @@ export function RepointForm({
  * .env.local in development).
  */
 export function NewSecretForm({ currentId, url }: { currentId: string; url: string }) {
-  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE);
+  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_received"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
   const base = url.replace(/\/api\/webhooks\/lithos$/, "");
   return (

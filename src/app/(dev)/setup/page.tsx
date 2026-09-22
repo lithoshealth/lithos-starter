@@ -203,13 +203,13 @@ export default async function SetupPage() {
               )}
 
               {step.status === "ready" && step.key === "patient" && (
-                <StepAction action={createPatientAction} label="Create a sample patient" pendingLabel="Creating…" />
+                <StepAction step="patient" action={createPatientAction} label="Create a sample patient" pendingLabel="Creating…" />
               )}
               {step.status === "ready" && step.key === "encounter" && (
-                <StepAction action={createEncounterAction} label="Create care plan and encounter" pendingLabel="Sending to Lithos…" />
+                <StepAction step="encounter" action={createEncounterAction} label="Create care plan and encounter" pendingLabel="Sending to Lithos…" />
               )}
               {step.status === "ready" && step.key === "review" && (
-                <StepAction action={driveReviewAction} label="Sign it off as the clinician" pendingLabel="Reviewing…" />
+                <StepAction step="review" action={driveReviewAction} label="Sign it off as the clinician" pendingLabel="Reviewing…" />
               )}
               {step.status === "ready" && step.key === "webhook_endpoint" && (
                 <>

@@ -50,6 +50,8 @@ export async function clearProgramAction(): Promise<void> {
   const { program: _dropped, ...rest } = await readIds();
   await writeIds(rest);
   revalidatePath("/setup");
+  // Back to the picker, not the top of the page — with or without JavaScript.
+  redirect("/setup#step-program");
 }
 
 export async function createPatientAction(): Promise<SetupActionState> {
