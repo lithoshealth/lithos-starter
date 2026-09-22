@@ -91,8 +91,9 @@ export default function HomePage() {
             a coach who reads it with you, and medical care added the moment lifestyle alone stops being enough.
           </p>
           <div className="hero-actions">
-            <Link href="#plans" className="btn btn-primary btn-lg">See membership plans</Link>
-            <Link href="#program" className="btn btn-ghost btn-lg">How the program works</Link>
+            {/* Care review first: it's the path that exercises the Lithos API end to end. */}
+            <Link href="/start" className="btn btn-primary btn-lg">Start a care review</Link>
+            <Link href="#plans" className="btn btn-ghost btn-lg">See membership plans</Link>
           </div>
           <ul className="trust">
             <li>Quarterly at-home panels</li>
