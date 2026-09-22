@@ -39,14 +39,15 @@ also has a link to it at the top.
 
 ## The setup walkthrough
 
-`/setup` takes you from credentials to a verified webhook in six steps:
+`/setup` takes you from credentials to a verified webhook in seven steps:
 
 1. Connect to Lithos — your credentials, checked by minting a token and reading your formulary
-2. Create a patient
-3. Create a care plan and an encounter
-4. Sign the encounter off as the clinician (a sandbox helper)
-5. Register a webhook endpoint
-6. Receive a verified webhook
+2. Choose your program — what your organization offers (lipid management today; weight loss coming soon)
+3. Create a patient
+4. Create a care plan and an encounter
+5. Sign the encounter off as the clinician (a sandbox helper)
+6. Register a webhook endpoint
+7. Receive a verified webhook
 
 Every step is checked against the live API — nothing is ticked by hand, so if you
 do a step your own way (curl, your own code), it still turns green. Each one shows
@@ -106,7 +107,7 @@ your programs from your Lithos contact before relying on any rule in it.
 ## Environment
 
 See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the
-walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 5; everything else is for
+walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 6; everything else is for
 the membership side or for deploying.
 
 ```sh

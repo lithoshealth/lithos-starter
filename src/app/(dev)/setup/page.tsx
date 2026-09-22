@@ -6,7 +6,7 @@ import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
 import Link from "next/link";
-import { RepointForm, StepAction, WebhookForm } from "./step-actions";
+import { ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
@@ -18,6 +18,10 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   connect: {
     title: "Connect to Lithos",
     what: "Add your client ID and secret — two values Lithos issues when your sandbox organization is set up. They stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
+  },
+  program: {
+    title: "Choose your program",
+    what: "Lithos organizes care into programs — each with its own protocol, intake form and treatments — and your organization is provisioned for some of them. The program you offer decides what you'll ask patients and what a clinician can prescribe. It's the one step you choose rather than do, but the options come from your live formulary.",
   },
   patient: {
     title: "Create a patient",
@@ -55,8 +59,8 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
       return [{ method: "POST", path: "/v1/patients", body: patientRequest("<timestamp>") }];
     case "encounter":
       return [
-        { method: "POST", path: "/v1/care_plans", body: carePlanRequest(ids.patientId ?? "<patient id>") },
-        { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.patientId ?? "<patient id>", "<care plan id>", "<first lipid treatment in your formulary>") },
+        { method: "POST", path: "/v1/care_plans", body: carePlanRequest(ids.patientId ?? "<patient id>", ids.program ?? "<your program>") },
+        { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.patientId ?? "<patient id>", "<care plan id>", "<first treatment in your program>") },
       ];
     case "review":
       return [
@@ -91,7 +95,7 @@ export default async function SetupPage() {
           <p className="eyebrow">Lithos sandbox · setup</p>
           <h1>From clone to your first encounter.</h1>
           <p className="lede">
-            Six steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
+            Seven steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
             your own way, it still turns green. About fifteen minutes to a first encounter.
           </p>
         </div>
@@ -159,6 +163,10 @@ export default async function SetupPage() {
                 </div>
               )}
 
+              {step.programs && step.status !== "locked" && (
+                <ProgramPicker programs={step.programs} chosen={step.chosenProgram} />
+              )}
+
               {preview && (
                 <details className="setup-detail" open={isCurrent}>
                   <summary>The call{preview.length > 1 ? "s" : ""} this step makes</summary>
@@ -220,7 +228,7 @@ export default async function SetupPage() {
         <h2>Now use the app itself.</h2>
         <p>
           {connected
-            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
+            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 5.</>
             : <>Connect in step 1 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
         </p>
         {connected && (

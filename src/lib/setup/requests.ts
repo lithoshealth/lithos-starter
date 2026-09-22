@@ -24,8 +24,9 @@ export function patientRequest(stamp: string) {
   };
 }
 
-export function carePlanRequest(patientId: string) {
-  return { patient_id: patientId, category: "lipid_management" };
+/** `category` is the program chosen in step 2 — Lithos calls it the care plan's category. */
+export function carePlanRequest(patientId: string, category: string) {
+  return { patient_id: patientId, category };
 }
 
 /**
@@ -65,6 +66,7 @@ export function webhookEndpointRequest(url: string) {
 /** Where the walkthrough's integration code lives, per step — shown so the prospect knows what to read. */
 export const STEP_SOURCES = {
   connect: "scripts/setup.mjs · src/lib/lithos/auth.ts (token) · src/lib/lithos/client.ts (requests)",
+  program: "src/lib/setup/programs.ts",
   patient: "src/lib/setup/requests.ts → patientRequest",
   encounter: "src/lib/setup/requests.ts → encounterRequest",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",

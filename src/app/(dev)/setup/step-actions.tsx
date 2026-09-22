@@ -2,7 +2,8 @@
 
 import { useActionState, type ReactNode } from "react";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
-import { registerWebhookAction, repointWebhookAction } from "./actions";
+import { chooseProgramAction, registerWebhookAction, repointWebhookAction } from "./actions";
+import type { ProgramKey, ProgramOption } from "@/lib/setup/programs";
 
 function ActionError({ state }: { state: SetupActionState }) {
   if (state.status !== "error") return null;
@@ -43,6 +44,43 @@ export function StepAction({
   );
 }
 
+/**
+ * Step 2. Every program is listed, with what this organization's formulary has
+ * for it — including the ones it can't pick yet, because seeing what exists is
+ * part of the point.
+ */
+export function ProgramPicker({ programs, chosen }: { programs: ProgramOption[]; chosen?: ProgramKey }) {
+  const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE);
+  const preselected = chosen ?? programs.find((p) => p.selectable)?.key;
+  return (
+    <form action={run} className="stack">
+      <fieldset className="program-picker">
+        <legend>What program is your organization offering?</legend>
+        {programs.map((p) => (
+          <label key={p.key} className={`program-option${p.selectable ? "" : " program-option-disabled"}`}>
+            <input type="radio" name="program" value={p.key} disabled={!p.selectable} defaultChecked={p.key === preselected} />
+            <span className="program-option-body">
+              <span className="program-option-title">
+                {p.label}
+                {!p.supported && <span className="pill">Coming soon</span>}
+                {p.supported && !p.inFormulary && <span className="pill">Not in your formulary</span>}
+              </span>
+              <span className="muted">{p.inFormulary ? <>In your formulary: {p.treatments.join(", ")}.</> : <>Your organization isn&rsquo;t provisioned for it.</>}</span>
+              <span className="muted">Its intake asks {p.asks}.</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <div>
+        <button type="submit" className="btn btn-primary" disabled={pending || !preselected}>
+          {pending ? "Saving…" : chosen ? "Change program" : "Use this program"}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
 /** The signing secret, shown the one time Lithos returns it — with the exact line to paste. */
 function SecretOnce({ url, signingSecret }: { url: string; signingSecret: string }) {
   return (
@@ -56,7 +94,7 @@ function SecretOnce({ url, signingSecret }: { url: string; signingSecret: string
       <pre className="setup-json">{`LITHOS_WEBHOOK_SECRET=${signingSecret}`}</pre>
       <p className="muted">
         In development the app picks it up on the next request. On a deployed copy, set it in your host&rsquo;s
-        environment settings and redeploy. Then go to step 6.
+        environment settings and redeploy. Then go to step 7.
       </p>
     </div>
   );

@@ -283,3 +283,13 @@ summary { cursor: pointer; font-weight: 700; }
 
 /* The one command a stuck step needs — big enough to find, easy to copy. */
 .setup-command { margin: 0.5rem 0; padding: 0.7rem 1rem; border-radius: var(--radius-sm); background: var(--ink); color: #fff; font-size: 1.05rem; font-weight: 700; white-space: pre-wrap; user-select: all; }
+
+/* Step 2: the program picker. */
+.program-picker { border: 0; padding: 0; margin: 0; display: grid; gap: 0.6rem; min-width: 0; }
+.program-picker legend { font-weight: 700; margin-bottom: 0.4rem; }
+.program-option { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.85rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); cursor: pointer; }
+.program-option:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.program-option input { margin-top: 0.3rem; }
+.program-option-body { display: grid; gap: 0.2rem; min-width: 0; }
+.program-option-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+.program-option-disabled { cursor: not-allowed; opacity: 0.55; background: transparent; }

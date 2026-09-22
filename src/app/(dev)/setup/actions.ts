@@ -6,7 +6,8 @@ import { LithosApiError } from "@/lib/lithos/errors";
 import type { SetupActionState } from "@/lib/setup/action-state";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
-import { isSandbox, readLipidTreatment } from "@/lib/setup/steps";
+import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps";
+import { programFor } from "@/lib/setup/programs";
 import { signOffAsClinician } from "@/lib/sandbox-review";
 import { reachesThisApp } from "@/lib/setup/reachability";
 
@@ -21,6 +22,23 @@ function refuseOutsideSandbox(): SetupActionState | null {
   return { status: "error", errors: [{ code: "setup.not_sandbox", message: "The walkthrough only writes to the Lithos sandbox." }] };
 }
 
+/** Step 2: the program this organization will offer. Checked against the live formulary, not just the list. */
+export async function chooseProgramAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+  const program = programFor(String(formData.get("program") ?? ""));
+  if (!program) return { status: "error", errors: [{ code: "setup.no_program", message: "Pick a program." }] };
+  if (!program.supported) return { status: "error", errors: [{ code: "setup.program_coming_soon", message: `${program.label} is coming soon — this walkthrough runs lipid management for now.` }] };
+  try {
+    if (!(await formularyHas(program.key))) {
+      return { status: "error", errors: [{ code: "setup.program_not_in_formulary", message: `Your organization isn't provisioned for ${program.label.toLowerCase()}. Ask your Lithos contact to add it.` }] };
+    }
+  } catch (error) {
+    return failure(error);
+  }
+  await writeIds({ ...(await readIds()), program: program.key });
+  revalidatePath("/setup");
+  return { status: "ok" };
+}
+
 export async function createPatientAction(): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
@@ -29,8 +47,10 @@ export async function createPatientAction(): Promise<SetupActionState> {
   const body = { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now };
   try {
     const patient = await getLithosClient().post<{ id: string }>("/v1/patients", body);
-    // A new patient starts a new thread: drop any encounter from a previous run.
-    await writeIds({ patientId: patient.id });
+    // A new patient starts a new thread: drop any encounter from a previous run,
+    // but keep the program — that's a choice about the organization, not the patient.
+    const { program } = await readIds();
+    await writeIds({ program, patientId: patient.id });
   } catch (error) {
     return failure(error);
   }
@@ -44,14 +64,16 @@ export async function createEncounterAction(): Promise<SetupActionState> {
 
   const ids = await readIds();
   if (!ids.patientId) return { status: "error", errors: [{ code: "setup.no_patient", message: "Create a patient first." }] };
+  const program = programFor(ids.program);
+  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
 
   const client = getLithosClient();
   try {
-    const treatment = await readLipidTreatment();
-    if (!treatment) return { status: "error", errors: [{ code: "setup.no_lipid_treatment", message: "Your formulary has no lipid management treatment to request." }] };
+    const treatment = await readProgramTreatment(program.key);
+    if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
 
     // Reuse a care plan from a run that failed at the encounter, rather than piling up empty plans.
-    const carePlanId = ids.carePlanId ?? (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(ids.patientId))).id;
+    const carePlanId = ids.carePlanId ?? (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(ids.patientId, program.key))).id;
     await writeIds({ ...ids, carePlanId });
 
     const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(ids.patientId, carePlanId, treatment.id));
@@ -147,11 +169,14 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     revalidatePath("/setup");
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret };
   } catch (error) {
-    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 5.");
+    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 6.");
   }
 }
 
 export async function resetSetupAction(): Promise<void> {
+  // "Run again with new patient" forgets the patient and encounter, not the program.
+  const { program } = await readIds();
   await clearJourneyIds();
+  if (program) await writeIds({ program });
   revalidatePath("/setup");
 }

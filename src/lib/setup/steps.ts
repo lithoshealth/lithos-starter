@@ -17,9 +17,10 @@ import { readWebhookAttempts } from "../webhooks/attempts";
 import { getLithosClient } from "../lithos/client";
 import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
+import { PROGRAMS, type ProgramKey, type ProgramOption } from "./programs";
 
 export type StepKey =
-  | "connect" | "patient" | "encounter" | "review" | "webhook_endpoint" | "webhook_received";
+  | "connect" | "program" | "patient" | "encounter" | "review" | "webhook_endpoint" | "webhook_received";
 
 /**
  * "Connect" is one step with three checks. Adding credentials is the only thing
@@ -38,7 +39,7 @@ export type ConnectCheck = {
 };
 
 /** What each connection check returns before it's folded into the Connect step. */
-type InternalCheck = { key: ConnectCheckKey; status: StepStatus; summary: string; exchange?: Exchange; diagnosis?: Diagnosis };
+type InternalCheck = { key: ConnectCheckKey; status: StepStatus; summary: string; exchange?: Exchange; diagnosis?: Diagnosis; catalog?: CatalogTreatment[] };
 
 export type StepStatus = "done" | "ready" | "blocked" | "locked";
 
@@ -64,10 +65,14 @@ export type StepState = {
   endpoint?: { id: string; url: string; pointsHere: boolean };
   /** The Connect step only: its three checks, each with its own exchange. */
   checks?: ConnectCheck[];
+  /** The program step only: every program, and what this organization's formulary has for it. */
+  programs?: ProgramOption[];
+  chosenProgram?: ProgramKey;
 };
 
 /** Ids the walkthrough has created, carried in a cookie so a reload doesn't lose the thread. */
-export type JourneyIds = { patientId?: string; carePlanId?: string; encounterId?: string };
+/** What the walkthrough has chosen and created, carried in a cookie so a reload doesn't lose the thread. */
+export type JourneyIds = { program?: ProgramKey; patientId?: string; carePlanId?: string; encounterId?: string };
 
 type CatalogTreatment = { id: string; name: string; categories?: string[]; status?: string };
 type WebhookEndpoint = { id: string; url: string; status: string; last_success_at: string | null };
@@ -176,9 +181,15 @@ async function checkToken(): Promise<InternalCheck> {
 
 // ---------------------------------------------------------------- 3. organization
 
-export async function readLipidTreatment(): Promise<CatalogTreatment | undefined> {
+/** The first active treatment in this organization's formulary for a program — what the walkthrough's encounter requests. */
+export async function readProgramTreatment(program: ProgramKey): Promise<CatalogTreatment | undefined> {
   const catalog = await getLithosClient().get<{ data: CatalogTreatment[] }>("/v1/catalog_treatments");
-  return catalog.data.find((t) => t.status !== "inactive" && t.categories?.includes("lipid_management"));
+  return catalog.data.find((t) => t.status !== "inactive" && t.categories?.includes(program));
+}
+
+/** Whether this organization's formulary has anything for a program — checked live when one is chosen. */
+export async function formularyHas(program: ProgramKey): Promise<boolean> {
+  return Boolean(await readProgramTreatment(program));
 }
 
 async function checkOrganization(): Promise<InternalCheck> {
@@ -194,24 +205,13 @@ async function checkOrganization(): Promise<InternalCheck> {
         key: "organization", status: "blocked", summary: "Your formulary is empty.", exchange,
         diagnosis: {
           title: "Your organization exists but no programs are switched on",
-          fix: "Provisioning chooses which treatments you can prescribe, and none were chosen. Ask your Lithos contact to add a formulary — this walkthrough needs a lipid management treatment.",
-        },
-      };
-    }
-    const lipid = catalog.data.filter((t) => t.categories?.includes("lipid_management"));
-    if (lipid.length === 0) {
-      return {
-        key: "organization", status: "blocked",
-        summary: `${catalog.data.length} treatments, none for lipid management.`, exchange,
-        diagnosis: {
-          title: "This walkthrough uses the lipid management program, and yours doesn't include it",
-          fix: "Your organization is working — it just isn't set up for the program this walkthrough demonstrates. Ask your Lithos contact to add a lipid treatment to your sandbox formulary.",
+          fix: "Provisioning chooses which programs you can prescribe in, and none were chosen. Ask your Lithos contact to add a program to your sandbox organization.",
         },
       };
     }
     return {
       key: "organization", status: "done",
-      summary: `${catalog.data.length} treatments available (lipid: ${lipid.map((t) => t.name).join(", ")})`, exchange,
+      summary: `${catalog.data.length} treatments available`, exchange, catalog: catalog.data,
     };
   } catch (error) {
     const codes = errorCodes(error);
@@ -426,7 +426,7 @@ const CHECK_LABELS: Record<ConnectCheckKey, string> = {
 };
 
 /** Run the three connection checks in order; stop at the first that fails. */
-async function checkConnect(): Promise<StepState> {
+async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatment[] }> {
   const results: InternalCheck[] = [];
   const credentials = checkCredentials();
   results.push(credentials);
@@ -447,9 +447,42 @@ async function checkConnect(): Promise<StepState> {
   const failed = results.find((r) => r.status !== "done");
   if (failed) {
     const summary = failed.key === "credentials" ? "Not connected yet." : failed.summary;
-    return { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks };
+    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks }, catalog: [] };
   }
-  return { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks };
+  return { step: { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks }, catalog: results[2].catalog ?? [] };
+}
+
+// ---------------------------------------------------------------- 2. program
+
+/**
+ * The one step you choose rather than do. The choice is yours; whether it's
+ * valid isn't — the options come from your live formulary, so a program your
+ * organization isn't provisioned for can't be picked.
+ */
+function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
+  const programs: ProgramOption[] = PROGRAMS.map((program) => {
+    const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(program.key)).map((t) => t.name);
+    return { ...program, treatments, inFormulary: treatments.length > 0, selectable: program.supported && treatments.length > 0 };
+  });
+
+  if (!programs.some((p) => p.selectable)) {
+    return {
+      key: "program", status: "blocked", summary: "No program this walkthrough supports is in your formulary.", programs,
+      diagnosis: {
+        title: "This walkthrough runs lipid management for now, and your organization isn't provisioned for it",
+        fix: "Weight loss is coming soon. Until then, ask your Lithos contact to add lipid management to your sandbox organization — nothing ships from the sandbox, so there's no reason to hold it back.",
+      },
+    };
+  }
+
+  const chosen = programs.find((p) => p.key === ids.program && p.selectable);
+  if (chosen) {
+    return {
+      key: "program", status: "done", programs, chosenProgram: chosen.key,
+      summary: `${chosen.label} — ${chosen.treatments.length} treatment${chosen.treatments.length === 1 ? "" : "s"} in your formulary`,
+    };
+  }
+  return { key: "program", status: "ready", summary: "Not chosen yet.", programs };
 }
 
 export async function evaluateSetup(ids: JourneyIds, thisHost: string | null): Promise<StepState[]> {
@@ -457,10 +490,17 @@ export async function evaluateSetup(ids: JourneyIds, thisHost: string | null): P
   const lockedFrom = (keys: StepKey[], reason: string) =>
     keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
 
-  const connect = await checkConnect();
+  const { step: connect, catalog } = await checkConnect();
   steps.push(connect);
   if (connect.status !== "done") {
-    lockedFrom(["patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on the connection.");
+    lockedFrom(["program", "patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on the connection.");
+    return steps;
+  }
+
+  const program = checkProgram(ids, catalog);
+  steps.push(program);
+  if (program.status !== "done") {
+    lockedFrom(["patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on your program.");
     return steps;
   }
 
