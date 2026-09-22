@@ -52,6 +52,8 @@ export type Exchange = {
   response?: unknown;
   /** Anything done to the response before showing it, said plainly. */
   note?: string;
+  /** "inbound": Lithos called us (a webhook), rather than us calling Lithos. */
+  direction?: "inbound";
 };
 
 /** When something is wrong: what, and exactly what to do about it. */
@@ -335,17 +337,24 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
   }
   const ours = new Set([ids.patientId, ids.carePlanId, ids.encounterId].filter(Boolean) as string[]);
 
-  let receivedHere = 0;
+  let received: Awaited<ReturnType<ReturnType<typeof getEventStore>["list"]>> = [];
   try {
     const events = await getEventStore().list(200);
-    receivedHere = events.filter((e) => typeof e.payload.resource_id === "string" && ours.has(e.payload.resource_id)).length;
+    received = events.filter((e) => typeof e.payload.resource_id === "string" && ours.has(e.payload.resource_id));
   } catch {
     /* no event store on this deployment — Lithos's delivery log below still tells the story */
   }
-  if (receivedHere > 0) {
+  if (received.length > 0) {
     return {
       key: "webhook_received", status: "done",
-      summary: `${receivedHere} event${receivedHere === 1 ? "" : "s"} about your encounter delivered, signature verified, stored.`,
+      summary: `${received.length} event${received.length === 1 ? "" : "s"} about your encounter delivered, signature verified, stored.`,
+      // The reveal for the last step: what Lithos actually sent. Thin on
+      // purpose — a type and a resource id, not the new state.
+      exchange: {
+        method: "POST", path: "/api/webhooks/lithos", status: 200, direction: "inbound",
+        note: "Each event says what changed and which resource — not the new state. An integration re-reads that resource with a GET. Headers (including the signature) aren't stored, only the verified payloads.",
+        response: { data: received.map((e) => ({ received_at: e.receivedAt, ...e.payload })) },
+      },
     };
   }
 

@@ -41,7 +41,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   webhook_received: {
     title: "Receive a verified webhook",
-    what: "Every delivery is signed. This app checks the signature before trusting a byte, then re-reads the resource — events say what changed, not what the state is.",
+    what: "Every delivery is signed. This app checks the signature before trusting a byte, and refuses anything that doesn't verify. Events are deliberately thin — they say what changed, not what the state is — so an integration re-reads the resource with a GET when one arrives.",
   },
 };
 
@@ -236,7 +236,7 @@ export default async function SetupPage() {
               {step.exchange && (
                 <details className="setup-detail" open={!isEmptyResponse(step.exchange.response)}>
                   <summary>
-                    What Lithos returned — <code>{step.exchange.method} {step.exchange.path}</code>
+                    {step.exchange.direction === "inbound" ? "What Lithos sent" : "What Lithos returned"} — <code>{step.exchange.method} {step.exchange.path}</code>
                     {step.exchange.status ? ` · ${step.exchange.status}` : ""}
                     {isEmptyResponse(step.exchange.response) ? " · nothing yet" : ""}
                   </summary>
