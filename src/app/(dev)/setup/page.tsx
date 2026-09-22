@@ -4,9 +4,9 @@ import { APP_NAME } from "@/lib/app-meta";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction, resetSetupAction } from "./actions";
+import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction } from "./actions";
 import Link from "next/link";
-import { NewSecretForm, ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
+import { NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
@@ -74,6 +74,16 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
   }
 }
 
+/**
+ * A list call that came back empty. Its response stays folded — an open
+ * `{ "data": [] }` reads like a result when it's the absence of one. The reveal
+ * is for when there's something to see.
+ */
+function isEmptyResponse(response: unknown): boolean {
+  const data = (response as { data?: unknown } | null | undefined)?.data;
+  return Array.isArray(data) && data.length === 0;
+}
+
 function Json({ value }: { value: unknown }) {
   return <pre className="setup-json">{JSON.stringify(value, null, 2)}</pre>;
 }
@@ -102,9 +112,7 @@ export default async function SetupPage() {
             your own way, it still turns green. About fifteen minutes to a first encounter.
           </p>
         </div>
-        <form action={resetSetupAction}>
-          <button type="submit" className="btn btn-ghost">Run again with new patient</button>
-        </form>
+        <RunAgainButton />
       </div>
 
       <div className="setup-progress" aria-label={`${done} of ${steps.length} steps done`}>
@@ -123,7 +131,7 @@ export default async function SetupPage() {
           const preview = step.status === "ready" ? requestPreview(step.key, ids) : null;
           const isCurrent = current?.key === step.key;
           return (
-            <li key={step.key} className={`card setup-step setup-step-${step.status}${isCurrent ? " setup-step-current" : ""}`}>
+            <li key={step.key} id={`step-${step.key}`} className={`card setup-step setup-step-${step.status}${isCurrent ? " setup-step-current" : ""}`}>
               <div className="setup-step-head">
                 <span className="setup-step-num">{index + 1}</span>
                 <div className="setup-step-title">
@@ -226,10 +234,11 @@ export default async function SetupPage() {
               {/* Open by default: seeing Lithos answer with real data is the point
                   of each step. The block scrolls, so the page stays walkable. */}
               {step.exchange && (
-                <details className="setup-detail" open>
+                <details className="setup-detail" open={!isEmptyResponse(step.exchange.response)}>
                   <summary>
                     What Lithos returned — <code>{step.exchange.method} {step.exchange.path}</code>
                     {step.exchange.status ? ` · ${step.exchange.status}` : ""}
+                    {isEmptyResponse(step.exchange.response) ? " · nothing yet" : ""}
                   </summary>
                   {step.exchange.note && <p className="muted">{step.exchange.note}</p>}
                   <Json value={step.exchange.response} />

@@ -297,3 +297,6 @@ summary { cursor: pointer; font-weight: 700; }
 /* Headings inside a step's note or error box: a label, not a page title. */
 .setup-step .demo-note h2, .setup-step .error-box h2 { font-size: 1.05rem; margin-bottom: 0.25rem; }
 .setup-step .demo-note h2 { color: var(--warning-ink); }
+
+/* Jump targets: a step scrolled to from a button lands a little below the top edge. */
+.setup-step { scroll-margin-top: 1rem; }

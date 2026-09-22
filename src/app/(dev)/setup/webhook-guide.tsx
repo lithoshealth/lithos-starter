@@ -1,3 +1,5 @@
+import { RunAgainButton } from "./step-actions";
+
 /**
  * How to actually do steps 6 and 7. The checks can tell you whether a webhook
  * arrived; they can't give you a public address or tell you when to look. This
@@ -59,9 +61,12 @@ export function DeliveryGuide({ secretSet }: { secretSet: boolean }) {
         registered <em>at that moment</em>, so anything you did before step 6 went nowhere. Make something new happen:
       </p>
       <ul>
-        <li><strong>Run again with a new patient</strong> (top of this page), then steps 3–5; or</li>
+        <li>run steps 3–5 again with a new patient — the button below clears the old one and takes you there; or</li>
         <li>submit a care review on the site — the same calls, made by the app.</li>
       </ul>
+      <div>
+        <RunAgainButton variant="primary" />
+      </div>
       <p className="muted">Deliveries usually land within seconds. Reload this page to check.</p>
     </div>
   );

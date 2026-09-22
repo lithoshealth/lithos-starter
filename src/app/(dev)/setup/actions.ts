@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { SetupActionState } from "@/lib/setup/action-state";
@@ -193,4 +194,7 @@ export async function resetSetupAction(): Promise<void> {
   await clearJourneyIds();
   if (program) await writeIds({ program });
   revalidatePath("/setup");
+  // Land on step 3, where the new run starts. A redirect to the anchor works
+  // with or without JavaScript — the browser scrolls to it either way.
+  redirect("/setup#step-patient");
 }
