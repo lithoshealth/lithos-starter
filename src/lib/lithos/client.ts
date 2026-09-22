@@ -49,13 +49,22 @@ export class ServerLithosClient implements LithosClient {
   }
 }
 
-let singleton: ServerLithosClient | undefined;
+/**
+ * One client per set of credentials, not per process. In development
+ * `.env.local` can change under a running server — switching to another
+ * sandbox organization, say — and a client built from the old values would
+ * keep minting tokens for the old organization until a restart. The key covers
+ * every value the client is built from, so any change builds a fresh one.
+ */
+let singleton: { key: string; client: ServerLithosClient } | undefined;
 
 export function getLithosClient(): ServerLithosClient {
-  if (!singleton) {
-    const baseUrl = process.env.LITHOS_API_BASE_URL;
-    if (!baseUrl) throw new Error("Missing required server environment variable: LITHOS_API_BASE_URL");
-    singleton = new ServerLithosClient(baseUrl, new TokenManager(tokenConfigFromEnv()));
+  const baseUrl = process.env.LITHOS_API_BASE_URL;
+  if (!baseUrl) throw new Error("Missing required server environment variable: LITHOS_API_BASE_URL");
+  const config = tokenConfigFromEnv();
+  const key = [baseUrl, config.tokenUrl, config.clientId, config.clientSecret].join("\n");
+  if (!singleton || singleton.key !== key) {
+    singleton = { key, client: new ServerLithosClient(baseUrl, new TokenManager(config)) };
   }
-  return singleton;
+  return singleton.client;
 }
