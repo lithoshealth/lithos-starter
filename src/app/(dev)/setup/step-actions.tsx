@@ -56,6 +56,12 @@ export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
     <form action={run} className="stack">
       <fieldset className="program-picker">
         <legend>What program is your organization offering?</legend>
+        {programs.filter((p) => p.selectable).length === 1 && (
+          <p className="muted">
+            Pre-selected: it&rsquo;s the only program in your formulary — Lithos set your organization up for it. Confirm
+            to continue.
+          </p>
+        )}
         {programs.map((p) => (
           <label key={p.key} className={`program-option${p.selectable ? "" : " program-option-disabled"}`}>
             <input type="radio" name="program" value={p.key} disabled={!p.selectable} defaultChecked={p.key === preselected} />
