@@ -13,6 +13,7 @@
  */
 
 import { getEventStore } from "../events/factory";
+import { reachesThisApp, type Reachability } from "./reachability";
 import { readWebhookAttempts } from "../webhooks/attempts";
 import { getLithosClient } from "../lithos/client";
 import { LithosApiError } from "../lithos/errors";
@@ -290,18 +291,33 @@ async function readEndpoint(): Promise<{ endpoint?: WebhookEndpoint; exchange: E
   }
 }
 
-function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange }, thisHost: string | null): StepState {
+/**
+ * "Is the registered endpoint this app?" is answered the same way registration
+ * checks it — by fetching the endpoint's ping and comparing the proof — not by
+ * comparing hostnames. A tunnel or a deployment never shares the page's host,
+ * so the hostname version flagged every correctly registered tunnel as someone
+ * else's. The proof also catches what hostnames can't: a tunnel that has since
+ * restarted under a new address.
+ */
+function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange }, reach: Reachability | null): StepState {
   if (!read.endpoint) {
     return { key: "webhook_endpoint", status: "ready", summary: "No webhook endpoint registered.", exchange: read.exchange };
   }
-  const pointsHere = thisHost ? read.endpoint.url.includes(thisHost) : false;
+  const pointsHere = reach?.ok === true;
+  if (pointsHere) {
+    return {
+      key: "webhook_endpoint", status: "done",
+      summary: `Registered, and it reaches this app: ${read.endpoint.url}`, exchange: read.exchange,
+      endpoint: { id: read.endpoint.id, url: read.endpoint.url, pointsHere },
+    };
+  }
   return {
-    key: "webhook_endpoint", status: "done",
-    summary: `Registered: ${read.endpoint.url}`, exchange: read.exchange,
+    key: "webhook_endpoint", status: "blocked",
+    summary: `Registered: ${read.endpoint.url} — but it doesn't reach this app.`, exchange: read.exchange,
     endpoint: { id: read.endpoint.id, url: read.endpoint.url, pointsHere },
-    diagnosis: pointsHere || !thisHost ? undefined : {
-      title: "Your organization already has an endpoint, and it isn't this app",
-      fix: `Someone registered ${read.endpoint.url} for this organization earlier — you, a colleague, or another app using the same credentials. An organization has one active endpoint, so Lithos delivers there, not to ${thisHost}. If it's your own deployed copy, open /setup there instead. If it belongs to another app, don't re-point it — ask your Lithos contact for a separate sandbox organization for this starter.`,
+    diagnosis: {
+      title: "Lithos is delivering to an address that doesn't reach this app",
+      fix: `${reach && !reach.ok ? reach.message + " " : ""}If it was your tunnel, it has probably restarted under a new address — point the endpoint at the new one below. If it belongs to another app using these credentials, don't re-point it: ask your Lithos contact for a separate sandbox organization for this starter.`,
     },
   };
 }
@@ -312,7 +328,7 @@ function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange },
  * first version, and it lied: a store holding old or replayed events reported
  * success before this walkthrough had caused a single delivery.
  */
-async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefined, thisHost: string | null): Promise<StepState> {
+async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefined, pointsHere: boolean): Promise<StepState> {
   if (!endpoint) return { key: "webhook_received", status: "locked", summary: "Needs a registered endpoint first." };
   if (!ids.encounterId) {
     return { key: "webhook_received", status: "locked", summary: "Deliveries follow real events — create the encounter first." };
@@ -355,7 +371,6 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
   }
 
   // Lithos delivered successfully, just not to this copy of the app.
-  const pointsHere = thisHost ? endpoint.url.includes(thisHost) : false;
   if (deliveries.some((d) => d.status === "succeeded") && !pointsHere) {
     return {
       key: "webhook_received", status: "ready",
@@ -363,7 +378,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
       exchange,
       diagnosis: {
         title: "Delivered, but to another copy of this app",
-        fix: `Lithos's log shows the delivery succeeded, so your endpoint works. It went to ${endpoint.url}, not to ${thisHost}. Open /setup on that deployment to see it verified there — or run this copy behind a tunnel and register that URL instead.`,
+        fix: `Lithos's log shows the delivery succeeded, so your endpoint works. It went to ${endpoint.url}, which doesn't reach this copy. Open /setup on that deployment to see it verified there — or run this copy behind a tunnel and register that URL instead.`,
       },
     };
   }
@@ -504,7 +519,7 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
   return { key: "program", status: "ready", summary: "Not chosen yet.", programs };
 }
 
-export async function evaluateSetup(ids: JourneyIds, thisHost: string | null): Promise<StepState[]> {
+export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const steps: StepState[] = [];
   const lockedFrom = (keys: StepKey[], reason: string) =>
     keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
@@ -530,9 +545,13 @@ export async function evaluateSetup(ids: JourneyIds, thisHost: string | null): P
   steps.push(checkReview(encounterRead));
 
   const endpointRead = await readEndpoint();
-  const endpoint = checkEndpoint(endpointRead, thisHost);
+  // One proof check, shared by steps 6 and 7.
+  const reach = endpointRead.endpoint
+    ? await reachesThisApp(endpointRead.endpoint.url.replace(/\/api\/webhooks\/lithos$/, ""))
+    : null;
+  const endpoint = checkEndpoint(endpointRead, reach);
   steps.push(endpoint);
-  steps.push(await checkReceived(ids, endpointRead.endpoint, thisHost));
+  steps.push(await checkReceived(ids, endpointRead.endpoint, reach?.ok === true));
 
   return steps;
 }

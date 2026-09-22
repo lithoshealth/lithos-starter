@@ -83,7 +83,7 @@ export default async function SetupPage() {
 
   const host = (await headers()).get("host");
   const isLocal = !host || /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
-  const steps = await evaluateSetup(ids, host);
+  const steps = await evaluateSetup(ids);
   const done = steps.filter((s) => s.status === "done").length;
   const current = steps.find((s) => s.status === "ready" || s.status === "blocked");
   const connected = steps[0]?.status === "done";
