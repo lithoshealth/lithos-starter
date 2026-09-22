@@ -37,6 +37,11 @@ npm run dev
 Then open **http://localhost:3001/setup** — in development, every page of the app
 also has a link to it at the top.
 
+Browse on `localhost` (or `127.0.0.1`). The dev server only sends its JavaScript
+to those, so opened any other way — your tunnel's address, or your laptop's
+network address from a phone — pages render but nothing responds. A deployed
+copy has no such limit.
+
 ## The setup walkthrough
 
 `/setup` takes you from credentials to a verified webhook in seven steps:
@@ -60,6 +65,8 @@ deploy the app, or run a tunnel and register its URL:
 ```sh
 cloudflared tunnel --url http://localhost:3001
 ```
+
+The tunnel is only for Lithos to reach you — keep browsing on `localhost`.
 
 Deploying to Vercel? Turn **Deployment Protection** off for production. It's on
 by default for new projects, and it answers Lithos's deliveries with a `401` that

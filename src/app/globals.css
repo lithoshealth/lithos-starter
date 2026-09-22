@@ -135,6 +135,8 @@ input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--p
 .quiz-option-multi input { margin-top: 0.15rem; }
 .quiz-nav { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .quiz-count { margin-left: auto; font-size: 0.9rem; }
+.quiz-not-loaded { padding: 0.85rem 1rem; border-radius: var(--radius-sm); background: var(--warning-soft); color: var(--warning-ink); font-size: 0.95rem; visibility: hidden; animation: quiz-not-loaded 1ms 3s forwards; }
+@keyframes quiz-not-loaded { to { visibility: visible; } }
 .link-button { background: none; border: 0; padding: 0; color: var(--primary); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .error-box { border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 1rem 1.15rem; background: var(--danger-soft); display: grid; gap: 0.5rem; }
 .error-box h2 { color: var(--danger); font-size: 1.1rem; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useScrollToFeedback } from "@/lib/use-scroll-to-feedback";
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
@@ -57,6 +57,27 @@ function screenForPointer(pointer: string | undefined): number | null {
     if (index >= 0) return index;
   }
   return null;
+}
+
+const noSubscribe = () => () => {};
+
+/**
+ * Shown only if the page's JavaScript never runs — the quiz can't move without
+ * it. Rendered by the server and dropped once the page hydrates; the CSS holds
+ * it back a few seconds, so a normal load never flashes it. The usual cause is
+ * the dev server, which only sends its scripts to localhost.
+ */
+function NotLoadedNotice() {
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
+  if (hydrated) return null;
+  return (
+    <p className="quiz-not-loaded" role="status">
+      <strong>This page didn&rsquo;t finish loading</strong>, so the questions can&rsquo;t move on.{" "}
+      {process.env.NODE_ENV === "development"
+        ? <>In development, open it at <code>localhost</code> — the dev server doesn&rsquo;t send its scripts to other addresses, such as a tunnel or your laptop&rsquo;s network address.</>
+        : <>Check JavaScript is enabled, then reload.</>}
+    </p>
+  );
 }
 
 export function IntakeForm() {
@@ -153,6 +174,8 @@ export function IntakeForm() {
       <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={SCREENS.length} aria-valuenow={screen + 1}>
         <span style={{ width: `${((screen + 1) / SCREENS.length) * 100}%` }} />
       </div>
+
+      <NotLoadedNotice />
 
       <div ref={feedbackRef} className="feedback-anchor">
         {failed && state.stage === "connection" && (
