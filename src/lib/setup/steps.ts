@@ -300,8 +300,8 @@ function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange },
     summary: `Registered: ${read.endpoint.url}`, exchange: read.exchange,
     endpoint: { id: read.endpoint.id, url: read.endpoint.url, pointsHere },
     diagnosis: pointsHere || !thisHost ? undefined : {
-      title: "Your endpoint points somewhere other than this app",
-      fix: `Lithos will deliver to ${read.endpoint.url}, but you're viewing this on ${thisHost}. That's fine if that's your deployed copy — open /setup there to see deliveries arrive. Your organization can have one active endpoint at a time.`,
+      title: "Your organization already has an endpoint, and it isn't this app",
+      fix: `Someone registered ${read.endpoint.url} for this organization earlier — you, a colleague, or another app using the same credentials. An organization has one active endpoint, so Lithos delivers there, not to ${thisHost}. If it's your own deployed copy, open /setup there instead. If it belongs to another app, don't re-point it — ask your Lithos contact for a separate sandbox organization for this starter.`,
     },
   };
 }
