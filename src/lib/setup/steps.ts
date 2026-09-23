@@ -21,7 +21,7 @@ import type { ApiError } from "../lithos/types";
 import { PROGRAMS, type ProgramKey, type ProgramOption } from "./programs";
 
 export type StepKey =
-  | "connect" | "program" | "patient" | "encounter" | "review" | "webhook_endpoint" | "webhook_received";
+  | "connect" | "program" | "patient" | "review" | "webhook_endpoint" | "webhook_received";
 
 /**
  * "Connect" is one step with three checks. Adding credentials is the only thing
@@ -65,7 +65,7 @@ export type StepState = {
   status: StepStatus;
   summary: string;
   exchange?: Exchange;
-  /** Further calls the step made, after `exchange` — step 4 makes two. */
+  /** Further calls the step made, after `exchange` — step 3 makes three. */
   moreExchanges?: Exchange[];
   diagnosis?: Diagnosis;
   /** The webhook endpoint step only: the organization's active endpoint, so the page can offer to re-point it. */
@@ -248,15 +248,36 @@ async function checkOrganization(): Promise<InternalCheck> {
 
 // ---------------------------------------------------------------- 4–6. patient, encounter, review
 
-async function checkPatient(ids: JourneyIds): Promise<StepState> {
+/**
+ * Onboarding a patient is one step, because it's one action: a patient's
+ * intake is their request for care. Sending it makes three calls — the
+ * patient, a care plan, and the encounter carrying the intake — and the step
+ * is done when all three exist. Its exchanges show them in that order.
+ */
+async function checkPatient(ids: JourneyIds, read: { encounter?: EncounterRead; exchange?: Exchange }): Promise<StepState> {
   if (!ids.patientId) return { key: "patient", status: "ready", summary: "No patient yet." };
   const path = `/v1/patients/${ids.patientId}`;
+  let patient: { id: string; first_name: string; last_name: string };
   try {
-    const patient = await getLithosClient().get<{ id: string; first_name: string; last_name: string }>(path);
-    return { key: "patient", status: "done", summary: `${patient.first_name} ${patient.last_name} — ${patient.id}`, exchange: { method: "GET", path, status: 200, response: patient } };
+    patient = await getLithosClient().get<{ id: string; first_name: string; last_name: string }>(path);
   } catch (error) {
     return { key: "patient", status: "ready", summary: "The patient this walkthrough made can't be read — start again.", exchange: exchangeFromError("GET", path, error) };
   }
+  const patientExchange: Exchange = { method: "GET", path, status: 200, response: patient };
+  const name = `${patient.first_name} ${patient.last_name}`;
+  if (!read.encounter) {
+    // A patient with no care requested yet — the sample shortcut failed half-way, say.
+    return {
+      key: "patient", status: "ready", summary: `${name} is created, but their care hasn't been requested yet.`,
+      exchange: patientExchange, moreExchanges: read.exchange ? [read.exchange] : [],
+    };
+  }
+  const carePlan = await readCarePlan(read.encounter.care_plan_id);
+  return {
+    key: "patient", status: "done",
+    summary: `${name} — care requested, encounter ${read.encounter.status.replace("_", " ")}`,
+    exchange: patientExchange, moreExchanges: [carePlan, ...(read.exchange ? [read.exchange] : [])],
+  };
 }
 
 type EncounterRead = { id: string; status: string; care_plan_id: string; care_plan: { status: string }; requested_treatments: unknown[]; patient_message: unknown };
@@ -272,19 +293,6 @@ async function readEncounter(ids: JourneyIds): Promise<{ encounter?: EncounterRe
   }
 }
 
-async function checkEncounter(ids: JourneyIds, read: { encounter?: EncounterRead; exchange?: Exchange }, patientDone: boolean): Promise<StepState> {
-  if (!patientDone) return { key: "encounter", status: "locked", summary: "Needs a patient first." };
-  if (!ids.encounterId) return { key: "encounter", status: "ready", summary: "No encounter yet." };
-  if (!read.encounter) return { key: "encounter", status: "ready", summary: "The encounter can't be read — create another.", exchange: read.exchange };
-  // The step made two things, so it shows both: the care plan first, as it was created first.
-  const carePlan = await readCarePlan(read.encounter.care_plan_id);
-  return {
-    key: "encounter", status: "done",
-    summary: `${read.encounter.id} — ${read.encounter.status.replace("_", " ")}`,
-    exchange: carePlan, moreExchanges: read.exchange ? [read.exchange] : [],
-  };
-}
-
 async function readCarePlan(carePlanId: string): Promise<Exchange> {
   const path = `/v1/care_plans/${carePlanId}`;
   try {
@@ -295,7 +303,7 @@ async function readCarePlan(carePlanId: string): Promise<Exchange> {
 }
 
 function checkReview(read: { encounter?: EncounterRead; exchange?: Exchange }): StepState {
-  if (!read.encounter) return { key: "review", status: "locked", summary: "Needs an encounter first." };
+  if (!read.encounter) return { key: "review", status: "locked", summary: "Needs your first patient's care request." };
   if (read.encounter.status === "completed") {
     return {
       key: "review", status: "done",
@@ -399,7 +407,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
 
   if (deliveries.length === 0) {
     return {
-      // No box here: step 6 has already proved the endpoint reaches this app,
+      // No box here: step 5 has already proved the endpoint reaches this app,
       // and the guide below says what's actually missing — an event since then.
       key: "webhook_received", status: "ready", summary: "Lithos hasn't delivered anything about your encounter yet.", exchange,
     };
@@ -543,7 +551,7 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
   const chosen = programs.find((p) => p.key === ids.program && p.selectable);
   if (chosen) {
     // The reveal for this step: what the choice means in API terms — the ids
-    // step 4 sends as catalog_treatment_id, and the dose ladders a clinician
+    // step 3 sends as catalog_treatment_id, and the dose ladders a clinician
     // prescribes from.
     const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(chosen.key));
     return {
@@ -572,25 +580,23 @@ export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const { step: connect, catalog } = await checkConnect();
   steps.push(connect);
   if (connect.status !== "done") {
-    lockedFrom(["program", "patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on the connection.");
+    lockedFrom(["program", "patient", "review", "webhook_endpoint", "webhook_received"], "Waiting on the connection.");
     return steps;
   }
 
   const program = checkProgram(ids, catalog);
   steps.push(program);
   if (program.status !== "done") {
-    lockedFrom(["patient", "encounter", "review", "webhook_endpoint", "webhook_received"], "Waiting on your program.");
+    lockedFrom(["patient", "review", "webhook_endpoint", "webhook_received"], "Waiting on your program.");
     return steps;
   }
 
-  const patient = await checkPatient(ids);
-  steps.push(patient);
   const encounterRead = await readEncounter(ids);
-  steps.push(await checkEncounter(ids, encounterRead, patient.status === "done"));
+  steps.push(await checkPatient(ids, encounterRead));
   steps.push(checkReview(encounterRead));
 
   const endpointRead = await readEndpoint();
-  // One proof check, shared by steps 6 and 7.
+  // One proof check, shared by steps 5 and 6.
   const reach = endpointRead.endpoint
     ? await reachesThisApp(endpointRead.endpoint.url.replace(/\/api\/webhooks\/lithos$/, ""))
     : null;

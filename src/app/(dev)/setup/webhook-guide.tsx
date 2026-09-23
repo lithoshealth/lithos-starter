@@ -1,12 +1,12 @@
 import { RunAgainButton } from "./step-actions";
 
 /**
- * How to actually do steps 6 and 7. The checks can tell you whether a webhook
+ * How to actually do steps 5 and 6. The checks can tell you whether a webhook
  * arrived; they can't give you a public address or tell you when to look. This
  * is the part a stranger can't guess.
  */
 
-/** Step 6: getting a public HTTPS address, then registering it. */
+/** Step 5: getting a public HTTPS address, then registering it. */
 export function EndpointGuide() {
   return (
     <div className="setup-guide stack">
@@ -44,7 +44,7 @@ cloudflared tunnel --url http://localhost:3001`}</pre>
   );
 }
 
-/** Step 7: what makes a delivery happen, and what to check when one doesn't. */
+/** Step 6: what makes a delivery happen, and what to check when one doesn't. */
 export function DeliveryGuide({ secretSet }: { secretSet: boolean }) {
   return (
     <div className="setup-guide stack">
@@ -58,10 +58,10 @@ export function DeliveryGuide({ secretSet }: { secretSet: boolean }) {
       <h3>How to make one arrive</h3>
       <p>
         Webhooks follow real events — an encounter created, reviewed, completed. Lithos sends each one to the endpoint
-        registered <em>at that moment</em>, so anything you did before step 6 went nowhere. Make something new happen:
+        registered <em>at that moment</em>, so anything you did before step 5 went nowhere. Make something new happen:
       </p>
       <ul>
-        <li>run steps 3–5 again with a new patient — the button below clears the old one and takes you there; or</li>
+        <li>run steps 3–4 again with a new patient — the button below clears the old one and takes you there; or</li>
         <li>submit a care review on the site — the same calls, made by the app.</li>
       </ul>
       <div>

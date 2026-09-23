@@ -106,31 +106,17 @@ export async function clearProgramAction(): Promise<void> {
   redirect("/setup#step-program");
 }
 
-export async function createPatientAction(): Promise<SetupActionState> {
-  const refused = refuseOutsideSandbox();
-  if (refused) return refused;
-
-  const now = new Date().toISOString();
-  const body = { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now };
-  try {
-    const patient = await getLithosClient().post<{ id: string }>("/v1/patients", body);
-    // A new patient starts a new thread: drop any encounter from a previous run,
-    // but keep the program — that's a choice about the organization, not the patient.
-    const { program } = await readIds();
-    await writeIds({ program, patientId: patient.id });
-  } catch (error) {
-    return failure(error);
-  }
-  revalidatePath("/setup");
-  return { status: "ok" };
-}
-
-export async function createEncounterAction(): Promise<SetupActionState> {
+/**
+ * Step 3's shortcut: onboard a sample patient without filling in the intake —
+ * the same three calls the intake makes (patient, care plan, encounter), with
+ * sample answers. Picks up where a half-finished run stopped (a patient with
+ * no care requested yet) rather than creating another.
+ */
+export async function onboardSamplePatientAction(): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
 
   const ids = await readIds();
-  if (!ids.patientId) return { status: "error", errors: [{ code: "setup.no_patient", message: "Create a patient first." }] };
   const program = programFor(ids.program);
   if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
 
@@ -139,12 +125,19 @@ export async function createEncounterAction(): Promise<SetupActionState> {
     const treatment = await readProgramTreatment(program.key);
     if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
 
-    // Reuse a care plan from a run that failed at the encounter, rather than piling up empty plans.
-    const carePlanId = ids.carePlanId ?? (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(ids.patientId, program.key))).id;
-    await writeIds({ ...ids, carePlanId });
+    let { patientId, carePlanId } = ids;
+    if (!patientId || ids.encounterId) {
+      const now = new Date().toISOString();
+      const body = { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now };
+      patientId = (await client.post<{ id: string }>("/v1/patients", body)).id;
+      carePlanId = undefined;
+      await writeIds({ patientId });
+    }
+    carePlanId ??= (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program.key))).id;
+    await writeIds({ patientId, carePlanId });
 
-    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, ids.patientId, carePlanId, treatment.id));
-    await writeIds({ ...ids, carePlanId, encounterId: encounter.id });
+    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, patientId, carePlanId, treatment.id));
+    await writeIds({ patientId, carePlanId, encounterId: encounter.id });
   } catch (error) {
     return failure(error);
   }
@@ -238,7 +231,7 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {
-    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 6.");
+    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 5.");
   }
 }
 

@@ -156,7 +156,7 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         <p>
           Lithos returned a signing secret — it only ever does this once — and it&rsquo;s been saved to{" "}
           <code>.env.local</code> as <code>LITHOS_WEBHOOK_SECRET</code>. Nothing to copy. The app uses it to check every
-          delivery really came from Lithos. Go to step 7.
+          delivery really came from Lithos. Go to step 6.
         </p>
       </div>
     );
@@ -169,7 +169,7 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         it, and reloading loses it. Set it in your host&rsquo;s environment settings, then redeploy:
       </p>
       <pre className="setup-json">{`LITHOS_WEBHOOK_SECRET=${signingSecret}`}</pre>
-      <p className="muted">Lost it? Step 7 can get you a new one — it registers the address again.</p>
+      <p className="muted">Lost it? Step 6 can get you a new one — it registers the address again.</p>
     </div>
   );
 }
@@ -227,7 +227,7 @@ export function RepointForm({
 }
 
 /**
- * For when the signing secret is lost — the usual reason step 7 never goes
+ * For when the signing secret is lost — the usual reason step 6 never goes
  * green. Lithos has no rotate call ("contact us"), so this registers the same
  * address again: disable, then create, which issues a new secret (saved to
  * .env.local in development).

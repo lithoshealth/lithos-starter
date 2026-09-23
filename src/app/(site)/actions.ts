@@ -20,7 +20,7 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
   if (result.status === "complete") {
     // The setup walkthrough follows the latest care review from this browser:
     // filling in the intake as your first patient (step 3's form) completes
-    // steps 3 and 4, with the real patient, care plan and encounter.
+    // that step, with the real patient, care plan and encounter.
     await writeJourneyIds({ patientId: result.patientId, carePlanId: result.carePlanId, encounterId: result.encounterId });
     redirect(`/care/${encodeURIComponent(result.encounterId)}`);
   }

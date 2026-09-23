@@ -81,8 +81,7 @@ export function webhookEndpointRequest(url: string) {
 export const STEP_SOURCES = {
   connect: "scripts/setup.mjs · src/lib/lithos/auth.ts (token) · src/lib/lithos/client.ts (requests)",
   program: "src/lib/setup/programs.ts",
-  patient: "src/lib/setup/requests.ts → patientRequest",
-  encounter: "src/lib/setup/requests.ts → encounterRequest",
+  patient: "src/lib/journey.ts (the intake) · src/lib/setup/requests.ts → patientRequest, carePlanRequest, encounterRequest (the shortcut)",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",
   webhook_endpoint: "src/app/(dev)/setup/actions.ts → registerWebhookAction · src/lib/setup/reachability.ts",
   webhook_received: "src/app/api/webhooks/lithos/route.ts + src/lib/webhooks/signature.ts",

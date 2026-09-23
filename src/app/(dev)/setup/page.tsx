@@ -7,7 +7,7 @@ import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction } from "./actions";
+import { clearProgramAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
 import Link from "next/link";
 import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
@@ -28,11 +28,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   patient: {
     title: "Onboard your first patient",
-    what: "Choose how your patients answer your intake — a quiz or a chat — then fill it in yourself, as your first patient — the form below is the real one your patients will see. Sending it creates the patient and requests their care in one go. In a hurry? Create a sample patient in one click instead.",
-  },
-  encounter: {
-    title: "Request care — create an encounter",
-    what: "Two calls. A care plan says what the patient is being treated for; an encounter carries the intake a clinician reviews and the treatment requested.",
+    what: "Choose how your patients answer your intake — a quiz or a chat — then fill it in yourself, as your first patient. The form below is the real one your patients will see. Sending it makes three calls to Lithos: it creates the patient, opens a care plan for your program, and requests care with an encounter carrying their answers. In a hurry? Use a sample patient instead.",
   },
   review: {
     title: "Play the clinician",
@@ -59,9 +55,8 @@ const BADGE: Record<StepState["status"], { label: string; className: string }> =
 function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: string; body: unknown }[] | null {
   switch (key) {
     case "patient":
-      return [{ method: "POST", path: "/v1/patients", body: patientRequest("<timestamp>") }];
-    case "encounter":
       return [
+        { method: "POST", path: "/v1/patients", body: patientRequest("<timestamp>") },
         { method: "POST", path: "/v1/care_plans", body: carePlanRequest(ids.patientId ?? "<patient id>", ids.program ?? "<your program>") },
         { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.program ?? DEFAULT_PROGRAM, ids.patientId ?? "<patient id>", "<care plan id>", "<first treatment in your program>") },
       ];
@@ -101,7 +96,7 @@ export default async function SetupPage() {
   const done = steps.filter((s) => s.status === "done").length;
   const current = steps.find((s) => s.status === "ready" || s.status === "blocked");
   const connected = steps[0]?.status === "done";
-  // The endpoint, when it reaches this app — step 7 can re-register it for a new secret.
+  // The endpoint, when it reaches this app — step 6 can re-register it for a new secret.
   const endpointHere = steps.find((s) => s.key === "webhook_endpoint")?.endpoint;
   const endpointHereOk = endpointHere?.pointsHere ? endpointHere : undefined;
 
@@ -112,7 +107,7 @@ export default async function SetupPage() {
           <p className="eyebrow">Lithos sandbox · setup</p>
           <h1>From clone to your first encounter.</h1>
           <p className="lede">
-            Seven steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
+            Six steps, each checked against the live Lithos API — nothing here is ticked by hand, so if you do a step
             your own way, it still turns green. About fifteen minutes to a first encounter.
           </p>
         </div>
@@ -188,7 +183,7 @@ export default async function SetupPage() {
               {step.programs && step.status === "done" && step.chosenProgram && (
                 <>
                   <p className="notes">
-                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>. Step 4 will
+                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>. Step 3 will
                     request one of the treatments below: its <code>id</code> is what you send as <code>catalog_treatment_id</code>, and
                     its <code>dosages</code> — starting dose first — are what the clinician prescribes from.
                   </p>
@@ -225,10 +220,7 @@ export default async function SetupPage() {
               )}
 
               {step.status === "ready" && step.key === "patient" && (
-                <StepAction step="patient" action={createPatientAction} label="Or skip: create a sample patient" pendingLabel="Creating…" />
-              )}
-              {step.status === "ready" && step.key === "encounter" && (
-                <StepAction step="encounter" action={createEncounterAction} label="Create care plan and encounter" pendingLabel="Sending to Lithos…" />
+                <StepAction step="patient" action={onboardSamplePatientAction} label="Or skip: use a sample patient" pendingLabel="Sending to Lithos…" />
               )}
               {step.status === "ready" && step.key === "review" && (
                 <StepAction step="review" action={driveReviewAction} label="Sign it off as the clinician" pendingLabel="Reviewing…" />
@@ -280,7 +272,7 @@ export default async function SetupPage() {
         <h2>Now use the app itself.</h2>
         <p>
           {connected
-            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 5.</>
+            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
             : <>Connect in step 1 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
         </p>
         {connected && (
