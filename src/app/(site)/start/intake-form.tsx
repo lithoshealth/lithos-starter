@@ -1,7 +1,7 @@
 "use client";
 
 import { useScrollToFeedback } from "@/lib/use-scroll-to-feedback";
-import { startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { Fragment, startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
@@ -47,6 +47,12 @@ type Screen = {
   title: ReactNode;
   hint?: ReactNode;
   body: ReactNode;
+  /**
+   * How the answer reads back as a chat reply, with `{field}` for a field's
+   * value — e.g. "{height_ft} ft {height_in} in, {weight_lb} lbs". Unset: the
+   * choice picked, the boxes ticked, or the values entered.
+   */
+  reply?: string;
 };
 
 /** "/intake_form/data/ldl_c" → the screen holding ldl_c; "/address/city" → the address screen. */
@@ -82,12 +88,13 @@ function NotLoadedNotice() {
 }
 
 /**
- * `style` is the intake style chosen in /setup: "quiz" shows one screen at a
- * time; "form" shows every screen at once as sections of one page. Same
- * screens, same fields, same validation either way.
+ * `style` is the intake style chosen in /setup. Both ask one screen at a time:
+ * "quiz" as a page per question with a progress bar; "chat" as a conversation,
+ * each question a message and each answer a reply bubble. Same screens, same
+ * fields, same validation either way — only the presentation differs.
  */
 export function IntakeForm({ brandName, program, style }: { brandName: string; program: ProgramKey; style: IntakeStyle }) {
-  const quiz = style === "quiz";
+  const chat = style === "chat";
   const [state, action, pending] = useActionState(createJourneyAction, INITIAL_JOURNEY_STATE);
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
@@ -96,7 +103,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   const emailRef = useRef<HTMLInputElement>(null);
   const headingRefs = useRef<Array<HTMLElement | null>>([]);
   const screenRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const logRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState(0);
+  // Chat only: each answered screen's reply, as it reads in the transcript.
+  const [replies, setReplies] = useState<Record<number, string>>({});
   // Which checklist screens have something ticked — keyed by screen index.
   const [ticked, setTicked] = useState<Record<number, boolean>>({});
 
@@ -107,13 +117,41 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     if (input && !input.value) input.value = `sample.patient+${Date.now()}@example.com`;
   }, []);
 
+  /** Read an answered screen back as a sentence, for the chat transcript. */
+  function replyFor(index: number): string {
+    const el = screenRefs.current[index];
+    const form = formRef.current;
+    if (!el || !form) return "";
+    // Read from the element, not the screen list — this runs before the list is built.
+    const template = el.dataset.reply;
+    if (template) {
+      const data = new FormData(form);
+      return template.replace(/\{(\w+)\}/g, (_, name: string) => String(data.get(name) ?? "").trim());
+    }
+    const label = (input: Element) => input.closest("label")?.textContent?.trim() ?? "";
+    const picked = [...el.querySelectorAll("input[type=radio]:checked")].map(label);
+    if (picked.length > 0) return picked.join(", ");
+    const boxes = [...el.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+    if (boxes.length > 0) return boxes.filter((b) => b.checked).map(label).join("; ") || "None of these";
+    return [...el.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select")].map((i) => i.value).filter(Boolean).join(" · ");
+  }
+
   function go(to: number) {
-    if (!quiz) {
-      // One page: "going to" a section means scrolling to it.
-      screenRefs.current[to]?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
+    if (chat && to > screen) {
+      // Moving on: record every answer between here and there as a reply.
+      const answered = Object.fromEntries(Array.from({ length: to - screen }, (_, i) => [screen + i, replyFor(screen + i)]));
+      setReplies((r) => ({ ...r, ...answered }));
     }
     setScreen(to);
+    if (chat) {
+      requestAnimationFrame(() => {
+        const log = logRef.current;
+        if (log) log.scrollTop = log.scrollHeight;
+        screenRefs.current[to]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        screenRefs.current[to]?.querySelector<HTMLElement>("input, select, button")?.focus({ preventScroll: true });
+      });
+      return;
+    }
     requestAnimationFrame(() => {
       // Move focus with the screen, so keyboard and screen-reader users land on the new question.
       headingRefs.current[to]?.focus({ preventScroll: true });
@@ -128,7 +166,6 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   }
 
   function autoAdvance() {
-    if (!quiz) return;
     // A beat to see the choice register before the next question slides in.
     // Never the last screen — that's consent, which has its own button.
     window.setTimeout(() => go(screen + 1), 180);
@@ -163,7 +200,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         {
-          fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"],
+          fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
           title: "What's your height and weight?",
           hint: "Your clinician uses these to work out your BMI — one of the things that decides whether a GLP-1 is right for you.",
           body: (
@@ -231,7 +268,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         {
-          fields: ["ldl_c", "ldl_c_date"],
+          fields: ["ldl_c", "ldl_c_date"], reply: "{ldl_c} mg/dL, measured {ldl_c_date}",
           title: "What was your most recent LDL cholesterol?",
           hint: "Use your latest lab result. If you don’t have one, enter your best estimate and we’ll order labs.",
           body: (
@@ -262,7 +299,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       ),
     },
     {
-      fields: ["first_name", "last_name", "date_of_birth", "sex"],
+      fields: ["first_name", "last_name", "date_of_birth", "sex"], reply: "{first_name} {last_name}, born {date_of_birth}, {sex}",
       title: "Tell us about you",
       hint: "Sample details only — use a Sample or Test name.",
       body: (
@@ -275,7 +312,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       ),
     },
     {
-      fields: ["email", "phone", "address_line1", "address_line2", "city", "state", "postal_code", "address"],
+      fields: ["email", "phone", "address_line1", "address_line2", "city", "state", "postal_code", "address"], reply: "{email} · {phone} · {address_line1}, {city} {state}",
       title: "Where can your care team reach you?",
       hint: "Sample details only — an example.com email and a 555 phone number.",
       body: (
@@ -314,7 +351,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       for (const input of inputs) {
         if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) {
           if (!input.checkValidity()) {
-            if (quiz && index !== screen) go(index);
+            if (index !== screen) go(index);
             requestAnimationFrame(() => input.reportValidity());
             return false;
           }
@@ -334,7 +371,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   // in place if Lithos rejects the intake; a form action would reset them.
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (quiz && screen < last) return next();
+    if (screen < last) return next();
     for (let i = 0; i < screens.length; i++) if (!screenValid(i)) return;
     const data = new FormData(event.currentTarget);
     startTransition(() => action(data));
@@ -346,15 +383,15 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     if (state.status !== "failed" || state.stage === "connection") return;
     const target = state.errors.map((e) => screenForPointer(screens, e.source?.pointer)).find((i) => i !== null);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the server's answer, once per response
-    if (target !== undefined && target !== null && quiz) setScreen(target);
+    if (target !== undefined && target !== null) setScreen(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the screens are rebuilt every render; their fields are what matter
   }, [state, fieldsKey]);
 
   const current = screens[screen];
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className={quiz ? "quiz" : "quiz quiz-single-page"}>
-      {quiz && (
+    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className={chat ? "quiz quiz-chat" : "quiz"}>
+      {!chat && (
         <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={screen + 1}>
           <span style={{ width: `${((screen + 1) / screens.length) * 100}%` }} />
         </div>
@@ -381,7 +418,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
                   <li key={`${error.code}-${index}`}>
                     {error.message}
                     {error.source?.pointer && <code className="muted"> {error.source.pointer}</code>}
-                    {target !== null && (!quiz || target !== screen) && (
+                    {target !== null && target !== screen && (
                       <> <button type="button" className="link-button" onClick={() => go(target)}>Fix this</button></>
                     )}
                   </li>
@@ -396,25 +433,53 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       {failed && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
       {failed && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
 
+      {chat && (
+        // The conversation so far: each answered question, then the one being asked.
+        <div ref={logRef} className="chat-log" aria-live="polite">
+          <Bubble from="bot" brandName={brandName}>Hi! A few quick questions, then a licensed clinician reviews your answers.</Bubble>
+          {screens.slice(0, screen).map((s, index) => (
+            <Fragment key={index}>
+              <Bubble from="bot" brandName={brandName}>{s.title}</Bubble>
+              <Bubble from="me">{replies[index] || "…"}</Bubble>
+            </Fragment>
+          ))}
+          <Bubble from="bot" brandName={brandName}>
+            {current.title}
+            {current.hint && <small>{current.hint}</small>}
+          </Bubble>
+        </div>
+      )}
+
+      {/* Every screen stays mounted, so the form always holds every answer. In
+          chat, the current screen's inputs are the reply box under the log. */}
       {screens.map((s, index) => (
-        <div key={index} ref={(el) => { screenRefs.current[index] = el; }} className="quiz-screen" hidden={quiz && screen !== index}>
-          <header className="quiz-question">
-            <h2 tabIndex={-1} ref={(el) => { headingRefs.current[index] = el; }}>{s.title}</h2>
-            {s.hint && <p className="hint">{s.hint}</p>}
-          </header>
+        <div key={index} ref={(el) => { screenRefs.current[index] = el; }} className={chat ? "quiz-screen chat-composer" : "quiz-screen"} hidden={screen !== index} data-reply={s.reply}>
+          {!chat && (
+            <header className="quiz-question">
+              <h2 tabIndex={-1} ref={(el) => { headingRefs.current[index] = el; }}>{s.title}</h2>
+              {s.hint && <p className="hint">{s.hint}</p>}
+            </header>
+          )}
           {s.checklist ? checklist(index, s.checklist) : s.body}
         </div>
       ))}
 
-      {!quiz && (
-        <div className="quiz-nav">
-          <button type="submit" className="btn btn-primary btn-lg" disabled={pending}>
-            {pending ? "Sending to our clinical team…" : retrying ? "Try again" : "Start my care plan"}
+      {chat ? <div className="quiz-nav">
+        {screen === last ? (
+          <button type="submit" className="btn btn-primary" disabled={pending}>
+            {pending ? "Sending to our clinical team…" : retrying ? "Try again" : "Send to a clinician"}
           </button>
-        </div>
-      )}
-
-      {quiz && <div className="quiz-nav">
+        ) : (
+          !current.autoAdvance && (
+            <button type="submit" className="btn btn-primary">
+              {current.checklist && !ticked[screen] ? "None of these" : "Send"}
+            </button>
+          )
+        )}
+        {screen > 0 && (
+          <button type="button" className="link-button" onClick={() => go(screen - 1)} disabled={pending}>Change my last answer</button>
+        )}
+      </div> : <div className="quiz-nav">
         {screen > 0 && (
           <button type="button" className="btn btn-ghost" onClick={() => go(screen - 1)} disabled={pending}>Back</button>
         )}
@@ -432,6 +497,19 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         <span className="muted quiz-count">{screen + 1} of {screens.length}</span>
       </div>}
     </form>
+  );
+}
+
+/** One message in the chat intake: the company's question, or the patient's reply. */
+function Bubble({ from, brandName, children }: { from: "bot" | "me"; brandName?: string; children: ReactNode }) {
+  return (
+    <div className={`chat-row chat-row-${from}`}>
+      {from === "bot" && <span className="chat-avatar" aria-hidden="true">{brandName?.trim().charAt(0).toUpperCase()}</span>}
+      <p className={`chat-bubble chat-bubble-${from}`}>
+        <span className="visually-hidden">{from === "bot" ? `${brandName}: ` : "You: "}</span>
+        {children}
+      </p>
+    </div>
   );
 }
 

@@ -28,7 +28,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   patient: {
     title: "Onboard your first patient",
-    what: "Choose how your patients answer your intake, then fill it in yourself, as your first patient — the form below is the real one your patients will see. Sending it creates the patient and requests their care in one go. In a hurry? Create a sample patient in one click instead.",
+    what: "Choose how your patients answer your intake — a quiz or a chat — then fill it in yourself, as your first patient — the form below is the real one your patients will see. Sending it creates the patient and requests their care in one go. In a hurry? Create a sample patient in one click instead.",
   },
   encounter: {
     title: "Request care — create an encounter",
