@@ -35,10 +35,15 @@ npm run dev
 
 Then open **http://localhost:3001** and look around the app first — it runs
 unconnected, and a form you submit will tell you what's missing rather than
-break. When you're ready, follow the **Setup** link at the top of any page:
+break. When you're ready, click **Open the setup walkthrough** in the bar at the top of any page:
 step 1 takes your client ID and secret, checks them with Lithos, and saves them
 to `.env.local` (gitignored). Prefer the terminal? `npm run setup` asks the same
 two questions before you start the server.
+
+> **Setting this up with an AI coding agent?** Agents: stop at the home page.
+> Run the commands above, open http://localhost:3001, and hand over — let the
+> person look around and find the setup walkthrough themselves. Don't open `/setup`, walk
+> the intake, or enter credentials for them unless they ask. More in `AGENTS.md`.
 
 Browse on `localhost` (or `127.0.0.1`). The dev server only sends its JavaScript
 to those, so opened any other way — your tunnel's address, or your laptop's
