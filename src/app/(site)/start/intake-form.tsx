@@ -8,6 +8,7 @@ import { NotConnected } from "../not-connected";
 import type { ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
+import { LIPID_SCREENING } from "@/lib/intake/lipid";
 
 /*
  * The intake as a quiz: one question per screen, a progress bar, and
@@ -25,17 +26,6 @@ import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS 
  * rejects something, the quiz jumps back to the screen that holds that field.
  */
 
-// Field names are the Lithos lipid_management intake contract — keep them as-is.
-const LIPID_SCREENING = [
-  ["established_atherosclerotic_cardiovascular_disease", "I've been diagnosed with heart disease, stroke, or peripheral artery disease"],
-  ["recent_cardiac_condition", "I've had a recent cardiac event or hospitalization (heart attack, stent, bypass)"],
-  ["drug_hypersensitivity", "I've had an allergic reaction to a cholesterol medication"],
-  ["cirrhosis", "I have cirrhosis"],
-  ["severe_hepatic_impairment", "I have severe liver impairment"],
-  ["severe_renal_impairment", "I have severe kidney impairment"],
-  ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy"],
-  ["currently_taking_cyclosporine", "I currently take cyclosporine"],
-] as const;
 
 type Screen = {
   /** Form field names on this screen — and the API field names an error can point at. */

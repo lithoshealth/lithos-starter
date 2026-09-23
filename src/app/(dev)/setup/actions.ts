@@ -9,7 +9,9 @@ import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointReque
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
 import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps";
 import { programFor } from "@/lib/setup/programs";
-import { signOffAsClinician } from "@/lib/sandbox-review";
+import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@/lib/sandbox-review";
+import { contentFor } from "@/lib/programs/content";
+import { DEFAULT_PROGRAM } from "@/lib/starter-config";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { updateConfig } from "@/lib/starter-config";
@@ -165,6 +167,36 @@ export async function driveReviewAction(): Promise<SetupActionState> {
     return failure(error, invalidCompletion
       ? "An empty completion only works when every requested line names a treatment. A \"clinician's choice\" line needs explicit dosage_ids."
       : undefined);
+  }
+  revalidatePath("/setup");
+  return { status: "ok" };
+}
+
+/** Step 4, "Decline": the plan becomes ineligible (`criteria_not_met`). */
+export async function declineReviewAction(): Promise<SetupActionState> {
+  const refused = refuseOutsideSandbox();
+  if (refused) return refused;
+  const { encounterId } = await readIds();
+  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Onboard a patient in step 3 first." }] };
+  try {
+    await declineAsClinician(getLithosClient(), encounterId);
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath("/setup");
+  return { status: "ok" };
+}
+
+/** Step 4, "Ask the patient a question": the encounter is escalated and the question goes to the patient. */
+export async function askPatientAction(): Promise<SetupActionState> {
+  const refused = refuseOutsideSandbox();
+  if (refused) return refused;
+  const { encounterId, program } = await readIds();
+  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Onboard a patient in step 3 first." }] };
+  try {
+    await askPatientAsClinician(getLithosClient(), encounterId, contentFor(program ?? DEFAULT_PROGRAM).clinicianQuestion);
+  } catch (error) {
+    return failure(error);
   }
   revalidatePath("/setup");
   return { status: "ok" };

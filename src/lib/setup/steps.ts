@@ -18,7 +18,8 @@ import { readWebhookAttempts } from "../webhooks/attempts";
 import { getLithosClient } from "../lithos/client";
 import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
-import { PROGRAMS, type ProgramKey, type ProgramOption } from "./programs";
+import { PROGRAMS, programFor, type ProgramKey, type ProgramOption } from "./programs";
+import { reviewIntake, type IntakeReview } from "../intake/review";
 
 export type StepKey =
   | "connect" | "program" | "patient" | "review" | "webhook_endpoint" | "webhook_received";
@@ -72,11 +73,26 @@ export type StepState = {
   endpoint?: { id: string; url: string; pointsHere: boolean };
   /** The Connect step only: its three checks, each with its own exchange. */
   checks?: ConnectCheck[];
+  /** The review step only: what a clinician works from, and what was decided. */
+  review?: ReviewCard;
   /** The Connect step only: the credentials are missing, so the page can offer the form. */
   needsCredentials?: boolean;
   /** The program step only: every program, and what this organization's formulary has for it. */
   programs?: ProgramOption[];
   chosenProgram?: ProgramKey;
+};
+
+/**
+ * An illustrative clinician review, built only from what the partner sent and
+ * the API returns — not Lithos's clinician screen. It shows what the decision
+ * is made from; the decision itself goes through the sandbox helpers.
+ */
+export type ReviewCard = IntakeReview & {
+  program: string;
+  patient: { name: string; age?: number; sex?: string; state?: string };
+  /** What the intake asked for: named treatments, or the clinician's choice. */
+  requested: string[];
+  outcome?: { kind: "approved" | "declined" | "asked"; detail: string };
 };
 
 /** Ids the walkthrough has created, carried in a cookie so a reload doesn't lose the thread. */
@@ -302,16 +318,68 @@ async function readCarePlan(carePlanId: string): Promise<Exchange> {
   }
 }
 
-function checkReview(read: { encounter?: EncounterRead; exchange?: Exchange }): StepState {
+type PatientRead = { first_name?: string; last_name?: string; date_of_birth?: string; sex?: string; address?: { state?: string } };
+type EncounterFull = Omit<EncounterRead, "requested_treatments"> & {
+  intake_form?: { data?: Record<string, unknown> };
+  requested_treatments: Array<{ catalog_treatment_id: string | null }>;
+};
+
+function ageFrom(dateOfBirth: string | undefined): number | undefined {
+  if (!dateOfBirth) return undefined;
+  const born = new Date(`${dateOfBirth}T00:00:00Z`);
+  const now = new Date();
+  let age = now.getUTCFullYear() - born.getUTCFullYear();
+  if (now.getUTCMonth() < born.getUTCMonth() || (now.getUTCMonth() === born.getUTCMonth() && now.getUTCDate() < born.getUTCDate())) age -= 1;
+  return Number.isFinite(age) ? age : undefined;
+}
+
+function reviewCard(encounter: EncounterFull, patient: PatientRead | undefined, program: ProgramKey, catalog: CatalogTreatment[]): ReviewCard {
+  const requested = encounter.requested_treatments.map((line) =>
+    line.catalog_treatment_id
+      ? catalog.find((t) => t.id === line.catalog_treatment_id)?.name ?? "A treatment from your formulary"
+      : "Clinician's choice, from your formulary",
+  );
+  const status = encounter.care_plan?.status;
+  const outcome: ReviewCard["outcome"] =
+    encounter.status === "escalated" ? { kind: "asked", detail: "The patient has your question. The encounter waits for their reply." }
+    : encounter.status === "completed" && status === "ineligible" ? { kind: "declined", detail: "The care plan is ineligible (criteria not met). The patient is told, and you get the reason code." }
+    : encounter.status === "completed" ? { kind: "approved", detail: `The care plan is ${status ?? "active"}: a prescription is written and the order goes to the pharmacy.` }
+    : undefined;
+  return {
+    ...reviewIntake(program, encounter.intake_form?.data ?? {}),
+    program: programFor(program)?.label ?? program,
+    patient: {
+      name: [patient?.first_name, patient?.last_name].filter(Boolean).join(" ") || "Your patient",
+      age: ageFrom(patient?.date_of_birth),
+      sex: patient?.sex,
+      state: patient?.address?.state,
+    },
+    requested,
+    outcome,
+  };
+}
+
+/**
+ * Play the clinician. The step shows what a clinician works from (the review
+ * card) and offers the three decisions they have. Done once one is made: an
+ * approval or a decline completes the encounter; a question escalates it.
+ */
+function checkReview(
+  read: { encounter?: EncounterRead; exchange?: Exchange },
+  context: { patient?: PatientRead; program: ProgramKey; catalog: CatalogTreatment[] },
+): StepState {
   if (!read.encounter) return { key: "review", status: "locked", summary: "Needs your first patient's care request." };
-  if (read.encounter.status === "completed") {
-    return {
-      key: "review", status: "done",
-      summary: `Signed off — care plan ${read.encounter.care_plan.status}.`,
-      exchange: read.exchange,
-    };
+  const full = (read.exchange?.response ?? read.encounter) as EncounterFull;
+  const review = reviewCard(full, context.patient, context.program, context.catalog);
+  if (review.outcome) {
+    const summary = {
+      approved: `Approved — care plan ${full.care_plan?.status ?? "active"}, prescription written.`,
+      declined: "Declined — care plan ineligible, reason: criteria not met.",
+      asked: "Question sent — the encounter waits for the patient's reply.",
+    }[review.outcome.kind];
+    return { key: "review", status: "done", summary, exchange: read.exchange, review };
   }
-  return { key: "review", status: "ready", summary: `Encounter is ${read.encounter.status.replace("_", " ")}, waiting for a clinician.` };
+  return { key: "review", status: "ready", summary: `Encounter is ${read.encounter.status.replace("_", " ")}, waiting for a clinician.`, review };
 }
 
 // ---------------------------------------------------------------- 7–8. webhooks
@@ -592,8 +660,13 @@ export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   }
 
   const encounterRead = await readEncounter(ids);
-  steps.push(await checkPatient(ids, encounterRead));
-  steps.push(checkReview(encounterRead));
+  const patientStep = await checkPatient(ids, encounterRead);
+  steps.push(patientStep);
+  steps.push(checkReview(encounterRead, {
+    patient: patientStep.exchange?.response as PatientRead | undefined,
+    program: ids.program ?? "lipid_management",
+    catalog,
+  }));
 
   const endpointRead = await readEndpoint();
   // One proof check, shared by steps 5 and 6.

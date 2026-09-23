@@ -379,3 +379,20 @@ summary { cursor: pointer; font-weight: 700; }
 
 /* Inside /setup's previews, show the app as a patient sees it. */
 html[data-embedded] .dev-bar { display: none; }
+
+/* Step 4: the illustrative clinician review. */
+.review-card { display: grid; gap: 0.9rem; padding: 1.1rem 1.2rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.review-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.review-card-head h3 { font-size: 1.2rem; }
+.review-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem 1rem; margin: 0; }
+.review-facts dt { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.review-facts dd { margin: 0.1rem 0 0; font-weight: 600; }
+.review-flags { padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); background: var(--paper); font-size: 0.92rem; }
+.review-flags ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.review-flags p { margin: 0.2rem 0 0; }
+.review-flags-yes { background: var(--warning-soft); color: var(--warning-ink); }
+.review-outcome { margin: 0; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.95rem; }
+.review-outcome-approved { background: var(--success-soft); }
+.review-outcome-declined { background: var(--danger-soft); }
+.review-outcome-asked { background: var(--info-soft); }
+.review-decisions { display: flex; flex-wrap: wrap; gap: 0.6rem; }

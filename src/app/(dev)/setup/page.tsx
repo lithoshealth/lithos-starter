@@ -7,7 +7,8 @@ import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { clearProgramAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
+import { askPatientAction, clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
+import { ReviewCard } from "./review-card";
 import Link from "next/link";
 import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
@@ -32,7 +33,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   review: {
     title: "Play the clinician",
-    what: "In production a licensed clinician reviews this in Lithos's portal. The sandbox lets you sign it off yourself, so the loop closes without waiting on anyone.",
+    what: "A licensed clinician reviews every request against your program's protocol, and makes one of three calls: approve and prescribe, decline, or ask the patient a question first. In production that happens in Lithos's portal; the sandbox lets you make the call yourself — below is what they'd be deciding from.",
   },
   webhook_endpoint: {
     title: "Register a webhook endpoint",
@@ -60,11 +61,16 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
         { method: "POST", path: "/v1/care_plans", body: carePlanRequest(ids.patientId ?? "<patient id>", ids.program ?? "<your program>") },
         { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.program ?? DEFAULT_PROGRAM, ids.patientId ?? "<patient id>", "<care plan id>", "<first treatment in your program>") },
       ];
-    case "review":
+    case "review": {
+      // Opening the review, then the call behind each of the three decisions.
+      const base = `/v1/sandbox/encounters/${ids.encounterId ?? "<encounter id>"}`;
       return [
-        { method: "POST", path: `/v1/sandbox/encounters/${ids.encounterId ?? "<encounter id>"}/start_review`, body: {} },
-        { method: "POST", path: `/v1/sandbox/encounters/${ids.encounterId ?? "<encounter id>"}/complete`, body: {} },
+        { method: "POST", path: `${base}/start_review`, body: {} },
+        { method: "POST", path: `${base}/complete  ← Approve`, body: {} },
+        { method: "POST", path: `${base}/complete  ← Decline`, body: { plan: { eligibility_status: "ineligible", ineligibility_reason_code: "criteria_not_met" } } },
+        { method: "POST", path: `${base}/escalate  ← Ask a question`, body: { escalation_reason: "patient_information_required", message_for_patient: "<your question>" } },
       ];
+    }
     case "webhook_endpoint":
       return [{ method: "POST", path: "/v1/webhook_endpoints", body: webhookEndpointRequest("https://<your app>/api/webhooks/lithos") }];
     default:
@@ -222,8 +228,13 @@ export default async function SetupPage() {
               {step.status === "ready" && step.key === "patient" && (
                 <StepAction step="patient" action={onboardSamplePatientAction} label="Or skip: use a sample patient" pendingLabel="Sending to Lithos…" />
               )}
+              {step.key === "review" && step.review && <ReviewCard review={step.review} />}
               {step.status === "ready" && step.key === "review" && (
-                <StepAction step="review" action={driveReviewAction} label="Sign it off as the clinician" pendingLabel="Reviewing…" />
+                <div className="review-decisions">
+                  <StepAction step="review" action={driveReviewAction} label="Approve" pendingLabel="Prescribing…" />
+                  <StepAction step="review" action={declineReviewAction} label="Decline" pendingLabel="Declining…" variant="ghost" />
+                  <StepAction step="review" action={askPatientAction} label="Ask the patient a question" pendingLabel="Sending…" variant="ghost" />
+                </div>
               )}
               {step.status === "ready" && step.key === "webhook_endpoint" && (
                 <>

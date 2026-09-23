@@ -86,18 +86,20 @@ export function StepAction({
   label,
   pendingLabel,
   step,
+  variant = "primary",
 }: {
   action: (state: SetupActionState) => Promise<SetupActionState>;
   label: string;
   pendingLabel: string;
   /** The step this button belongs to — where the page lands if it has to reload. */
   step: string;
+  variant?: "primary" | "ghost";
 }) {
   const [state, run, pending] = useActionState(action, INITIAL_SETUP_ACTION_STATE, stepAnchor(step));
   return (
     <form action={run} className="stack">
       <div>
-        <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? pendingLabel : label}</button>
+        <button type="submit" className={`btn btn-${variant}`} disabled={pending}>{pending ? pendingLabel : label}</button>
       </div>
       <ActionError state={state} />
     </form>
