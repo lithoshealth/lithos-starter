@@ -346,5 +346,6 @@ summary { cursor: pointer; font-weight: 700; }
 .segmented button { border: 0; background: transparent; padding: 0.45rem 0.9rem; border-radius: 999px; font: inherit; font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
 .segmented button[aria-pressed="true"] { background: var(--primary); color: #fff; }
 .segmented button:disabled, .choice-set:disabled button { cursor: not-allowed; opacity: 0.6; }
-.segmented-small button { padding: 0.3rem 0.75rem; font-size: 0.82rem; }
-.brand-preview-column { display: grid; gap: 0.6rem; min-width: 0; }
+.live-preview { margin: 0; display: grid; gap: 0.4rem; min-width: 0; }
+.live-preview figcaption { font-size: 0.88rem; }
+.setup-step .live-preview { max-width: 36rem; }

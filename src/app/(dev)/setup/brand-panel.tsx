@@ -3,66 +3,37 @@
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import type { Brand } from "@/lib/starter-config";
-import { PROGRAMS, type ProgramKey } from "@/lib/setup/programs";
-import { INTAKE_STYLES, type IntakeStyle } from "@/lib/intake/styles";
-import {
-  removeLogoAction, saveBrandAction, setIntakeStyleAction, setProgramAction, uploadLogoAction, type BrandActionState,
-} from "./brand-actions";
+import { removeLogoAction, saveBrandAction, uploadLogoAction, type BrandActionState } from "./brand-actions";
+import { LivePreview } from "./live-preview";
 
 const IDLE: BrandActionState = { status: "idle" };
 
-const PREVIEW_PAGES = { home: { path: "/", label: "Home page" }, start: { path: "/start", label: "Care review" } } as const;
-type PreviewPage = keyof typeof PREVIEW_PAGES;
-
 /**
- * "Make it yours" — the first thing on a demo. Brand, program and intake
- * style, each saved the moment it changes (no Save button to forget), with the
- * real app in a preview beside them — so it visibly becomes the prospect's
- * company while they watch.
+ * "Your company" — the first thing on a demo: name, colour and logo, each
+ * saved the moment it changes (no Save button to forget), with the real home
+ * page beside them. The other choices that shape the app are made later, in
+ * the step where they matter: the program in step 2, the intake in step 3.
  */
-export function BrandPanel({ brand, program, intakeStyle, writable }: { brand: Brand; program?: ProgramKey; intakeStyle: IntakeStyle; writable: boolean }) {
+export function BrandPanel({ brand, program, writable }: { brand: Brand; program?: string; writable: boolean }) {
   const router = useRouter();
-  const previewRef = useRef<HTMLIFrameElement>(null);
-  const previewBoxRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const colorTimer = useRef<number | undefined>(undefined);
   const lastSubmitted = useRef(JSON.stringify([brand.name, brand.tagline, brand.color]));
   const [color, setColor] = useState(brand.color);
+  const [renders, setRenders] = useState(0);
   const [saved, save, saving] = useActionState(saveBrandAction, IDLE);
   const [uploaded, upload, uploading] = useActionState(uploadLogoAction, IDLE);
   const [removed, remove] = useActionState(removeLogoAction, IDLE);
-  const [programSaved, saveProgram, savingProgram] = useActionState(setProgramAction, IDLE);
-  const [styleSaved, saveStyle, savingStyle] = useActionState(setIntakeStyleAction, IDLE);
-  const [page, setPage] = useState<PreviewPage>("home");
 
-  // After any save lands: re-render this page (its header and step 2 follow the
-  // config) and reload the preview.
-  const latest = [saved, uploaded, removed, programSaved, styleSaved];
+  // After any save lands: re-render this page (its header shows the name) and the preview.
+  const latest = [saved, uploaded, removed];
   useEffect(() => {
     if (!latest.some((s) => s.status === "saved")) return;
     router.refresh();
-    previewRef.current?.contentWindow?.location.reload();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one fresh preview per save result
+    setRenders((n) => n + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to each new result object, not to router
-  }, [saved, uploaded, removed, programSaved, styleSaved]);
-
-  /** A choice made by clicking: save it, and show the page it changes most. */
-  function choose(save: (data: FormData) => void, name: string, value: string, show: PreviewPage) {
-    const data = new FormData();
-    data.set(name, value);
-    setPage(show);
-    startTransition(() => save(data));
-  }
-
-  // The preview is the real home page at desktop width (1280px), scaled to fit its box.
-  useEffect(() => {
-    const box = previewBoxRef.current;
-    if (!box) return;
-    const fit = () => box.style.setProperty("--preview-scale", String(box.clientWidth / 1280));
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(box);
-    return () => observer.disconnect();
-  }, []);
+  }, [saved, uploaded, removed]);
 
   function submitBrand() {
     const form = formRef.current;
@@ -82,10 +53,10 @@ export function BrandPanel({ brand, program, intakeStyle, writable }: { brand: B
       <div className="brand-panel-controls stack">
         <div>
           <p className="eyebrow">Start here</p>
-          <h2 id="brand-heading">Make it yours</h2>
+          <h2 id="brand-heading">Your company</h2>
           <p className="muted">
-            This is your app. Give it your company&rsquo;s name, colour and logo — the preview updates as you go, and
-            the copy of the code you take away carries every change.
+            This is your app. Give it your company&rsquo;s name, colour and logo and watch it change. The steps below
+            tailor the rest as you go — what you offer, how patients sign up.
           </p>
         </div>
 
@@ -130,58 +101,17 @@ export function BrandPanel({ brand, program, intakeStyle, writable }: { brand: B
           </form>
         )}
 
-        <fieldset className="choice-set" disabled={!writable || savingProgram}>
-          <legend>What you offer</legend>
-          <div className="segmented">
-            {PROGRAMS.map((p) => (
-              <button
-                key={p.key} type="button" aria-pressed={program === p.key}
-                onClick={() => choose(saveProgram, "program", p.key, "home")}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <small className="muted">
-            {program ? "Changes the whole site — its copy, the intake, and the protocol a clinician reviews against." : "Not chosen yet — the site shows lipid management until you pick."}
-          </small>
-        </fieldset>
-
-        <fieldset className="choice-set" disabled={!writable || savingStyle}>
-          <legend>How patients answer the intake</legend>
-          <div className="segmented">
-            {INTAKE_STYLES.map((s) => (
-              <button
-                key={s.key} type="button" aria-pressed={intakeStyle === s.key} title={s.description}
-                onClick={() => choose(saveStyle, "intakeStyle", s.key, "start")}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <small className="muted">{INTAKE_STYLES.find((s) => s.key === intakeStyle)?.description}</small>
-        </fieldset>
-
         <p className="muted brand-status" aria-live="polite">
           {!writable
             ? "This copy is deployed, so its brand is fixed — change it in a local copy."
-            : saving || uploading || savingProgram || savingStyle ? "Saving…"
+            : saving || uploading ? "Saving…"
             : error ? <span className="error-text">{error.message}</span>
             : "Changes save as you make them, to starter.config.json."}
         </p>
       </div>
 
-      <div className="brand-preview-column">
-        <div className="segmented segmented-small" role="group" aria-label="Preview page">
-          {(Object.keys(PREVIEW_PAGES) as PreviewPage[]).map((key) => (
-            <button key={key} type="button" aria-pressed={page === key} onClick={() => setPage(key)}>{PREVIEW_PAGES[key].label}</button>
-          ))}
-        </div>
-        <div ref={previewBoxRef} className="brand-preview" aria-label="Live preview of your app">
-          <iframe ref={previewRef} src={PREVIEW_PAGES[page].path} title="Your app" tabIndex={-1} />
-          <a className="brand-preview-open" href={PREVIEW_PAGES[page].path} target="_blank" rel="noopener">Open your app ↗</a>
-        </div>
-      </div>
+      {/* Re-rendered after each save here, and when step 2 changes the program the home page describes. */}
+      <LivePreview key={`${renders}-${program}`} path="/" />
     </section>
   );
 }

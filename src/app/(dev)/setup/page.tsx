@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { configWritable, DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
 import { BrandPanel } from "./brand-panel";
+import { IntakeStylePicker } from "./intake-style-picker";
+import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
@@ -21,12 +23,12 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
     what: "Add your client ID and secret — two values Lithos issues when your sandbox organization is set up. They stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
   },
   program: {
-    title: "Choose your program",
-    what: "Lithos organizes care into programs — each with its own protocol, intake form and treatments — and your organization is provisioned for some of them. The program you offer decides what you'll ask patients and what a clinician can prescribe. It's the one step you choose rather than do, but the options come from your live formulary.",
+    title: "Choose what you offer",
+    what: "Lithos organizes care into programs, each with its own protocol, intake and treatments. The one you pick decides what your site says, what your patients are asked, and the protocol a clinician reviews them against — pick one and your home page changes with it. The options come from your live formulary: what your organization can prescribe.",
   },
   patient: {
-    title: "Create a patient",
-    what: "Patients belong to you: you send your own id as external_id, and Lithos keeps it forever so the two systems always reconcile. Sample details only.",
+    title: "Onboard your first patient",
+    what: "First, how your patients answer your intake — one question at a time, or all on one page. The preview is your real sign-up form. Then create a first sample patient: patients belong to you, and Lithos keeps your own id for each one so the two systems always match.",
   },
   encounter: {
     title: "Request care — create an encounter",
@@ -118,7 +120,7 @@ export default async function SetupPage() {
         <RunAgainButton />
       </div>
 
-      <BrandPanel brand={brand} program={config.program} intakeStyle={config.intakeStyle} writable={configWritable()} />
+      <BrandPanel brand={brand} program={config.program} writable={configWritable()} />
 
       <div className="setup-progress" aria-label={`${done} of ${steps.length} steps done`}>
         <div className="setup-progress-bar" style={{ width: `${(done / steps.length) * 100}%` }} />
@@ -194,6 +196,17 @@ export default async function SetupPage() {
                   <form action={clearProgramAction}>
                     <button type="submit" className="btn btn-ghost">Change program</button>
                   </form>
+                  <LivePreview
+                    key={step.chosenProgram} path="/"
+                    caption={`Your home page, now offering ${step.programs.find((p) => p.key === step.chosenProgram)?.label.toLowerCase()}.`}
+                  />
+                </>
+              )}
+
+              {step.key === "patient" && step.status !== "locked" && (
+                <>
+                  <IntakeStylePicker current={config.intakeStyle} writable={configWritable()} />
+                  <LivePreview key={`${config.program}-${config.intakeStyle}`} path="/start" caption="Your patients' intake — what they'll fill in to request care." />
                 </>
               )}
 
