@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { APP_NAME } from "@/lib/app-meta";
+import { getBrand } from "@/lib/app-meta";
+import { configWritable } from "@/lib/starter-config";
+import { BrandPanel } from "./brand-panel";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
@@ -90,6 +92,7 @@ function Json({ value }: { value: unknown }) {
 
 export default async function SetupPage() {
   const ids = await readJourneyIds();
+  const brand = await getBrand();
 
   const host = (await headers()).get("host");
   const isLocal = !host || /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
@@ -115,12 +118,14 @@ export default async function SetupPage() {
         <RunAgainButton />
       </div>
 
+      <BrandPanel brand={brand} writable={configWritable()} />
+
       <div className="setup-progress" aria-label={`${done} of ${steps.length} steps done`}>
         <div className="setup-progress-bar" style={{ width: `${(done / steps.length) * 100}%` }} />
       </div>
       <p className="muted">
         {done === steps.length
-          ? `All ${steps.length} steps done. ${APP_NAME} is talking to Lithos end to end.`
+          ? `All ${steps.length} steps done. ${brand.name} is talking to Lithos end to end.`
           : `${done} of ${steps.length} done${current ? ` — next: ${STEPS[current.key].title.toLowerCase()}.` : "."}`}
       </p>
 

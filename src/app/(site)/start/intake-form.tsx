@@ -80,7 +80,7 @@ function NotLoadedNotice() {
   );
 }
 
-export function IntakeForm() {
+export function IntakeForm({ brandName }: { brandName: string }) {
   const [state, action, pending] = useActionState(createJourneyAction, INITIAL_JOURNEY_STATE);
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
@@ -212,7 +212,7 @@ export function IntakeForm() {
       {failed && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
 
       <div className="quiz-screen" hidden={screen !== 0}>
-        {q(0, "What brings you to Eucardia?", "A care review adds a clinician to your membership. Start with what you want help with.")}
+        {q(0, `What brings you to ${brandName}?`, "A care review adds a clinician to your membership. Start with what you want help with.")}
         <div className="quiz-options">
           <Option name="indication" value="hypercholesterolemia" onPick={autoAdvance} required>My cholesterol is high</Option>
           <Option name="indication" value="cardiovascular_risk_reduction" onPick={autoAdvance}>I want to lower my heart-disease risk</Option>

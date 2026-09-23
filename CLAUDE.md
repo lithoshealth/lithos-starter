@@ -1,8 +1,10 @@
 # Lithos Starter — agent rules
 
 A partner app built on the Lithos partner API. It wears a demo brand (Eucardia
-Health, a fictional cardiometabolic membership). `NEXT_PUBLIC_APP_NAME` renames
-the header and titles; page copy still names the demo brand. Start with `README.md`.
+Health, a fictional cardiometabolic membership). The brand — name, tagline,
+colour, logo — lives in `starter.config.json` and is edited live from the "Make
+it yours" panel on `/setup`; logos go in `public/brand/`. Nothing secret belongs
+in that file. Start with `README.md`.
 
 ## Helping someone try the starter for the first time
 

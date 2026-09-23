@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { APP_NAME } from "@/lib/app-meta";
+import { getBrand } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
 
@@ -14,6 +14,7 @@ function BrandMark() {
 
 export default async function SiteLayout({ children }: Readonly<{ children: ReactNode }>) {
   const dev = process.env.NODE_ENV === "development";
+  const brand = await getBrand();
   const connected = lithosConnection().connected;
   // After setup is when webhooks break (a restarted tunnel), so keep watching.
   const health = dev && connected ? await webhookHealth() : null;
@@ -40,7 +41,11 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <div className="demo-bar" role="note">Demo environment · sample patients only · no real medical care is provided here</div>
       <header className="site-header">
         <div className="header-inner">
-          <Link href="/" className="brand"><BrandMark />{APP_NAME}</Link>
+          <Link href="/" className="brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a user-uploaded logo of unknown size; next/image needs dimensions up front */}
+            {brand.logo ? <img src={brand.logo} alt="" className="brand-logo" /> : <BrandMark />}
+            {brand.name}
+          </Link>
           <nav className="site-nav" aria-label="Primary navigation">
             <Link href="/#program">The program</Link>
             <Link href="/#numbers">What we measure</Link>
@@ -52,7 +57,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <main>{children}</main>
       <footer className="site-footer">
         <div className="footer-inner">
-          <p className="footer-note">© {new Date().getFullYear()} {APP_NAME}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
+          <p className="footer-note">© {new Date().getFullYear()} {brand.name}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
           <nav className="footer-ops" aria-label="Operations">
             <span>Ops:</span>
             <Link href="/setup">Setup</Link>

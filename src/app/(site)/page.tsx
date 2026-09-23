@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBrand } from "@/lib/app-meta";
 
 // Kept for the ops "Journeys" page, which links back here.
 export function HomePageLinks() {
@@ -79,7 +80,8 @@ const audiences = [
   "You get a panel once a year at a physical, and nothing happens between panels.",
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { name } = await getBrand();
   return (
     <>
       <section className="hero">
@@ -87,7 +89,7 @@ export default function HomePage() {
           <p className="eyebrow">Cardiometabolic membership</p>
           <h1>Know your numbers. Then actually move them.</h1>
           <p className="lede">
-            Eucardia is a membership for people managing cholesterol and cardiovascular risk: a panel every quarter,
+            {name} is a membership for people managing cholesterol and cardiovascular risk: a panel every quarter,
             a coach who reads it with you, and medical care added the moment lifestyle alone stops being enough.
           </p>
           <div className="hero-actions">
@@ -246,7 +248,7 @@ export default function HomePage() {
 
       <section className="section" id="who">
         <div className="section-head">
-          <p className="eyebrow">Who Eucardia is for</p>
+          <p className="eyebrow">Who {name} is for</p>
           <h2>You&rsquo;ll recognize yourself in one of these.</h2>
         </div>
         <ul className="checklist" style={{ maxWidth: "44rem" }}>
@@ -257,10 +259,10 @@ export default function HomePage() {
             <h2>Start with the panel.</h2>
             <p>Everything else follows from knowing the numbers — and from someone reading them with you.</p>
           </div>
-          <Link href="/join" className="btn btn-primary btn-lg">Join Eucardia</Link>
+          <Link href="/join" className="btn btn-primary btn-lg">Join {name}</Link>
         </div>
         <p className="fine-print" style={{ marginTop: "1rem" }}>
-          Eucardia does not provide emergency care. If you&rsquo;re having chest pain, shortness of breath, or symptoms
+          {name} does not provide emergency care. If you&rsquo;re having chest pain, shortness of breath, or symptoms
           of a stroke, call 911.
         </p>
       </section>

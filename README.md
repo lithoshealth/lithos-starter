@@ -5,8 +5,10 @@ reach your first encounter in about fifteen minutes.
 
 It wears a demo brand, **Eucardia Health**: a fictional cardiometabolic
 membership that adds prescribing through Lithos. Nothing in the integration
-depends on the brand: `NEXT_PUBLIC_APP_NAME` renames the header and page titles,
-and the marketing copy on the patient-facing pages is yours to replace.
+depends on the brand. The **Make it yours** panel at the top of `/setup` changes the
+name, tagline, colour and logo live, saving them to `starter.config.json` (and the
+logo to `public/brand/`), so they're committed with your code. The longer marketing
+copy on the patient-facing pages is yours to replace.
 
 > **Sandbox only.** This app refuses to create patients anywhere but
 > `api.sandbox.lithoshealth.com`, and rejects anything that isn't obviously fake

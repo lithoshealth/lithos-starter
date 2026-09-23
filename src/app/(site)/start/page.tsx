@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { getBrand } from "@/lib/app-meta";
 import { IntakeForm } from "./intake-form";
 
 export const metadata: Metadata = { title: "Start a care review" };
 
-export default function StartPage() {
+export default async function StartPage() {
+  const { name } = await getBrand();
   return (
     <section className="form-card stack">
       <p className="eyebrow">About 2 minutes</p>
@@ -13,7 +15,7 @@ export default function StartPage() {
         your most recent cholesterol results — a clinician licensed in your state reviews every one.
       </p>
       <p className="demo-note"><strong>Demo environment.</strong> This build runs against a sandbox — please use sample patient details, not real ones.</p>
-      <IntakeForm />
+      <IntakeForm brandName={name} />
     </section>
   );
 }
