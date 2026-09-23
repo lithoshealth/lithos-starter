@@ -78,9 +78,8 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
 }
 
 /**
- * A list call that came back empty. Its response stays folded — an open
- * `{ "data": [] }` reads like a result when it's the absence of one. The reveal
- * is for when there's something to see.
+ * A list call that came back empty — labelled "nothing yet", so a folded
+ * `{ "data": [] }` isn't mistaken for a result worth opening.
  */
 function isEmptyResponse(response: unknown): boolean {
   const data = (response as { data?: unknown } | null | undefined)?.data;
@@ -159,7 +158,7 @@ export default async function SetupPage() {
                         <span><strong>{check.label}</strong> <span className="muted">— {check.summary}</span></span>
                       </div>
                       {check.exchange && (
-                        <details className="setup-detail" open>
+                        <details className="setup-detail">
                           <summary>
                             What Lithos returned — <code>{check.exchange.method} {check.exchange.path}</code>
                             {check.exchange.status ? ` · ${check.exchange.status}` : ""}
@@ -211,7 +210,7 @@ export default async function SetupPage() {
               )}
 
               {preview && (
-                <details className="setup-detail" open={isCurrent}>
+                <details className="setup-detail">
                   <summary>The call{preview.length > 1 ? "s" : ""} this step makes</summary>
                   {preview.map((p) => (
                     <div key={p.path}>
@@ -251,10 +250,10 @@ export default async function SetupPage() {
                 </>
               )}
 
-              {/* Open by default: seeing Lithos answer with real data is the point
-                  of each step. The block scrolls, so the page stays walkable. */}
+              {/* Folded by default: the step's plain-language result is what most
+                  people need. The real request and response are one click away. */}
               {step.exchange && (
-                <details className="setup-detail" open={!isEmptyResponse(step.exchange.response)}>
+                <details className="setup-detail">
                   <summary>
                     {step.exchange.direction === "inbound" ? "What Lithos sent" : "What Lithos returned"} — <code>{step.exchange.method} {step.exchange.path}</code>
                     {step.exchange.status ? ` · ${step.exchange.status}` : ""}
