@@ -76,7 +76,7 @@ export function JoinForm({ initialPlan }: { initialPlan: "essential" | "complete
             {errorFor("first_name") && <small className="error-text">{errorFor("first_name")}</small>}
           </label>
           <label className="field">Last name
-            <input name="last_name" required />
+            <input name="last_name" required defaultValue="Member" />
           </label>
           <label className="field">Email
             <input ref={emailRef} name="email" type="email" required />
@@ -87,11 +87,11 @@ export function JoinForm({ initialPlan }: { initialPlan: "essential" | "complete
             {errorFor("phone") && <small className="error-text">{errorFor("phone")}</small>}
           </label>
           <label className="field">Date of birth
-            <input name="date_of_birth" type="date" required />
+            <input name="date_of_birth" type="date" required defaultValue="1984-03-09" />
             {errorFor("date_of_birth") && <small className="error-text">{errorFor("date_of_birth")}</small>}
           </label>
           <label className="field">Sex at birth
-            <select name="sex" required defaultValue="">
+            <select name="sex" required defaultValue="female">
               <option value="" disabled>Select…</option>
               <option value="female">Female</option>
               <option value="male">Male</option>

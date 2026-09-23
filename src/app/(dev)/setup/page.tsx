@@ -174,7 +174,7 @@ export default async function SetupPage() {
                 </div>
               )}
 
-              {step.key === "connect" && step.status === "blocked" && step.needsCredentials && <ConnectForm />}
+              {step.key === "connect" && step.needsCredentials && <ConnectForm />}
 
               {step.programs && step.status !== "locked" && step.status !== "done" && (
                 <ProgramPicker programs={step.programs} />

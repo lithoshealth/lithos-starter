@@ -488,7 +488,14 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
     // Only the "no credentials yet" failure has a form to offer; a rejected
     // pair or a non-sandbox URL needs its own diagnosis, not another text box.
     const needsCredentials = failed.key === "credentials" && REQUIRED_ENV.some((name) => !process.env[name]);
-    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks, needsCredentials }, catalog: [] };
+    // No credentials yet isn't a fault — it's where everyone starts. It reads
+    // as "your turn", like any other step waiting on the reader, not a red
+    // "needs a fix" before they've done anything.
+    if (needsCredentials) {
+      const waiting = checks.map((c) => (c.key === "credentials" ? { ...c, status: "skipped" as const } : c));
+      return { step: { key: "connect", status: "ready", summary, diagnosis: failed.diagnosis, checks: waiting, needsCredentials }, catalog: [] };
+    }
+    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks }, catalog: [] };
   }
   return { step: { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks }, catalog: results[2].catalog ?? [] };
 }
