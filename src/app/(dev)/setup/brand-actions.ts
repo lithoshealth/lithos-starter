@@ -3,7 +3,10 @@
 import { readdir, rm, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
-import { configWritable, updateConfig } from "@/lib/starter-config";
+import { configWritable, INTAKE_STYLES, updateConfig, type IntakeStyle } from "@/lib/starter-config";
+import { programFor } from "@/lib/setup/programs";
+import { formularyHas } from "@/lib/setup/steps";
+import { lithosConnection } from "@/lib/lithos/connection";
 
 /**
  * "Make it yours": the brand choices, saved to starter.config.json and applied
@@ -73,6 +76,39 @@ export async function removeLogoAction(): Promise<BrandActionState> {
   if (!configWritable()) return READ_ONLY;
   await clearLogos();
   await updateConfig({ brand: { logo: undefined } });
+  refreshEverything();
+  return { status: "saved" };
+}
+
+/**
+ * The program, from the "Make it yours" panel — the same choice as step 2 of
+ * the walkthrough, in the place a demo starts. When the app is connected the
+ * choice is checked against the live formulary first, so the panel can't
+ * offer a program the organization can't prescribe in.
+ */
+export async function setProgramAction(_prev: BrandActionState, formData: FormData): Promise<BrandActionState> {
+  if (!configWritable()) return READ_ONLY;
+  const program = programFor(String(formData.get("program") ?? ""));
+  if (!program) return { status: "error", message: "Pick a program." };
+  if (lithosConnection().connected) {
+    try {
+      if (!(await formularyHas(program.key))) {
+        return { status: "error", message: `Your Lithos organization isn't provisioned for ${program.label.toLowerCase()} yet. Ask your Lithos contact to add it.` };
+      }
+    } catch {
+      return { status: "error", message: "Couldn't reach Lithos to check your formulary. Try again in a moment." };
+    }
+  }
+  if (!(await updateConfig({ program: program.key }))) return { status: "error", message: "Couldn't write starter.config.json." };
+  refreshEverything();
+  return { status: "saved" };
+}
+
+export async function setIntakeStyleAction(_prev: BrandActionState, formData: FormData): Promise<BrandActionState> {
+  if (!configWritable()) return READ_ONLY;
+  const style = String(formData.get("intakeStyle") ?? "") as IntakeStyle;
+  if (!INTAKE_STYLES.some((s) => s.key === style)) return { status: "error", message: "Pick an intake style." };
+  if (!(await updateConfig({ intakeStyle: style }))) return { status: "error", message: "Couldn't write starter.config.json." };
   refreshEverything();
   return { status: "saved" };
 }

@@ -138,6 +138,9 @@ input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--p
 .quiz-count { margin-left: auto; font-size: 0.9rem; }
 .quiz-not-loaded { padding: 0.85rem 1rem; border-radius: var(--radius-sm); background: var(--warning-soft); color: var(--warning-ink); font-size: 0.95rem; visibility: hidden; animation: quiz-not-loaded 1ms 3s forwards; }
 @keyframes quiz-not-loaded { to { visibility: visible; } }
+/* The single-page intake: the quiz's screens as sections of one form. */
+.quiz-single-page .quiz-screen + .quiz-screen { padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.quiz-single-page .quiz-question h2 { font-size: 1.2rem; }
 .link-button { background: none; border: 0; padding: 0; color: var(--primary); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .error-box { border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 1rem 1.15rem; background: var(--danger-soft); display: grid; gap: 0.5rem; }
 .error-box h2 { color: var(--danger); font-size: 1.1rem; }
@@ -335,3 +338,13 @@ summary { cursor: pointer; font-weight: 700; }
 .brand-preview iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; border: 0; transform-origin: 0 0; transform: scale(var(--preview-scale, 0.35)); pointer-events: none; }
 .brand-preview-open { position: absolute; right: 0.6rem; bottom: 0.6rem; padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--panel); box-shadow: var(--shadow); font-size: 0.85rem; font-weight: 600; text-decoration: none; }
 @media (max-width: 52rem) { .brand-panel { grid-template-columns: minmax(0, 1fr); } }
+
+/* Two-or-three-way choices in the brand panel. */
+.choice-set { border: 0; padding: 0; margin: 0; display: grid; gap: 0.4rem; min-width: 0; }
+.choice-set legend { font-weight: 600; font-size: 0.92rem; margin-bottom: 0.35rem; }
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.25rem; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); justify-self: start; }
+.segmented button { border: 0; background: transparent; padding: 0.45rem 0.9rem; border-radius: 999px; font: inherit; font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+.segmented button:disabled, .choice-set:disabled button { cursor: not-allowed; opacity: 0.6; }
+.segmented-small button { padding: 0.3rem 0.75rem; font-size: 0.82rem; }
+.brand-preview-column { display: grid; gap: 0.6rem; min-width: 0; }

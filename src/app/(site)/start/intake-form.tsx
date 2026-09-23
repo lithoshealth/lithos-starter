@@ -6,6 +6,7 @@ import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
 import type { ProgramKey } from "@/lib/setup/programs";
+import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 
 /*
@@ -80,7 +81,13 @@ function NotLoadedNotice() {
   );
 }
 
-export function IntakeForm({ brandName, program }: { brandName: string; program: ProgramKey }) {
+/**
+ * `style` is the intake style chosen in /setup: "quiz" shows one screen at a
+ * time; "form" shows every screen at once as sections of one page. Same
+ * screens, same fields, same validation either way.
+ */
+export function IntakeForm({ brandName, program, style }: { brandName: string; program: ProgramKey; style: IntakeStyle }) {
+  const quiz = style === "quiz";
   const [state, action, pending] = useActionState(createJourneyAction, INITIAL_JOURNEY_STATE);
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
@@ -88,6 +95,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
   const formRef = useRef<HTMLFormElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const headingRefs = useRef<Array<HTMLElement | null>>([]);
+  const screenRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [screen, setScreen] = useState(0);
   // Which checklist screens have something ticked — keyed by screen index.
   const [ticked, setTicked] = useState<Record<number, boolean>>({});
@@ -100,6 +108,11 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
   }, []);
 
   function go(to: number) {
+    if (!quiz) {
+      // One page: "going to" a section means scrolling to it.
+      screenRefs.current[to]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     setScreen(to);
     requestAnimationFrame(() => {
       // Move focus with the screen, so keyboard and screen-reader users land on the new question.
@@ -115,6 +128,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
   }
 
   function autoAdvance() {
+    if (!quiz) return;
     // A beat to see the choice register before the next question slides in.
     // Never the last screen — that's consent, which has its own button.
     window.setTimeout(() => go(screen + 1), 180);
@@ -300,7 +314,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
       for (const input of inputs) {
         if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) {
           if (!input.checkValidity()) {
-            if (index !== screen) go(index);
+            if (quiz && index !== screen) go(index);
             requestAnimationFrame(() => input.reportValidity());
             return false;
           }
@@ -320,7 +334,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
   // in place if Lithos rejects the intake; a form action would reset them.
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (screen < last) return next();
+    if (quiz && screen < last) return next();
     for (let i = 0; i < screens.length; i++) if (!screenValid(i)) return;
     const data = new FormData(event.currentTarget);
     startTransition(() => action(data));
@@ -332,17 +346,19 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
     if (state.status !== "failed" || state.stage === "connection") return;
     const target = state.errors.map((e) => screenForPointer(screens, e.source?.pointer)).find((i) => i !== null);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the server's answer, once per response
-    if (target !== undefined && target !== null) setScreen(target);
+    if (target !== undefined && target !== null && quiz) setScreen(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the screens are rebuilt every render; their fields are what matter
   }, [state, fieldsKey]);
 
   const current = screens[screen];
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className="quiz">
-      <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={screen + 1}>
-        <span style={{ width: `${((screen + 1) / screens.length) * 100}%` }} />
-      </div>
+    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className={quiz ? "quiz" : "quiz quiz-single-page"}>
+      {quiz && (
+        <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={screen + 1}>
+          <span style={{ width: `${((screen + 1) / screens.length) * 100}%` }} />
+        </div>
+      )}
 
       <NotLoadedNotice />
 
@@ -365,7 +381,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
                   <li key={`${error.code}-${index}`}>
                     {error.message}
                     {error.source?.pointer && <code className="muted"> {error.source.pointer}</code>}
-                    {target !== null && target !== screen && (
+                    {target !== null && (!quiz || target !== screen) && (
                       <> <button type="button" className="link-button" onClick={() => go(target)}>Fix this</button></>
                     )}
                   </li>
@@ -381,7 +397,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
       {failed && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
 
       {screens.map((s, index) => (
-        <div key={index} className="quiz-screen" hidden={screen !== index}>
+        <div key={index} ref={(el) => { screenRefs.current[index] = el; }} className="quiz-screen" hidden={quiz && screen !== index}>
           <header className="quiz-question">
             <h2 tabIndex={-1} ref={(el) => { headingRefs.current[index] = el; }}>{s.title}</h2>
             {s.hint && <p className="hint">{s.hint}</p>}
@@ -390,7 +406,15 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
         </div>
       ))}
 
-      <div className="quiz-nav">
+      {!quiz && (
+        <div className="quiz-nav">
+          <button type="submit" className="btn btn-primary btn-lg" disabled={pending}>
+            {pending ? "Sending to our clinical team…" : retrying ? "Try again" : "Start my care plan"}
+          </button>
+        </div>
+      )}
+
+      {quiz && <div className="quiz-nav">
         {screen > 0 && (
           <button type="button" className="btn btn-ghost" onClick={() => go(screen - 1)} disabled={pending}>Back</button>
         )}
@@ -406,7 +430,7 @@ export function IntakeForm({ brandName, program }: { brandName: string; program:
           )
         )}
         <span className="muted quiz-count">{screen + 1} of {screens.length}</span>
-      </div>
+      </div>}
     </form>
   );
 }

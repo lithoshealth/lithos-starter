@@ -24,5 +24,5 @@ export function brandCss(brand: Brand): string {
 export async function getSite() {
   const config = await readConfig();
   const program = config.program ?? DEFAULT_PROGRAM;
-  return { brand: config.brand, program, content: contentFor(program) };
+  return { brand: config.brand, program, intakeStyle: config.intakeStyle, content: contentFor(program) };
 }

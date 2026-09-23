@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { getBrand } from "@/lib/app-meta";
-import { configWritable, DEFAULT_PROGRAM } from "@/lib/starter-config";
+import { configWritable, DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
 import { BrandPanel } from "./brand-panel";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
@@ -92,7 +91,8 @@ function Json({ value }: { value: unknown }) {
 
 export default async function SetupPage() {
   const ids = await readJourneyIds();
-  const brand = await getBrand();
+  const config = await readConfig();
+  const brand = config.brand;
 
   const host = (await headers()).get("host");
   const isLocal = !host || /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
@@ -118,7 +118,7 @@ export default async function SetupPage() {
         <RunAgainButton />
       </div>
 
-      <BrandPanel brand={brand} writable={configWritable()} />
+      <BrandPanel brand={brand} program={config.program} intakeStyle={config.intakeStyle} writable={configWritable()} />
 
       <div className="setup-progress" aria-label={`${done} of ${steps.length} steps done`}>
         <div className="setup-progress-bar" style={{ width: `${(done / steps.length) * 100}%` }} />
