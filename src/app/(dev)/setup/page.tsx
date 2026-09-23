@@ -6,7 +6,7 @@ import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction } from "./actions";
 import Link from "next/link";
-import { NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
+import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
@@ -173,6 +173,8 @@ export default async function SetupPage() {
                   {step.diagnosis.then && <p>{step.diagnosis.then}</p>}
                 </div>
               )}
+
+              {step.key === "connect" && step.status === "blocked" && step.needsCredentials && <ConnectForm />}
 
               {step.programs && step.status !== "locked" && step.status !== "done" && (
                 <ProgramPicker programs={step.programs} />

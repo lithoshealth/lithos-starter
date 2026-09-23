@@ -12,6 +12,7 @@ import { programFor } from "@/lib/setup/programs";
 import { signOffAsClinician } from "@/lib/sandbox-review";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
+import { verifyCredentials } from "@/lib/setup/connect";
 
 function failure(error: unknown, hint?: string): SetupActionState {
   if (error instanceof LithosApiError) return { status: "error", httpStatus: error.status, errors: error.errors, hint };
@@ -22,6 +23,55 @@ function failure(error: unknown, hint?: string): SetupActionState {
 function refuseOutsideSandbox(): SetupActionState | null {
   if (isSandbox(process.env.LITHOS_API_BASE_URL)) return null;
   return { status: "error", errors: [{ code: "setup.not_sandbox", message: "The walkthrough only writes to the Lithos sandbox." }] };
+}
+
+const SANDBOX_URLS = {
+  LITHOS_API_BASE_URL: "https://api.sandbox.lithoshealth.com",
+  LITHOS_TOKEN_URL: "https://api.sandbox.lithoshealth.com/v1/oauth2/token",
+};
+
+/**
+ * Step 1: connect, from the page rather than the terminal.
+ *
+ * The starter is meant to be opened and walked around before it's configured,
+ * so the credentials belong at the moment the reader hits the wall — not in a
+ * terminal prompt before they've seen the app. Development only: it writes
+ * .env.local, which a deployed copy doesn't have (there the step shows the
+ * variables to set in the host's environment settings instead).
+ *
+ * Nothing is written until Lithos has accepted the pair, so a typo can't leave
+ * a half-connected app behind.
+ */
+export async function connectAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+  if (process.env.NODE_ENV !== "development") {
+    return { status: "error", errors: [{ code: "setup.not_development", message: "A deployed copy has no .env.local to write. Set the variables in your host's environment settings, then redeploy." }] };
+  }
+
+  const clientId = String(formData.get("client_id") ?? "").trim();
+  const clientSecret = String(formData.get("client_secret") ?? "").trim();
+  if (!clientId || !clientSecret) {
+    return { status: "error", errors: [{ code: "setup.missing_credentials", message: "Paste both the client ID and the client secret." }] };
+  }
+
+  // Keep whatever URLs are already set — someone pointed them at the sandbox on
+  // purpose — and fill in the sandbox defaults when there are none.
+  const baseUrl = process.env.LITHOS_API_BASE_URL || SANDBOX_URLS.LITHOS_API_BASE_URL;
+  const tokenUrl = process.env.LITHOS_TOKEN_URL || SANDBOX_URLS.LITHOS_TOKEN_URL;
+
+  const checked = await verifyCredentials({ baseUrl, tokenUrl, clientId, clientSecret });
+  if (!checked.ok) return { status: "error", errors: [{ code: "setup.credentials_rejected", message: checked.message }] };
+
+  for (const [name, value] of [
+    ["LITHOS_API_BASE_URL", baseUrl], ["LITHOS_TOKEN_URL", tokenUrl],
+    ["LITHOS_CLIENT_ID", clientId], ["LITHOS_CLIENT_SECRET", clientSecret],
+  ]) {
+    if (!(await saveToEnvLocal(name, value))) {
+      return { status: "error", errors: [{ code: "setup.env_write_failed", message: `Couldn't write ${name} to .env.local. Check the folder is writable, or run npm run setup in a terminal.` }] };
+    }
+  }
+
+  revalidatePath("/setup");
+  return { status: "connected", treatments: checked.treatments };
 }
 
 /** Step 2: the program this organization will offer. Checked against the live formulary, not just the list. */

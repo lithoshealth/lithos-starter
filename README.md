@@ -30,12 +30,15 @@ only have one, ask your Lithos contact for a second.
 git clone https://github.com/lithoshealth/lithos-starter.git
 cd lithos-starter
 npm install
-npm run setup    # paste your client ID and secret; it checks them with Lithos
 npm run dev
 ```
 
-Then open **http://localhost:3001/setup** — in development, every page of the app
-also has a link to it at the top.
+Then open **http://localhost:3001** and look around the app first — it runs
+unconnected, and a form you submit will tell you what's missing rather than
+break. When you're ready, follow the **Setup** link at the top of any page:
+step 1 takes your client ID and secret, checks them with Lithos, and saves them
+to `.env.local` (gitignored). Prefer the terminal? `npm run setup` asks the same
+two questions before you start the server.
 
 Browse on `localhost` (or `127.0.0.1`). The dev server only sends its JavaScript
 to those, so opened any other way — your tunnel's address, or your laptop's

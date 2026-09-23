@@ -70,6 +70,8 @@ export type StepState = {
   endpoint?: { id: string; url: string; pointsHere: boolean };
   /** The Connect step only: its three checks, each with its own exchange. */
   checks?: ConnectCheck[];
+  /** The Connect step only: the credentials are missing, so the page can offer the form. */
+  needsCredentials?: boolean;
   /** The program step only: every program, and what this organization's formulary has for it. */
   programs?: ProgramOption[];
   chosenProgram?: ProgramKey;
@@ -124,12 +126,18 @@ function checkCredentials(): InternalCheck {
     return {
       key: "credentials", status: "blocked",
       summary: noFile ? "none yet" : `missing ${missing.join(", ")}`,
-      diagnosis: {
-        title: "Connect this app to your Lithos sandbox",
-        fix: "In a second terminal, in this folder, run:",
-        command: "npm run setup",
-        then: "Paste your client ID and secret when it asks. It saves them to .env.local and checks them with Lithos on the spot — then reload this page. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
-      },
+      diagnosis: process.env.NODE_ENV === "development"
+        ? {
+            title: "Connect this app to your Lithos sandbox",
+            fix: "Paste the client ID and secret for your sandbox organization below. They're checked with Lithos before anything is saved, and written to .env.local, which git ignores.",
+            then: "Use a sandbox organization that's just for this starter, not the one you'll build your own app on — an organization has one webhook endpoint and one shared set of patients. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
+          }
+        : {
+            title: "Connect this app to your Lithos sandbox",
+            fix: "A deployed copy has no .env.local to write, so set these in your host's environment settings, then redeploy:",
+            command: "LITHOS_API_BASE_URL=https://api.sandbox.lithoshealth.com\nLITHOS_TOKEN_URL=https://api.sandbox.lithoshealth.com/v1/oauth2/token\nLITHOS_CLIENT_ID=…\nLITHOS_CLIENT_SECRET=…",
+            then: "No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
+          },
     };
   }
   if (!isSandbox(process.env.LITHOS_API_BASE_URL)) {
@@ -477,7 +485,10 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
   const failed = results.find((r) => r.status !== "done");
   if (failed) {
     const summary = failed.key === "credentials" ? "Not connected yet." : failed.summary;
-    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks }, catalog: [] };
+    // Only the "no credentials yet" failure has a form to offer; a rejected
+    // pair or a non-sandbox URL needs its own diagnosis, not another text box.
+    const needsCredentials = failed.key === "credentials" && REQUIRED_ENV.some((name) => !process.env[name]);
+    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks, needsCredentials }, catalog: [] };
   }
   return { step: { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks }, catalog: results[2].catalog ?? [] };
 }

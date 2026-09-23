@@ -3,7 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
-import { chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
+import { connectAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
 
 function ActionError({ state }: { state: SetupActionState }) {
@@ -31,6 +31,53 @@ function ActionError({ state }: { state: SetupActionState }) {
  */
 function stepAnchor(step: string): string {
   return `/setup#step-${step}`;
+}
+
+/**
+ * Step 1, in the page: paste the client ID and secret.
+ *
+ * Development only — a deployed copy has no .env.local, and the step shows the
+ * variables to set in the host instead. Nothing is saved until Lithos accepts
+ * the pair, and the secret is never rendered back.
+ */
+export function ConnectForm() {
+  const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
+
+  if (state.status === "connected") {
+    return (
+      <div className="demo-note">
+        <h2>Connected</h2>
+        <p>
+          Lithos accepted the credentials and returned {state.treatments} treatment{state.treatments === 1 ? "" : "s"} in your
+          formulary. They&rsquo;re saved to <code>.env.local</code>, which git ignores.
+        </p>
+        <p>Reload this page to pick up the connection and start step 2.</p>
+        <p><a className="btn btn-primary" href="/setup#step-program">Reload</a></p>
+      </div>
+    );
+  }
+
+  return (
+    <form action={run} className="stack">
+      <label className="field">
+        Client ID
+        <input name="client_id" placeholder="client_…" autoComplete="off" spellCheck={false} required />
+      </label>
+      <label className="field">
+        Client secret
+        {/* type=password so it isn't left on screen in a demo or a screen share. */}
+        <input name="client_secret" type="password" autoComplete="off" spellCheck={false} required />
+      </label>
+      <div>
+        <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Checking with Lithos…" : "Connect"}</button>
+      </div>
+      <p className="muted">
+        Checked with Lithos before anything is saved, then written to <code>.env.local</code> — gitignored, and never sent anywhere
+        but Lithos. Prefer a terminal? <code>npm run setup</code> asks the same two questions.
+      </p>
+      <ActionError state={state} />
+    </form>
+  );
 }
 
 /** One button, one real API call. The page re-reads Lithos afterwards to decide whether it worked. */
