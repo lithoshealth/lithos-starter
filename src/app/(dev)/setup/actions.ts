@@ -12,6 +12,7 @@ import { programFor } from "@/lib/setup/programs";
 import { signOffAsClinician } from "@/lib/sandbox-review";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
+import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
 function failure(error: unknown, hint?: string): SetupActionState {
@@ -78,7 +79,6 @@ export async function connectAction(_prev: SetupActionState, formData: FormData)
 export async function chooseProgramAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
   const program = programFor(String(formData.get("program") ?? ""));
   if (!program) return { status: "error", errors: [{ code: "setup.no_program", message: "Pick a program." }] };
-  if (!program.supported) return { status: "error", errors: [{ code: "setup.program_coming_soon", message: `${program.label} is coming soon — this walkthrough runs lipid management for now.` }] };
   try {
     if (!(await formularyHas(program.key))) {
       return { status: "error", errors: [{ code: "setup.program_not_in_formulary", message: `Your organization isn't provisioned for ${program.label.toLowerCase()}. Ask your Lithos contact to add it.` }] };
@@ -86,8 +86,11 @@ export async function chooseProgramAction(_prev: SetupActionState, formData: For
   } catch (error) {
     return failure(error);
   }
-  await writeIds({ ...(await readIds()), program: program.key });
-  revalidatePath("/setup");
+  if (!(await updateConfig({ program: program.key }))) {
+    return { status: "error", errors: [{ code: "setup.config_write_failed", message: "Couldn't save the program to starter.config.json. On a deployed copy, change it in a local copy and redeploy." }] };
+  }
+  // The program changes what every page says, not just this one.
+  revalidatePath("/", "layout");
   return { status: "ok" };
 }
 
@@ -97,9 +100,8 @@ export async function chooseProgramAction(_prev: SetupActionState, formData: For
  * reappear once a program is chosen again.
  */
 export async function clearProgramAction(): Promise<void> {
-  const { program: _dropped, ...rest } = await readIds();
-  await writeIds(rest);
-  revalidatePath("/setup");
+  await updateConfig({ program: null });
+  revalidatePath("/", "layout");
   // Back to the picker, not the top of the page — with or without JavaScript.
   redirect("/setup#step-program");
 }
@@ -141,7 +143,7 @@ export async function createEncounterAction(): Promise<SetupActionState> {
     const carePlanId = ids.carePlanId ?? (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(ids.patientId, program.key))).id;
     await writeIds({ ...ids, carePlanId });
 
-    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(ids.patientId, carePlanId, treatment.id));
+    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, ids.patientId, carePlanId, treatment.id));
     await writeIds({ ...ids, carePlanId, encounterId: encounter.id });
   } catch (error) {
     return failure(error);

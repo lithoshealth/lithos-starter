@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
-import { getBrand } from "@/lib/app-meta";
+import { getSite } from "@/lib/app-meta";
 import { IntakeForm } from "./intake-form";
 
 export const metadata: Metadata = { title: "Start a care review" };
 
 export default async function StartPage() {
-  const { name } = await getBrand();
+  const { brand, program, content } = await getSite();
   return (
     <section className="form-card stack">
       <p className="eyebrow">About 2 minutes</p>
-      <h1>Let’s add medical care to your membership.</h1>
-      <p className="lede">
-        A care review is how coaching hands over to a clinician. Tell us about your history, what you’re taking now, and
-        your most recent cholesterol results — a clinician licensed in your state reviews every one.
-      </p>
+      <h1>{content.start.heading}</h1>
+      <p className="lede">{content.start.lede}</p>
       <p className="demo-note"><strong>Demo environment.</strong> This build runs against a sandbox — please use sample patient details, not real ones.</p>
-      <IntakeForm brandName={name} />
+      {/* Keyed by program, so switching it in /setup starts the quiz fresh rather than mid-way through the other one. */}
+      <IntakeForm key={program} brandName={brand.name} program={program} />
     </section>
   );
 }

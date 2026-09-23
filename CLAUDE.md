@@ -4,7 +4,11 @@ A partner app built on the Lithos partner API. It wears a demo brand (Eucardia
 Health, a fictional cardiometabolic membership). The brand — name, tagline,
 colour, logo — lives in `starter.config.json` and is edited live from the "Make
 it yours" panel on `/setup`; logos go in `public/brand/`. Nothing secret belongs
-in that file. Start with `README.md`.
+in that file. The chosen **program** (`lipid_management` or `weight_management`)
+is saved there too and drives the patient-facing copy (`src/lib/programs/content.ts`)
+and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). The
+membership side (`/join`, `/me`, `/members`) is written for lipid management only.
+Start with `README.md`.
 
 ## Helping someone try the starter for the first time
 

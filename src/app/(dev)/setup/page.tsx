@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getBrand } from "@/lib/app-meta";
-import { configWritable } from "@/lib/starter-config";
+import { configWritable, DEFAULT_PROGRAM } from "@/lib/starter-config";
 import { BrandPanel } from "./brand-panel";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
@@ -62,7 +62,7 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
     case "encounter":
       return [
         { method: "POST", path: "/v1/care_plans", body: carePlanRequest(ids.patientId ?? "<patient id>", ids.program ?? "<your program>") },
-        { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.patientId ?? "<patient id>", "<care plan id>", "<first treatment in your program>") },
+        { method: "POST", path: "/v1/encounters", body: encounterRequest(ids.program ?? DEFAULT_PROGRAM, ids.patientId ?? "<patient id>", "<care plan id>", "<first treatment in your program>") },
       ];
     case "review":
       return [

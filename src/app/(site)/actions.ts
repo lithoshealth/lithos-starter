@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { parseJourneyForm, runJourney, type JourneyState } from "@/lib/journey";
+import { DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
 
 export async function createJourneyAction(_previous: JourneyState, formData: FormData): Promise<JourneyState> {
-  const parsed = parseJourneyForm(formData);
+  const { program } = await readConfig();
+  const parsed = parseJourneyForm(formData, program ?? DEFAULT_PROGRAM);
   if (!parsed.ok) return { status: "failed", stage: "validation", errors: parsed.errors };
 
   // Validate first, then check the connection: the visitor learns their form

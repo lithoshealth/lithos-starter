@@ -1,4 +1,5 @@
-import { readConfig, type Brand } from "./starter-config";
+import { contentFor } from "./programs/content";
+import { DEFAULT_PROGRAM, readConfig, type Brand } from "./starter-config";
 
 /**
  * The brand this copy of the starter wears, from `starter.config.json`.
@@ -17,4 +18,11 @@ export async function getBrand(): Promise<Brand> {
 export function brandCss(brand: Brand): string {
   const c = brand.color;
   return `:root{--primary:${c};--primary-hover:color-mix(in srgb,${c} 82%,black);--primary-soft:color-mix(in srgb,${c} 11%,white);--primary-deep:color-mix(in srgb,${c} 78%,white)}`;
+}
+
+/** Everything a patient-facing page needs to know about this copy: brand, program and the program's copy. */
+export async function getSite() {
+  const config = await readConfig();
+  const program = config.program ?? DEFAULT_PROGRAM;
+  return { brand: config.brand, program, content: contentFor(program) };
 }

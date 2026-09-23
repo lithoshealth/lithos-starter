@@ -8,6 +8,8 @@ import type {
   PatientCreate,
 } from "./lithos/types";
 import type { LithosClient } from "./lithos/client";
+import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
+import type { ProgramKey } from "./setup/programs";
 
 /** `connection`: the form was valid, but the app has no Lithos credentials to send it with. */
 export type JourneyStage = "validation" | "connection" | "patient" | "care_plan" | "encounter" | "configuration";
@@ -28,7 +30,9 @@ export const INITIAL_JOURNEY_STATE: JourneyState = { status: "idle" };
 
 export type JourneyInput = {
   patient: Omit<PatientCreate, "external_id" | "telehealth_consented_at" | "identity_verified_at">;
-  intake: LipidManagementInitialIntake;
+  /** The care plan's category — and the protocol the intake is written for. */
+  program: ProgramKey;
+  intake: LipidManagementInitialIntake | WeightManagementInitialIntake;
   attestationsConfirmed: true;
   resume: { patientId?: string; carePlanId?: string };
 };
@@ -65,7 +69,12 @@ function isValidIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
-export function parseJourneyForm(formData: FormData): ParseResult {
+/**
+ * The patient and consent checks are the same for every program; the intake is
+ * the program's own. `program` comes from starter.config.json on the server —
+ * never from the form, so a visitor can't pick a protocol the company doesn't offer.
+ */
+export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipid_management"): ParseResult {
   const firstName = field(formData, "first_name");
   const lastName = field(formData, "last_name");
   const email = field(formData, "email").toLowerCase();
@@ -73,10 +82,6 @@ export function parseJourneyForm(formData: FormData): ParseResult {
   const dateOfBirth = field(formData, "date_of_birth");
   const sex = field(formData, "sex");
   const governmentInsurance = field(formData, "enrolled_in_government_insurance");
-  const ldlC = Number(field(formData, "ldl_c"));
-  const ldlCDate = field(formData, "ldl_c_date");
-  const indication = field(formData, "indication");
-  const familialHypercholesterolemia = field(formData, "familial_hypercholesterolemia");
   const patientId = field(formData, "resume_patient_id") || undefined;
   const carePlanId = field(formData, "resume_care_plan_id") || undefined;
   const errors: ApiError[] = [];
@@ -98,14 +103,8 @@ export function parseJourneyForm(formData: FormData): ParseResult {
   if (formData.get("attestations_confirmed") !== "on") {
     errors.push(pointerError("/attestations", "Confirm both sample attestations before submitting."));
   }
-  if (!Number.isFinite(ldlC) || ldlC <= 0) errors.push(pointerError("/intake_form/data/ldl_c", "Enter a positive LDL-C value."));
-  if (!isValidIsoDate(ldlCDate)) errors.push(pointerError("/intake_form/data/ldl_c_date", "Enter a valid LDL-C date."));
-  if (indication !== "hypercholesterolemia" && indication !== "cardiovascular_risk_reduction") {
-    errors.push(pointerError("/intake_form/data/indication", "Select a valid indication."));
-  }
-  if (!(["none", "heterozygous", "homozygous", "unknown"] as string[]).includes(familialHypercholesterolemia)) {
-    errors.push(pointerError("/intake_form/data/familial_hypercholesterolemia", "Select a valid FH status."));
-  }
+  const intake = program === "weight_management" ? weightIntake(formData) : lipidIntake(formData);
+  if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
     errors.push(pointerError("/resume_patient_id", "A care plan retry must retain its patient ID."));
   }
@@ -115,11 +114,7 @@ export function parseJourneyForm(formData: FormData): ParseResult {
     if (!field(formData, name)) errors.push(pointerError(`/address/${name.replace("address_", "")}`, "This address field is required."));
   }
 
-  if (errors.length > 0) return { ok: false, errors };
-
-  const screening = Object.fromEntries(
-    SCREENING_FIELDS.map((name) => [name, formData.get(name) === "on"]),
-  ) as unknown as Pick<LipidManagementInitialIntake, (typeof SCREENING_FIELDS)[number]>;
+  if (errors.length > 0 || !intake.ok) return { ok: false, errors };
 
   return {
     ok: true,
@@ -140,18 +135,50 @@ export function parseJourneyForm(formData: FormData): ParseResult {
         phone,
         enrolled_in_government_insurance: governmentInsurance === "true",
       },
-      intake: {
-        indication: indication as LipidManagementInitialIntake["indication"],
-        ldl_c: ldlC,
-        ldl_c_date: ldlCDate,
-        familial_hypercholesterolemia:
-          familialHypercholesterolemia as LipidManagementInitialIntake["familial_hypercholesterolemia"],
-        ...screening,
-      },
+      program,
+      intake: intake.value,
       attestationsConfirmed: true,
       resume: { patientId, carePlanId },
     },
   };
+}
+
+type IntakeResult<T> = { ok: true; value: T } | { ok: false; errors: ApiError[] };
+
+function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialIntake> {
+  const ldlC = Number(field(formData, "ldl_c"));
+  const ldlCDate = field(formData, "ldl_c_date");
+  const indication = field(formData, "indication");
+  const familialHypercholesterolemia = field(formData, "familial_hypercholesterolemia");
+  const errors: ApiError[] = [];
+  if (!Number.isFinite(ldlC) || ldlC <= 0) errors.push(pointerError("/intake_form/data/ldl_c", "Enter a positive LDL-C value."));
+  if (!isValidIsoDate(ldlCDate)) errors.push(pointerError("/intake_form/data/ldl_c_date", "Enter a valid LDL-C date."));
+  if (indication !== "hypercholesterolemia" && indication !== "cardiovascular_risk_reduction") {
+    errors.push(pointerError("/intake_form/data/indication", "Select a valid indication."));
+  }
+  if (!(["none", "heterozygous", "homozygous", "unknown"] as string[]).includes(familialHypercholesterolemia)) {
+    errors.push(pointerError("/intake_form/data/familial_hypercholesterolemia", "Select a valid FH status."));
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  const screening = Object.fromEntries(
+    SCREENING_FIELDS.map((name) => [name, formData.get(name) === "on"]),
+  ) as unknown as Pick<LipidManagementInitialIntake, (typeof SCREENING_FIELDS)[number]>;
+  return {
+    ok: true,
+    value: {
+      indication: indication as LipidManagementInitialIntake["indication"],
+      ldl_c: ldlC,
+      ldl_c_date: ldlCDate,
+      familial_hypercholesterolemia: familialHypercholesterolemia as LipidManagementInitialIntake["familial_hypercholesterolemia"],
+      ...screening,
+    },
+  };
+}
+
+function weightIntake(formData: FormData): IntakeResult<WeightManagementInitialIntake> {
+  const parsed = parseWeightIntake((name) => field(formData, name), (name) => formData.get(name) === "on");
+  if (parsed.ok) return parsed;
+  return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
 }
 
 export function buildPatientPayload(input: JourneyInput, now: Date, externalId: string): PatientCreate {
@@ -209,7 +236,7 @@ export async function runJourney(
     try {
       const carePlan = await client.post<IdResponse>("/v1/care_plans", {
         patient_id: patientId,
-        category: "lipid_management",
+        category: input.program,
       });
       carePlanId = carePlan.id;
     } catch (error) {

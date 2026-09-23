@@ -67,3 +67,49 @@ describe("journey payloads", () => {
     expect(resumedPost).toHaveBeenCalledWith("/v1/encounters", expect.objectContaining({ patient_id: "pat_1", care_plan_id: "cp_1" }));
   });
 });
+
+describe("weight-management journey", () => {
+  function weightForm(overrides: Record<string, string> = {}): FormData {
+    const form = validForm();
+    ["indication", "ldl_c", "ldl_c_date", "familial_hypercholesterolemia"].forEach((key) => form.delete(key));
+    const values: Record<string, string> = {
+      weight_goal: "20_to_50", height_ft: "5", height_in: "7", weight_lb: "215", already_on_glp1: "false",
+      gallbladder: "on", comorbidity_htn: "on", ...overrides,
+    };
+    Object.entries(values).forEach(([key, value]) => form.set(key, value));
+    return form;
+  }
+
+  it("converts feet, inches and pounds into the contract's centimetres and kilograms", () => {
+    const parsed = parseJourneyForm(weightForm(), "weight_management");
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+    expect(parsed.value.program).toBe("weight_management");
+    expect(parsed.value.intake).toMatchObject({
+      height_cm: 170, weight_kg: 97.5, gallbladder: true, pregnancy: false, comorbidities: ["htn"], already_on_glp1: false,
+    });
+    // The lipid fields don't leak into a weight intake, and the UI-only goal isn't sent.
+    expect(parsed.value.intake).not.toHaveProperty("ldl_c");
+    expect(parsed.value.intake).not.toHaveProperty("weight_goal");
+  });
+
+  it("sends all seventeen screening answers, unticked ones as false", () => {
+    const parsed = parseJourneyForm(weightForm(), "weight_management");
+    if (!parsed.ok) throw new Error("fixture invalid");
+    const booleans = Object.values(parsed.value.intake).filter((v) => typeof v === "boolean");
+    expect(booleans).toHaveLength(17 + 1); // the screens, plus already_on_glp1
+  });
+
+  it("points a missing weight at the contract field", () => {
+    const parsed = parseJourneyForm(weightForm({ weight_lb: "" }), "weight_management");
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.errors.map((e) => e.source?.pointer)).toContain("/intake_form/data/weight_kg");
+  });
+
+  it("opens a weight-management care plan", async () => {
+    const parsed = parseJourneyForm(weightForm(), "weight_management");
+    if (!parsed.ok) throw new Error("fixture invalid");
+    const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" }).mockResolvedValueOnce({ id: "enc_1" });
+    await runJourney(parsed.value, { post, get: vi.fn() } as unknown as LithosClient, { externalId: "sample-fixed" });
+    expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "weight_management" }]);
+  });
+});

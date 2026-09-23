@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
-import { brandCss, getBrand } from "@/lib/app-meta";
+import { brandCss, getBrand, getSite } from "@/lib/app-meta";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { name } = await getBrand();
+  const { brand, content } = await getSite();
   return {
-    title: { default: `${name} — Cardiometabolic membership`, template: `%s · ${name}` },
-    description: "A membership for managing cholesterol and cardiovascular risk: a panel every quarter, a coach who reads it with you, and medical care added when lifestyle alone isn't enough.",
+    title: { default: `${brand.name} — ${content.category}`, template: `%s · ${brand.name}` },
+    description: content.description,
     robots: { index: false, follow: false },
   };
 }

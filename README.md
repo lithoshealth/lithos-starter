@@ -57,7 +57,7 @@ copy has no such limit.
 `/setup` takes you from credentials to a verified webhook in seven steps:
 
 1. Connect to Lithos — your credentials, checked by minting a token and reading your formulary
-2. Choose your program — what your organization offers (lipid management today; weight loss coming soon)
+2. Choose your program — lipid management or weight loss. It switches the whole site: home page copy, the care-review intake, and the protocol a clinician reviews against (saved to `starter.config.json`)
 3. Create a patient
 4. Create a care plan and an encounter
 5. Sign the encounter off as the clinician (a sandbox helper)

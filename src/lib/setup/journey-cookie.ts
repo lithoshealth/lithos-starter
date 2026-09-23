@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { readConfig } from "../starter-config";
 import type { JourneyIds } from "./steps";
 
 /**
@@ -14,19 +15,26 @@ import type { JourneyIds } from "./steps";
 const COOKIE = "setup_journey";
 type Stored = JourneyIds & { clientId?: string };
 
+/**
+ * The program isn't progress — it's a choice about the company, so it lives in
+ * starter.config.json where the whole site can read it. It's merged in here so
+ * the step engine sees one set of ids.
+ */
 export async function readJourneyIds(): Promise<JourneyIds> {
+  const { program } = await readConfig();
   const raw = (await cookies()).get(COOKIE)?.value;
-  if (!raw) return {};
+  if (!raw) return { program };
   try {
-    const { clientId, ...ids } = JSON.parse(raw) as Stored;
-    return clientId && clientId === process.env.LITHOS_CLIENT_ID ? ids : {};
+    const { clientId, program: _legacy, ...ids } = JSON.parse(raw) as Stored;
+    return clientId && clientId === process.env.LITHOS_CLIENT_ID ? { ...ids, program } : { program };
   } catch {
-    return {};
+    return { program };
   }
 }
 
 export async function writeJourneyIds(ids: JourneyIds): Promise<void> {
-  const stored: Stored = { ...ids, clientId: process.env.LITHOS_CLIENT_ID };
+  const { program: _config, ...progress } = ids;
+  const stored: Stored = { ...progress, clientId: process.env.LITHOS_CLIENT_ID };
   (await cookies()).set(COOKIE, JSON.stringify(stored), {
     httpOnly: true, sameSite: "lax", path: "/setup", maxAge: 60 * 60 * 24 * 30,
   });

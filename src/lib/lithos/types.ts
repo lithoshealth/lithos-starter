@@ -1,3 +1,5 @@
+import type { WeightManagementInitialIntake } from "../intake/weight";
+
 export type ApiError = {
   code: string;
   message: string;
@@ -106,7 +108,7 @@ export type RequestedTreatmentLine =
 export type EncounterCreate = {
   patient_id: string;
   care_plan_id: string;
-  intake_form: { data: (LipidManagementInitialIntake | LipidManagementFollowUpIntake) & Record<string, unknown> };
+  intake_form: { data: (LipidManagementInitialIntake | LipidManagementFollowUpIntake | WeightManagementInitialIntake) & Record<string, unknown> };
   requested_treatments: RequestedTreatmentLine[];
 };
 

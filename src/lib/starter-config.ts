@@ -15,6 +15,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { PROGRAMS, type ProgramKey } from "./setup/programs";
 
 export type Brand = {
   /** The company name, shown in the header, titles and page copy. */
@@ -26,7 +27,19 @@ export type Brand = {
   logo?: string;
 };
 
-export type StarterConfig = { brand: Brand };
+export type StarterConfig = {
+  brand: Brand;
+  /**
+   * The program the company offers — Lithos's care-plan category. It decides
+   * what the whole site says, what the intake asks and which protocol a
+   * clinician reviews against. Unset until chosen in /setup step 2; the site
+   * shows the lipid program meanwhile.
+   */
+  program?: ProgramKey;
+};
+
+/** What the site shows before a program has been chosen. */
+export const DEFAULT_PROGRAM: ProgramKey = "lipid_management";
 
 export const DEFAULT_CONFIG: StarterConfig = {
   brand: { name: "Eucardia Health", tagline: "Good heart.", color: "#1e5e59" },
@@ -42,6 +55,7 @@ function configPath() {
 /** Anything missing or malformed falls back to the default, field by field — a hand-edited file can't break the app. */
 export function normalizeConfig(raw: unknown): StarterConfig {
   const brand = (raw as { brand?: Partial<Brand> } | null)?.brand ?? {};
+  const program = (raw as { program?: unknown } | null)?.program;
   const text = (value: unknown, fallback: string, max: number) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, max) : fallback;
   return {
@@ -52,6 +66,7 @@ export function normalizeConfig(raw: unknown): StarterConfig {
       // Only our own upload path — never an arbitrary URL.
       logo: typeof brand.logo === "string" && /^\/brand\/logo\.(png|jpe?g|webp)(\?v=\d+)?$/.test(brand.logo) ? brand.logo : undefined,
     },
+    program: PROGRAMS.some((p) => p.key === program) ? (program as ProgramKey) : undefined,
   };
 }
 
@@ -65,11 +80,12 @@ export async function readConfig(): Promise<StarterConfig> {
 
 export const configWritable = () => process.env.NODE_ENV === "development";
 
-/** Merge a change into the file. Development only; returns false if it can't write. */
-export async function updateConfig(change: { brand?: Partial<Brand> }): Promise<boolean> {
+/** Merge a change into the file. Development only; returns false if it can't write. `program: null` clears the choice. */
+export async function updateConfig(change: { brand?: Partial<Brand>; program?: ProgramKey | null }): Promise<boolean> {
   if (!configWritable()) return false;
   const current = await readConfig();
-  const next = normalizeConfig({ ...current, brand: { ...current.brand, ...change.brand } });
+  const program = change.program === null ? undefined : (change.program ?? current.program);
+  const next = normalizeConfig({ ...current, brand: { ...current.brand, ...change.brand }, program });
   try {
     await writeFile(configPath(), `${JSON.stringify(next, null, 2)}\n`);
     return true;
