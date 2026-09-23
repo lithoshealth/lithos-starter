@@ -6,7 +6,7 @@ import { IntakeStylePicker } from "./intake-style-picker";
 import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
-import { evaluateSetup, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
+import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, createEncounterAction, createPatientAction, driveReviewAction } from "./actions";
 import Link from "next/link";
 import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
@@ -28,7 +28,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   patient: {
     title: "Onboard your first patient",
-    what: "First, how your patients answer your intake — one question at a time, or all on one page. The preview is your real sign-up form. Then create a first sample patient: patients belong to you, and Lithos keeps your own id for each one so the two systems always match.",
+    what: "Choose how your patients answer your intake, then fill it in yourself, as your first patient — the form below is the real one your patients will see. Sending it creates the patient and requests their care in one go. In a hurry? Create a sample patient in one click instead.",
   },
   encounter: {
     title: "Request care — create an encounter",
@@ -158,7 +158,7 @@ export default async function SetupPage() {
                         <span><strong>{check.label}</strong> <span className="muted">— {check.summary}</span></span>
                       </div>
                       {check.exchange && (
-                        <details className="setup-detail">
+                        <details className="setup-detail setup-detail-api">
                           <summary>
                             What Lithos returned — <code>{check.exchange.method} {check.exchange.path}</code>
                             {check.exchange.status ? ` · ${check.exchange.status}` : ""}
@@ -205,12 +205,15 @@ export default async function SetupPage() {
               {step.key === "patient" && step.status !== "locked" && (
                 <>
                   <IntakeStylePicker current={config.intakeStyle} writable={configWritable()} />
-                  <LivePreview key={`${config.program}-${config.intakeStyle}`} path="/start" caption="Your patients' intake — what they'll fill in to request care." />
+                  <LivePreview
+                    key={`${config.program}-${config.intakeStyle}`} path="/start" interactive refreshOn="/care/"
+                    caption="Your patients' intake. Sample details are filled in — answer the questions and send it."
+                  />
                 </>
               )}
 
               {preview && (
-                <details className="setup-detail">
+                <details className="setup-detail setup-detail-api">
                   <summary>The call{preview.length > 1 ? "s" : ""} this step makes</summary>
                   {preview.map((p) => (
                     <div key={p.path}>
@@ -222,7 +225,7 @@ export default async function SetupPage() {
               )}
 
               {step.status === "ready" && step.key === "patient" && (
-                <StepAction step="patient" action={createPatientAction} label="Create a sample patient" pendingLabel="Creating…" />
+                <StepAction step="patient" action={createPatientAction} label="Or skip: create a sample patient" pendingLabel="Creating…" />
               )}
               {step.status === "ready" && step.key === "encounter" && (
                 <StepAction step="encounter" action={createEncounterAction} label="Create care plan and encounter" pendingLabel="Sending to Lithos…" />
@@ -252,17 +255,17 @@ export default async function SetupPage() {
 
               {/* Folded by default: the step's plain-language result is what most
                   people need. The real request and response are one click away. */}
-              {step.exchange && (
-                <details className="setup-detail">
+              {[step.exchange, ...(step.moreExchanges ?? [])].filter((x): x is Exchange => Boolean(x)).map((exchange) => (
+                <details key={`${exchange.method} ${exchange.path}`} className="setup-detail setup-detail-api">
                   <summary>
-                    {step.exchange.direction === "inbound" ? "What Lithos sent" : "What Lithos returned"} — <code>{step.exchange.method} {step.exchange.path}</code>
-                    {step.exchange.status ? ` · ${step.exchange.status}` : ""}
-                    {isEmptyResponse(step.exchange.response) ? " · nothing yet" : ""}
+                    {exchange.direction === "inbound" ? "What Lithos sent" : "What Lithos returned"} — <code>{exchange.method} {exchange.path}</code>
+                    {exchange.status ? ` · ${exchange.status}` : ""}
+                    {isEmptyResponse(exchange.response) ? " · nothing yet" : ""}
                   </summary>
-                  {step.exchange.note && <p className="muted">{step.exchange.note}</p>}
-                  <Json value={step.exchange.response} />
+                  {exchange.note && <p className="muted">{exchange.note}</p>}
+                  <Json value={exchange.response} />
                 </details>
-              )}
+              ))}
 
               {step.status !== "locked" && <p className="fine-print">Code: <code>{STEP_SOURCES[step.key]}</code></p>}
             </li>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { getBrand } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
+import { EmbedMarker } from "./embed-marker";
 
 function BrandMark() {
   return (
@@ -38,6 +39,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
             : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
         </div>
       )}
+      <EmbedMarker />
       <div className="demo-bar" role="note">Demo environment · sample patients only · no real medical care is provided here</div>
       <header className="site-header">
         <div className="header-inner">

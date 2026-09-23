@@ -65,6 +65,8 @@ export type StepState = {
   status: StepStatus;
   summary: string;
   exchange?: Exchange;
+  /** Further calls the step made, after `exchange` — step 4 makes two. */
+  moreExchanges?: Exchange[];
   diagnosis?: Diagnosis;
   /** The webhook endpoint step only: the organization's active endpoint, so the page can offer to re-point it. */
   endpoint?: { id: string; url: string; pointsHere: boolean };
@@ -257,7 +259,7 @@ async function checkPatient(ids: JourneyIds): Promise<StepState> {
   }
 }
 
-type EncounterRead = { id: string; status: string; care_plan: { status: string }; requested_treatments: unknown[]; patient_message: unknown };
+type EncounterRead = { id: string; status: string; care_plan_id: string; care_plan: { status: string }; requested_treatments: unknown[]; patient_message: unknown };
 
 async function readEncounter(ids: JourneyIds): Promise<{ encounter?: EncounterRead; exchange?: Exchange }> {
   if (!ids.encounterId) return {};
@@ -270,11 +272,26 @@ async function readEncounter(ids: JourneyIds): Promise<{ encounter?: EncounterRe
   }
 }
 
-function checkEncounter(ids: JourneyIds, read: { encounter?: EncounterRead; exchange?: Exchange }, patientDone: boolean): StepState {
+async function checkEncounter(ids: JourneyIds, read: { encounter?: EncounterRead; exchange?: Exchange }, patientDone: boolean): Promise<StepState> {
   if (!patientDone) return { key: "encounter", status: "locked", summary: "Needs a patient first." };
   if (!ids.encounterId) return { key: "encounter", status: "ready", summary: "No encounter yet." };
   if (!read.encounter) return { key: "encounter", status: "ready", summary: "The encounter can't be read — create another.", exchange: read.exchange };
-  return { key: "encounter", status: "done", summary: `${read.encounter.id} — ${read.encounter.status.replace("_", " ")}`, exchange: read.exchange };
+  // The step made two things, so it shows both: the care plan first, as it was created first.
+  const carePlan = await readCarePlan(read.encounter.care_plan_id);
+  return {
+    key: "encounter", status: "done",
+    summary: `${read.encounter.id} — ${read.encounter.status.replace("_", " ")}`,
+    exchange: carePlan, moreExchanges: read.exchange ? [read.exchange] : [],
+  };
+}
+
+async function readCarePlan(carePlanId: string): Promise<Exchange> {
+  const path = `/v1/care_plans/${carePlanId}`;
+  try {
+    return { method: "GET", path, status: 200, response: await getLithosClient().get(path) };
+  } catch (error) {
+    return exchangeFromError("GET", path, error);
+  }
 }
 
 function checkReview(read: { encounter?: EncounterRead; exchange?: Exchange }): StepState {
@@ -569,7 +586,7 @@ export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const patient = await checkPatient(ids);
   steps.push(patient);
   const encounterRead = await readEncounter(ids);
-  steps.push(checkEncounter(ids, encounterRead, patient.status === "done"));
+  steps.push(await checkEncounter(ids, encounterRead, patient.status === "done"));
   steps.push(checkReview(encounterRead));
 
   const endpointRead = await readEndpoint();

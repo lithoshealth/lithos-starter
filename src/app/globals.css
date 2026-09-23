@@ -336,7 +336,6 @@ summary { cursor: pointer; font-weight: 700; }
 /* The preview renders the real home page at desktop width, scaled down to fit. */
 .brand-preview { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--paper); }
 .brand-preview iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; border: 0; transform-origin: 0 0; transform: scale(var(--preview-scale, 0.35)); pointer-events: none; }
-.brand-preview-open { position: absolute; right: 0.6rem; bottom: 0.6rem; padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--panel); box-shadow: var(--shadow); font-size: 0.85rem; font-weight: 600; text-decoration: none; }
 @media (max-width: 52rem) { .brand-panel { grid-template-columns: minmax(0, 1fr); } }
 
 /* Two-or-three-way choices in the brand panel. */
@@ -349,3 +348,16 @@ summary { cursor: pointer; font-weight: 700; }
 .live-preview { margin: 0; display: grid; gap: 0.4rem; min-width: 0; }
 .live-preview figcaption { font-size: 0.88rem; }
 .setup-step .live-preview { max-width: 36rem; }
+
+/* The raw API calls on /setup: there for anyone who wants them, quieter than the step's own result. */
+.setup-detail-api > summary { font-size: 0.8rem; font-weight: 500; color: var(--muted); }
+.setup-detail-api > summary code { font-size: 0.78rem; color: var(--muted); background: transparent; padding: 0; }
+.setup-detail-api[open] > summary { color: var(--ink); }
+
+/* Step 3's intake: the real form at phone width, usable in place. */
+.phone-preview { width: min(100%, 25rem); height: 44rem; border: 10px solid var(--ink); border-radius: 2rem; overflow: hidden; background: var(--paper); box-shadow: var(--shadow); }
+.phone-preview iframe { width: 100%; height: 100%; border: 0; display: block; }
+.setup-step .live-preview-interactive { max-width: none; }
+
+/* Inside /setup's previews, show the app as a patient sees it. */
+html[data-embedded] .dev-bar { display: none; }

@@ -5,6 +5,7 @@ import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { parseJourneyForm, runJourney, type JourneyState } from "@/lib/journey";
 import { DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
+import { writeJourneyIds } from "@/lib/setup/journey-cookie";
 
 export async function createJourneyAction(_previous: JourneyState, formData: FormData): Promise<JourneyState> {
   const { program } = await readConfig();
@@ -16,6 +17,12 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
   if (!lithosConnection().connected) return { status: "failed", stage: "connection", errors: [notConnectedError()] };
 
   const result = await runJourney(parsed.value, getLithosClient());
-  if (result.status === "complete") redirect(`/care/${encodeURIComponent(result.encounterId)}`);
+  if (result.status === "complete") {
+    // The setup walkthrough follows the latest care review from this browser:
+    // filling in the intake as your first patient (step 3's form) completes
+    // steps 3 and 4, with the real patient, care plan and encounter.
+    await writeJourneyIds({ patientId: result.patientId, carePlanId: result.carePlanId, encounterId: result.encounterId });
+    redirect(`/care/${encodeURIComponent(result.encounterId)}`);
+  }
   return result;
 }
