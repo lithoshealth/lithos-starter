@@ -2,6 +2,7 @@
 
 import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
 import { connectAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
@@ -149,6 +150,17 @@ export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
   );
 }
 
+/** Re-reads step 5 now that the app can hear Lithos, and brings the demo into view. */
+function TryItButton() {
+  const router = useRouter();
+  return (
+    <button type="button" className="btn btn-primary" onClick={() => {
+      router.refresh();
+      document.getElementById("webhook-demo")?.scrollIntoView({ block: "start" });
+    }}>Try it: ask the patient a question ↑</button>
+  );
+}
+
 /** The signing secret, shown the one time Lithos returns it — with the exact line to paste. */
 function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret: string; saved: boolean }) {
   if (saved) {
@@ -158,8 +170,9 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         <p>
           Lithos returned a signing secret — it only ever does this once — and it&rsquo;s been saved to{" "}
           <code>.env.local</code> as <code>LITHOS_WEBHOOK_SECRET</code>. Nothing to copy. The app uses it to check every
-          delivery really came from Lithos. Now make something happen — step 4 — and watch it arrive.
+          delivery really came from Lithos.
         </p>
+        <div><TryItButton /></div>
       </div>
     );
   }

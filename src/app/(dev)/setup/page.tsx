@@ -10,8 +10,7 @@ import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepS
 import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
 import { ReviewCard } from "./review-card";
 import { InboxThread } from "./inbox-thread";
-import { PatientNotification } from "./patient-notification";
-import { AskQuestionForm, WaitForWebhook } from "./question-demo";
+import { WebhookDemo } from "./webhook-demo";
 import { contentFor } from "@/lib/programs/content";
 import Link from "next/link";
 import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
@@ -44,7 +43,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   updates: {
     title: "Stay in step with your patients' care",
-    what: "When the clinician needs something from your patient, Lithos tells your app, and your app brings the patient back to answer. Without it, the question waits and the review stalls. Lithos sends these over the internet, so your app needs a public address — a tunnel or a deploy. That part is for your developer, below.",
+    what: "Care keeps happening after your patient leaves your site. Say the clinician needs to ask them a question: Lithos can't reach your patient — only your app can. So Lithos tells your app, with a webhook, and your app brings the patient back. Webhooks travel over the internet, so your app needs a public address: a tunnel or a deploy, set up below.",
   },
 };
 
@@ -250,24 +249,10 @@ export default async function SetupPage() {
                 const others = (step.inbox ?? []).filter((t) => t.id !== q?.thread?.id);
                 return (
                   <>
-                    {/* Once the app can hear Lithos: ask a patient a question and watch it arrive. */}
-                    {step.setupDone && !q?.asked && <AskQuestionForm question={content.clinicianQuestion} />}
-                    {step.setupDone && q?.asked && !q.heardAt && step.status !== "blocked" && <WaitForWebhook />}
-                    {q?.heardAt && q.thread && (
-                      <section className="question-heard stack" aria-label="What your app did with the question">
-                        <p className="demo-note">
-                          <strong>Your app heard it</strong> at{" "}
-                          <time dateTime={q.heardAt}>{new Date(q.heardAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}</time>.
-                          Lithos sent <code>inquiry.created</code>; the app read the question with <code>GET /v1/inquiries/{q.thread.id}</code>.
-                        </p>
-                        <PatientNotification brand={brand} patientFirstName="Sample" question={q.thread.question} />
-                        <InboxThread thread={q.thread} sampleReply={content.patientReply} showQuestion={false} />
-                        <details className="setup-detail">
-                          <summary>Ask another question</summary>
-                          <AskQuestionForm question={content.clinicianQuestion} again />
-                        </details>
-                      </section>
-                    )}
+                    <WebhookDemo
+                      question={q} canAsk={Boolean(step.setupDone && process.env.LITHOS_WEBHOOK_SECRET)} blocked={step.status === "blocked"}
+                      brandName={brand.name} clinicianQuestion={content.clinicianQuestion} patientReply={content.patientReply}
+                    />
 
                     {others.length > 0 && (
                       <section className="updates-inbox" aria-label="Other questions waiting">
@@ -292,7 +277,7 @@ export default async function SetupPage() {
                     )}
 
                     {/* The developer's part: a public address for this app, and the signing secret. Folded unless it's what's in the way. */}
-                    <details className="setup-detail" open={step.status === "blocked"}>
+                    <details id="webhook-setup" className="setup-detail" open={step.status === "blocked"}>
                       <summary>{step.setupDone ? "Set up — " : "Set it up — "}for your developer</summary>
                       <p className="muted">{step.endpointSummary}</p>
                       {step.diagnosis && (

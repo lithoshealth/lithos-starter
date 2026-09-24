@@ -7,25 +7,24 @@ import { askNewPatientAction } from "./actions";
 import { ActionError } from "./step-actions";
 
 /**
- * Step 5's trigger. The clinician's question is written already, from the
- * program's content, and the prospect can change it before sending.
+ * Step 5's first stop: the clinician's question, written already from the
+ * program's content and editable, as a chat bubble. Disabled until the app can
+ * hear Lithos — asking before then would prove nothing.
  */
-export function AskQuestionForm({ question, again }: { question: string; again?: boolean }) {
-  const [state, ask, pending] = useActionState(askNewPatientAction, INITIAL_SETUP_ACTION_STATE, "/setup#step-updates");
+export function AskQuestionForm({ question, again, disabled }: { question: string; again?: boolean; disabled?: boolean }) {
+  const [state, ask, pending] = useActionState(askNewPatientAction, INITIAL_SETUP_ACTION_STATE, "/setup#webhook-demo");
   return (
     <form action={ask} className="stack ask-question">
-      <label className="field">
-        The clinician&rsquo;s question
-        <textarea name="question" rows={3} defaultValue={question} required maxLength={10_000} />
-      </label>
+      <label className="visually-hidden" htmlFor={again ? "question-again" : "question"}>The clinician&rsquo;s question</label>
+      <textarea
+        id={again ? "question-again" : "question"} name="question" className="chat-bubble chat-bubble-clinician"
+        rows={3} defaultValue={question} required maxLength={10_000} disabled={disabled || pending}
+      />
       <div>
-        <button type="submit" className={again ? "btn btn-ghost" : "btn btn-primary"} disabled={pending}>
-          {pending ? "Asking…" : again ? "Ask another patient" : "Ask a patient this question"}
+        <button type="submit" className={again ? "btn btn-ghost" : "btn btn-primary"} disabled={disabled || pending}>
+          {pending ? "Asking…" : again ? "Ask another patient" : "Ask the patient"}
         </button>
       </div>
-      <p className="muted">
-        Creates a new sample patient with a care request, then plays the clinician asking them this before deciding.
-      </p>
       <ActionError state={state} />
     </form>
   );
@@ -48,9 +47,17 @@ export function WaitForWebhook() {
     }, 2_000);
     return () => window.clearInterval(timer);
   }, [router]);
+  return <span className="flow-status flow-status-waiting" aria-live="polite">Waiting for Lithos… usually a few seconds</span>;
+}
+
+/** Opens the folded developer setup and scrolls to it. */
+export function OpenSetupButton() {
   return (
-    <p className="demo-note waiting" aria-live="polite">
-      Question asked. Waiting for Lithos to tell your app — usually a few seconds…
-    </p>
+    <button type="button" className="link-button" onClick={() => {
+      const setup = document.getElementById("webhook-setup") as HTMLDetailsElement | null;
+      if (!setup) return;
+      setup.open = true;
+      setup.scrollIntoView({ block: "start", behavior: "smooth" });
+    }}>Set it up →</button>
   );
 }

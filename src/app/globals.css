@@ -445,11 +445,28 @@ html[data-embedded] .dev-bar { display: none; }
 .brand-panel > .live-preview { position: sticky; top: 5.5rem; }
 @media (max-width: 52rem) { .brand-panel > .live-preview { position: static; } }
 
-/* Step 5: the message the partner's app would send its patient, shown not sent. */
-.patient-notification { margin: 0; display: grid; gap: 0.5rem; }
-.notification-card { max-width: 34rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; color: #1a1a1a; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
-.notification-card p { margin: 0 0 0.6rem; }
-.notification-card blockquote { margin: 0 0 0.75rem; padding: 0.6rem 0.8rem; border-left: 3px solid var(--line); background: #f7f7f5; }
-.notification-meta { font-size: 0.85rem; color: #555; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
-.notification-button { display: inline-block; padding: 0.45rem 0.9rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem; }
-.question-heard { margin-top: 0.25rem; }
+/* Step 5: a clinician's question on its way to the patient, stop by stop. */
+.webhook-demo { display: grid; gap: 0.75rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.flow { list-style: none; margin: 0; padding: 0; display: grid; }
+.flow-stop { position: relative; display: grid; gap: 0.5rem; padding: 0 0 1.25rem 1.75rem; }
+.flow-stop:last-child { padding-bottom: 0; }
+/* The dot, and the line to the next stop. */
+.flow-stop::before { content: ""; position: absolute; left: 0.3rem; top: 0.3rem; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--panel); border: 2px solid var(--line); }
+.flow-stop:not(:last-child)::after { content: ""; position: absolute; left: 0.6rem; top: 1.15rem; bottom: 0.1rem; width: 2px; background: var(--line); }
+.flow-done::before { background: var(--success); border-color: var(--success); }
+.flow-done:not(:last-child)::after { background: var(--success); }
+.flow-current::before { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+.flow-who { margin: 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.flow-status { margin: 0; font-size: 0.92rem; }
+.flow-status-done { color: var(--success); }
+.flow-status-failed { color: var(--warning-ink); }
+.flow-status-waiting { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+.flow-status-waiting::before { content: ""; width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--primary); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .flow-status-waiting::before { animation: none; } }
+.chat-bubble-clinician { max-width: 34rem; width: 100%; background: #fff; border: 1px solid var(--line); border-bottom-left-radius: 0.3rem; font: inherit; color: var(--ink); resize: vertical; }
+textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
+.sms { display: grid; gap: 0.3rem; max-width: 22rem; padding: 0.75rem; border-radius: 1.25rem; background: #f2f2f4; }
+.sms-from { margin: 0; font-size: 0.75rem; font-weight: 600; color: #6b6b70; text-align: center; }
+.chat-bubble-app { max-width: 100%; background: #e5e5ea; color: #1a1a1a; border-bottom-left-radius: 0.3rem; font-size: 0.95rem; }
+.sms-link { color: #0a66d8; text-decoration: underline; }

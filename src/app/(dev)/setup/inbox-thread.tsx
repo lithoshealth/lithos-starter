@@ -21,9 +21,7 @@ export function InboxThread({ thread, sampleReply, showQuestion = true }: { thre
           <p className="inbox-from">Clinician · needs an answer from your patient</p>
           <blockquote>{thread.question}</blockquote>
         </>
-      ) : (
-        <p className="inbox-from">Your patient answers, in your app</p>
-      )}
+      ) : null}
       {thread.reply && (
         <p className="inbox-reply"><strong>Your patient replied:</strong> {thread.reply}</p>
       )}
