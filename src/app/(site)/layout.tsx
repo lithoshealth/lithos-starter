@@ -48,6 +48,8 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
             {brand.logo ? <img src={brand.logo} alt="" className={brand.logoWide ? "brand-logo brand-logo-wide" : "brand-logo"} /> : <BrandMark />}
             {/* A wordmark already says the name: keep it for screen readers only. */}
             <span className={brand.logo && brand.logoWide ? "visually-hidden" : undefined}>{brand.name}</span>
+            {/* The company's line, small beside the name — the page headline belongs to the program. */}
+            {brand.tagline && <span className="brand-tagline">{brand.tagline}</span>}
           </Link>
           <nav className="site-nav" aria-label="Primary navigation">
             <Link href="/#program">The program</Link>
