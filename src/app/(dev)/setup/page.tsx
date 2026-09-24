@@ -330,12 +330,12 @@ export default async function SetupPage() {
         <h2>Now use the app itself.</h2>
         <p>
           {connected
-            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: submitting the care review makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
+            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: a care review started from your home page makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
             : <>Connect in step 1 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
         </p>
         {connected && (
           <p>
-            <Link href="/start" className="btn btn-primary">Submit a care review as a visitor →</Link>{" "}
+            <Link href="/" className="btn btn-primary">Open your site as a visitor →</Link>{" "}
             <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
           </p>
         )}
