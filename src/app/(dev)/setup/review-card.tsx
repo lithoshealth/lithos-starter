@@ -32,9 +32,18 @@ export function ReviewCard({ review }: { review: Review }) {
           : <p>No to every one.</p>}
       </div>
 
+      {review.thread && (
+        <div className="review-thread">
+          <p><strong>You asked:</strong> {review.thread.question}</p>
+          {review.thread.reply && review.thread.awaiting !== "patient"
+            ? <p><strong>Your patient replied:</strong> {review.thread.reply}</p>
+            : <p className="muted">Waiting for your patient&rsquo;s reply — it lands in your care team&rsquo;s inbox, in step 5. You can also decide without waiting.</p>}
+        </div>
+      )}
+
       {review.outcome && (
         <p className={`review-outcome review-outcome-${review.outcome.kind}`}>
-          <strong>{{ approved: "Approved.", declined: "Declined.", asked: "Question sent." }[review.outcome.kind]}</strong> {review.outcome.detail}
+          <strong>{{ approved: "Approved.", declined: "Declined." }[review.outcome.kind]}</strong> {review.outcome.detail}
         </p>
       )}
 

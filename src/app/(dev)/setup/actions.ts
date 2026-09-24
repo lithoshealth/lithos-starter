@@ -277,3 +277,24 @@ export async function resetSetupAction(): Promise<void> {
   // with or without JavaScript — the browser scrolls to it either way.
   redirect("/setup#step-patient");
 }
+
+/**
+ * Step 5's inbox: relay the patient's answer to the clinician's question —
+ * `POST /v1/inquiries/{id}/messages`, the call a partner makes when a patient
+ * replies in their app. The thread then waits on the clinician (step 4).
+ */
+export async function replyToQuestionAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+  const refused = refuseOutsideSandbox();
+  if (refused) return refused;
+  const inquiryId = String(formData.get("inquiry_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!/^inq_/.test(inquiryId)) return { status: "error", errors: [{ code: "setup.no_inquiry", message: "No question to reply to." }] };
+  if (!body) return { status: "error", errors: [{ code: "setup.empty_reply", message: "Write your patient's reply first." }] };
+  try {
+    await getLithosClient().post(`/v1/inquiries/${inquiryId}/messages`, { body });
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath("/setup");
+  return { status: "ok" };
+}

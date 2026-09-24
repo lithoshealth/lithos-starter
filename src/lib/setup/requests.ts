@@ -83,6 +83,5 @@ export const STEP_SOURCES = {
   program: "src/lib/setup/programs.ts",
   patient: "src/lib/journey.ts (the intake) · src/lib/setup/requests.ts → patientRequest, carePlanRequest, encounterRequest (the shortcut)",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",
-  webhook_endpoint: "src/app/(dev)/setup/actions.ts → registerWebhookAction · src/lib/setup/reachability.ts",
-  webhook_received: "src/app/api/webhooks/lithos/route.ts + src/lib/webhooks/signature.ts",
+  updates: "src/app/api/webhooks/lithos/route.ts (receive + verify) · src/lib/setup/steps.ts → readUpdates (re-read, feed, inbox) · src/app/(dev)/setup/actions.ts → registerWebhookAction, replyToQuestionAction",
 } as const;

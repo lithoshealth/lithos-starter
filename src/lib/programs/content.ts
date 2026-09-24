@@ -31,6 +31,8 @@ export type ProgramContent = {
   start: { heading: string; lede: string };
   /** What the sandbox clinician asks when the setup page's "Ask the patient a question" is chosen. */
   clinicianQuestion: string;
+  /** A sample answer, pre-filled in the setup page's care-team inbox. */
+  patientReply: string;
   /**
    * Where the plan buttons lead. Membership signup (/join) and the member pages
    * are written for the lipid program; for the others the buttons go straight
@@ -121,6 +123,7 @@ const LIPID: ProgramContent = {
     lede: "A care review is how coaching hands over to a clinician. Tell us about your history, what you’re taking now, and your most recent cholesterol results — a clinician licensed in your state reviews every one.",
   },
   clinicianQuestion: "Before I decide: which cholesterol medicines have you taken before, and did any of them cause side effects?",
+  patientReply: "I took atorvastatin 20 mg for about a year. It gave me muscle aches, so I stopped last spring.",
   plansLeadTo: "join",
 };
 
@@ -206,6 +209,7 @@ const WEIGHT: ProgramContent = {
     lede: "A few minutes of questions about your health, your weight and what you’re taking now — a clinician licensed in your state reviews every one and decides on treatment.",
   },
   clinicianQuestion: "Before I decide: have you taken a GLP-1 or another weight-loss medicine before? If so, which one, at what dose, and how did it go?",
+  patientReply: "Yes — semaglutide 0.5 mg for three months last year. I stopped because of the nausea.",
   plansLeadTo: "start",
 };
 

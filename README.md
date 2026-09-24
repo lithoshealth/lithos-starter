@@ -54,14 +54,13 @@ copy has no such limit.
 
 ## The setup walkthrough
 
-`/setup` takes you from credentials to a verified webhook in six steps:
+`/setup` takes you from credentials to a clinician's decision in four steps, with a fifth, optional:
 
 1. Connect to Lithos — your credentials, checked by minting a token and reading your formulary
 2. Choose what you offer — lipid management or weight loss. It switches the whole site: home page copy, the care-review intake, and the protocol a clinician reviews against (saved to `starter.config.json`)
 3. Onboard your first patient — choose quiz or chat, then fill in the intake yourself, right in the page. Sending it creates the patient, a care plan and an encounter (or use the sample-patient shortcut)
-4. Sign the encounter off as the clinician (a sandbox helper)
-5. Register a webhook endpoint
-6. Receive a verified webhook
+4. Play the clinician — an illustrative review of the intake, then approve, decline, or ask the patient a question (sandbox helpers)
+5. *Optional:* stay in step with your patients' care — webhooks. Lithos posts an event whenever something happens; the app shows a feed of what it heard and a care-team inbox for the clinician's questions, where you relay the patient's reply. Setting it up needs a public HTTPS address for the app (a tunnel or a deployment)
 
 Every step is checked against the live API — nothing is ticked by hand, so if you
 do a step your own way (curl, your own code), it still turns green. Each one shows
@@ -129,7 +128,7 @@ your programs from your Lithos contact before relying on any rule in it.
 ## Environment
 
 See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the
-walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 5; everything else is for
+walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 5 (it's saved for you in development); everything else is for
 the membership side or for deploying.
 
 ```sh

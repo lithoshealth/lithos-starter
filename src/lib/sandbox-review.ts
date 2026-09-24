@@ -19,7 +19,8 @@
 import type { LithosClient } from "./lithos/client";
 
 type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string };
-type EncounterRead = { id: string; status: string; care_plan_id: string; requested_treatments: RequestedLine[] };
+type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; requested_treatments: RequestedLine[] };
+type InquiryRead = { id: string; status: string; references?: Array<{ id?: string }> };
 type CatalogTreatment = { id: string; name: string; status?: string; categories?: string[]; dosages?: Array<{ id: string }> };
 
 export type SignOffResult = { chose?: string };
@@ -34,12 +35,26 @@ function refuseOutsideSandbox() {
   }
 }
 
-/** Put the encounter in review, as a clinician opening it would. Returns it, or null if it's already decided. */
+/**
+ * Put the encounter in review, as a clinician opening it would. Returns it, or
+ * null if it's already decided.
+ *
+ * An escalated encounter is waiting on a question to the patient. A clinician
+ * who carries on reads the thread and resolves it, which is also what returns
+ * the encounter to review — so that's what happens here, rather than leaving
+ * the question open behind a decision.
+ */
 async function openForReview(client: LithosClient, encounterId: string): Promise<EncounterRead | null> {
   const encounter = await client.get<EncounterRead>(`/v1/encounters/${encounterId}`);
   if (encounter.status === "completed" || encounter.status === "canceled") return null;
   if (encounter.status === "pending_review") {
     await client.post(`/v1/sandbox/encounters/${encounterId}/start_review`, {});
+  }
+  if (encounter.status === "escalated") {
+    const inquiries = await client.get<{ data: InquiryRead[] }>(`/v1/patients/${encounter.patient_id}/inquiries`);
+    const open = inquiries.data.find((i) => i.status === "open" && i.references?.some((r) => r.id === encounterId));
+    if (open) await client.post(`/v1/sandbox/inquiries/${open.id}/resolve`, {});
+    else await client.post(`/v1/sandbox/encounters/${encounterId}/resume`, {});
   }
   return encounter;
 }
