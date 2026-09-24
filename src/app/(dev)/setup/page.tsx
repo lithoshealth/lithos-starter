@@ -193,9 +193,7 @@ export default async function SetupPage() {
               {step.programs && step.status === "done" && step.chosenProgram && (
                 <>
                   <p className="notes">
-                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>. Step 3 will
-                    request one of the treatments below: its <code>id</code> is what you send as <code>catalog_treatment_id</code>, and
-                    its <code>dosages</code> — starting dose first — are what the clinician prescribes from.
+                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>.
                   </p>
                   <form action={clearProgramAction}>
                     <button type="submit" className="btn btn-ghost">Change program</button>
