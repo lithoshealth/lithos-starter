@@ -3,7 +3,7 @@
 import { readdir, rm, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
-import { configWritable, INTAKE_STYLES, updateConfig, type IntakeStyle } from "@/lib/starter-config";
+import { configWritable, INTAKE_STYLES, isLight, updateConfig, type IntakeStyle } from "@/lib/starter-config";
 import { importFromWebsite, type SiteImport } from "@/lib/setup/site-import";
 
 /**
@@ -30,8 +30,12 @@ export async function saveBrandAction(_prev: BrandActionState, formData: FormDat
   const name = String(formData.get("name") ?? "").trim();
   const tagline = String(formData.get("tagline") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim();
+  // Absent: leave it. Empty: back to the default cream. A colour: checked for lightness by the config.
+  const background = formData.has("background") ? String(formData.get("background") ?? "").trim() || undefined : null;
   if (!name) return { status: "error", message: "Give the company a name." };
-  if (!(await updateConfig({ brand: { name, tagline, color } }))) {
+  if (background && !isLight(background)) return { status: "error", message: "That background is too dark for the pages' dark text. Pick a light one." };
+  const brandChange = background === null ? { name, tagline, color } : { name, tagline, color, background };
+  if (!(await updateConfig({ brand: brandChange }))) {
     return { status: "error", message: "Couldn't write starter.config.json. Check the folder is writable." };
   }
   refreshEverything();

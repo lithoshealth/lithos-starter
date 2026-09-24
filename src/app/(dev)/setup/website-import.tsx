@@ -9,6 +9,8 @@ export type BrandChoice = {
   tagline?: string;
   color?: string;
   font?: { family: string; css: string } | null;
+  /** A light page background from their site. */
+  background?: string;
   /** A logo as a PNG/JPEG/WebP file, ready to upload. */
   logo?: File;
 };
@@ -43,6 +45,7 @@ function Suggestions({ found, onApply }: { found: SiteImport; onApply: (choice: 
   const [useTagline, setUseTagline] = useState(Boolean(found.tagline));
   const [color, setColor] = useState<string | undefined>(found.colors[0]);
   const [useFont, setUseFont] = useState(Boolean(found.font));
+  const [useBackground, setUseBackground] = useState(Boolean(found.background?.usable));
   const [logo, setLogo] = useState<number | null>(found.logos.length > 0 ? 0 : null);
   const [applying, setApplying] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -57,6 +60,7 @@ function Suggestions({ found, onApply }: { found: SiteImport; onApply: (choice: 
         tagline: useTagline ? found.tagline : undefined,
         color,
         font: useFont ? found.font : undefined,
+        background: useBackground && found.background?.usable ? found.background.color : undefined,
         logo: picked ? await logoFile(picked.dataUrl, picked.svg) : undefined,
       });
       setDone("Applied — your app now wears it.");
@@ -103,6 +107,17 @@ function Suggestions({ found, onApply }: { found: SiteImport; onApply: (choice: 
           </label>
         </>
       )}
+
+      {found.background && (found.background.usable ? (
+        <label className="check">
+          <input type="checkbox" checked={useBackground} onChange={(e) => setUseBackground(e.target.checked)} />
+          <span>Page background: <span className="swatch swatch-inline" style={{ background: found.background.color }} /> <code>{found.background.color}</code></span>
+        </label>
+      ) : (
+        <p className="muted">
+          Their pages are dark (<code>{found.background.color}</code>). The starter is built for light pages, so it keeps its own background.
+        </p>
+      ))}
 
       {found.logos.length > 0 && (
         <div className="found-row">

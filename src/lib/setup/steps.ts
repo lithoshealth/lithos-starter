@@ -200,7 +200,25 @@ function checkCredentials(): InternalCheck {
  * needs the raw status and body to explain a failure — TokenManager, rightly,
  * only throws.
  */
+/**
+ * A successful token check is reused for a few minutes. The setup page
+ * re-renders on every choice made in it (a colour, a font, a step), and minting
+ * a fresh token each time runs into Lithos's rate limit mid-demo. A token
+ * minted minutes ago with the same credentials proves the same thing.
+ */
+const TOKEN_CHECK_TTL_MS = 5 * 60_000;
+const tokenCheckCache = globalThis as typeof globalThis & { __setupTokenCheck?: { key: string; at: number; result: InternalCheck } };
+
 async function checkToken(): Promise<InternalCheck> {
+  const key = `${process.env.LITHOS_TOKEN_URL}|${process.env.LITHOS_CLIENT_ID}|${process.env.LITHOS_CLIENT_SECRET}`;
+  const cached = tokenCheckCache.__setupTokenCheck;
+  if (cached && cached.key === key && Date.now() - cached.at < TOKEN_CHECK_TTL_MS) return cached.result;
+  const result = await mintTokenCheck();
+  if (result.status === "done") tokenCheckCache.__setupTokenCheck = { key, at: Date.now(), result };
+  return result;
+}
+
+async function mintTokenCheck(): Promise<InternalCheck> {
   const path = "/v1/oauth2/token";
   try {
     const response = await fetch(process.env.LITHOS_TOKEN_URL!, {
@@ -218,6 +236,15 @@ async function checkToken(): Promise<InternalCheck> {
     if (response.ok) {
       const expires = (body as { expires_in?: number })?.expires_in;
       return { key: "token", status: "done", summary: expires ? `valid for ${Math.round(expires / 60)} minutes` : "issued", exchange };
+    }
+    if (response.status === 429) {
+      return {
+        key: "token", status: "blocked", summary: "Token endpoint answered 429 — too many requests.", exchange,
+        diagnosis: {
+          title: "Lithos is rate-limiting token requests",
+          fix: "Your credentials are probably fine — too many tokens were requested in a short time. Wait a minute and reload. Once a token is issued, this page reuses it for a few minutes.",
+        },
+      };
     }
     return {
       key: "token", status: "blocked", summary: `Token endpoint answered ${response.status}.`, exchange,
@@ -811,7 +838,7 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
 export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const steps: StepState[] = [];
   const lockedFrom = (keys: StepKey[], reason: string) =>
-    keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
+    keys.forEach((key) => steps.push({ key, status: "locked", summary: reason, optional: key === "updates" || undefined }));
 
   const { step: connect, catalog } = await checkConnect();
   steps.push(connect);

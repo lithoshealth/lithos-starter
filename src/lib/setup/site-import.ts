@@ -30,6 +30,12 @@ export type SiteImport = {
   /** Most brand-like first. */
   colors: string[];
   font?: { family: string; css: string };
+  /**
+   * The page background. `usable` only when it's light: every page in the
+   * starter is dark text on a light page, so a dark site's background is shown
+   * but not offered.
+   */
+  background?: { color: string; usable: boolean };
   logos: LogoCandidate[];
   /** What it couldn't find, in plain words. */
   missing: string[];
@@ -217,6 +223,78 @@ export function rankColors(declared: string[], css: string): string[] {
   return distinct;
 }
 
+// ---------------------------------------------------------------- page background
+
+/** WCAG relative luminance of a #rrggbb colour. */
+export function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** The site's custom properties, first definition wins (later ones are usually dark-mode overrides). */
+function customProperties(css: string): Map<string, string> {
+  const vars = new Map<string, string>();
+  for (const m of css.matchAll(/--([\w-]+)\s*:\s*([^;}]+)/g)) if (!vars.has(m[1])) vars.set(m[1], m[2].trim());
+  return vars;
+}
+
+/** A CSS colour value, following var(--x) chains — design systems route the page colour through several. */
+function resolveColor(value: string, vars: Map<string, string>, depth = 0): string | null {
+  const v = value.trim();
+  if (/^white$/i.test(v)) return "#ffffff";
+  const ref = v.match(/^var\(\s*--([\w-]+)\s*(?:,\s*([^)]+))?\)$/);
+  if (ref) {
+    const next = vars.get(ref[1]) ?? ref[2];
+    return next && depth < 8 ? resolveColor(next, vars, depth + 1) : null;
+  }
+  return parseColor(v);
+}
+
+function backgroundIn(declarations: string, vars: Map<string, string>): string | null {
+  const m = declarations.match(/background(?:-color)?\s*:\s*([^;}]+)/i);
+  return m ? resolveColor(m[1].replace(/!important/i, ""), vars) : null;
+}
+
+/** A class name as it appears in a CSS selector (Tailwind's bg-[#f7f3ee] becomes .bg-\[\#f7f3ee\]). */
+function cssEscape(name: string): string {
+  return name.replace(/([^a-zA-Z0-9_-])/g, "\\$1");
+}
+
+/**
+ * The page background, the way a browser would settle it: a rule on the body
+ * (or html, :root), then a class on the <body>, then a background custom
+ * property, then the web app manifest's background colour.
+ */
+export function pageBackground(html: string, css: string, manifestBackground?: string): string | undefined {
+  const vars = customProperties(css);
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selectors: m[1].split(",").map((s) => s.trim()), body: m[2] }));
+  for (const rule of rules) {
+    if (rule.selectors.some((s) => s === "body" || s === "html" || s === ":root" || s === "html body")) {
+      const color = backgroundIn(rule.body, vars);
+      if (color) return color;
+    }
+  }
+  const bodyClasses = (attrs(html.match(/<body\b[^>]*>/i)?.[0] ?? "").class ?? "").split(/\s+/).filter(Boolean);
+  for (const cls of bodyClasses) {
+    const selector = `.${cssEscape(cls)}`;
+    const rule = rules.find((r) => r.selectors.includes(selector));
+    const color = rule && backgroundIn(rule.body, vars);
+    if (color) return color;
+    // Tailwind arbitrary values carry the colour in the class name itself.
+    const inline = cls.match(/^bg-\[(#[0-9a-fA-F]{3,6})\]$/);
+    if (inline) return parseColor(inline[1]) ?? undefined;
+  }
+  for (const name of ["background", "bg", "page-bg", "page-background", "surface", "base-100"]) {
+    const value = vars.get(name);
+    const color = value && resolveColor(value, vars);
+    if (color) return color;
+  }
+  return manifestBackground ? parseColor(manifestBackground) ?? undefined : undefined;
+}
+
 // ---------------------------------------------------------------- font
 
 const GENERIC_FONTS = /^(inherit|initial|unset|serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-serif|ui-serif|ui-monospace|-apple-system|blinkmacsystemfont|arial|helvetica|helvetica neue|segoe ui|roboto fallback|times new roman|georgia|verdana|tahoma|apple color emoji|segoe ui emoji|segoe ui symbol|noto color emoji)$/i;
@@ -329,12 +407,14 @@ export async function importFromWebsite(input: string): Promise<SiteImport | { e
 
   // Declared colours: the theme colour, and the web app manifest's.
   const declared = [meta(html, "theme-color", "msapplication-tilecolor")].filter(Boolean) as string[];
+  let manifestBackground: string | undefined;
   const manifestHref = tags(html, "link").find((l) => /manifest/i.test(l.rel ?? ""))?.href;
   if (manifestHref) {
     const manifest = await fetchCapped(new URL(manifestHref, base), 200_000, "application/json");
     try {
       const json = manifest ? JSON.parse(manifest.body.toString("utf8")) : null;
       if (typeof json?.theme_color === "string") declared.push(json.theme_color);
+      if (typeof json?.background_color === "string") manifestBackground = json.background_color;
     } catch {
       /* not JSON */
     }
@@ -367,6 +447,8 @@ export async function importFromWebsite(input: string): Promise<SiteImport | { e
     logos,
     missing: [],
   };
+  const background = pageBackground(html, css, manifestBackground);
+  if (background) result.background = { color: background, usable: luminance(background) >= 0.75 };
   if (!result.name) result.missing.push("a company name");
   if (!result.tagline) result.missing.push("a tagline");
   if (result.colors.length === 0) result.missing.push("a brand colour");

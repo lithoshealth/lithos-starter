@@ -5,6 +5,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import type { Brand } from "@/lib/starter-config";
 import { removeLogoAction, saveBrandAction, setFontAction, uploadLogoAction, type BrandActionState } from "./brand-actions";
 import { WebsiteImport, type BrandChoice } from "./website-import";
+import { FONT_CHOICES } from "@/lib/brand-fonts";
 import { LivePreview } from "./live-preview";
 
 const IDLE: BrandActionState = { status: "idle" };
@@ -21,8 +22,16 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
   const nameRef = useRef<HTMLInputElement>(null);
   const taglineRef = useRef<HTMLInputElement>(null);
   const colorTimer = useRef<number | undefined>(undefined);
-  const lastSubmitted = useRef(JSON.stringify([brand.name, brand.tagline, brand.color]));
+  const lastSubmitted = useRef(JSON.stringify([brand.name, brand.tagline, brand.color, brand.background ?? ""]));
   const [color, setColor] = useState(brand.color);
+  // Empty = the starter's own cream. Mirrored in a ref so a save made right
+  // after a change (reset, or the colour picker settling) reads the new value.
+  const [background, setBackgroundState] = useState(brand.background ?? "");
+  const backgroundRef = useRef(brand.background ?? "");
+  const setBackground = (value: string) => {
+    backgroundRef.current = value;
+    setBackgroundState(value);
+  };
   const [renders, setRenders] = useState(0);
   const [saved, save, saving] = useActionState(saveBrandAction, IDLE);
   const [uploaded, upload, uploading] = useActionState(uploadLogoAction, IDLE);
@@ -42,8 +51,9 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
     const form = formRef.current;
     if (!form) return;
     const data = new FormData(form);
+    data.set("background", backgroundRef.current);
     // Leaving a field you didn't change shouldn't reload the preview.
-    const key = JSON.stringify([data.get("name"), data.get("tagline"), data.get("color")]);
+    const key = JSON.stringify([data.get("name"), data.get("tagline"), data.get("color"), data.get("background")]);
     if (key === lastSubmitted.current) return;
     lastSubmitted.current = key;
     startTransition(() => save(data));
@@ -58,11 +68,13 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
     if (nameRef.current && choice.name) nameRef.current.value = choice.name;
     if (taglineRef.current && choice.tagline) taglineRef.current.value = choice.tagline;
     if (choice.color) setColor(choice.color);
+    if (choice.background) setBackground(choice.background);
     const data = new FormData();
     data.set("name", choice.name ?? nameRef.current?.value ?? brand.name);
     data.set("tagline", choice.tagline ?? taglineRef.current?.value ?? brand.tagline);
     data.set("color", choice.color ?? color);
-    lastSubmitted.current = JSON.stringify([data.get("name"), data.get("tagline"), data.get("color")]);
+    data.set("background", choice.background ?? backgroundRef.current);
+    lastSubmitted.current = JSON.stringify([data.get("name"), data.get("tagline"), data.get("color"), data.get("background")]);
     startTransition(() => save(data));
     if (choice.font !== undefined) await setFontAction(choice.font);
     if (choice.logo) {
@@ -114,7 +126,50 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
               <code>{color}</code>
             </span>
           </label>
+          <label className="field brand-color-field">
+            Page background
+            <span className="brand-color-row">
+              <input
+                type="color" value={background || "#fbf8f3"} disabled={!writable}
+                onChange={(e) => {
+                  setBackground(e.target.value);
+                  window.clearTimeout(colorTimer.current);
+                  colorTimer.current = window.setTimeout(submitBrand, 350);
+                }}
+              />
+              <code>{background || "default"}</code>
+              {background && writable && (
+                <button type="button" className="link-button" onClick={() => { setBackground(""); window.setTimeout(submitBrand, 0); }}>reset</button>
+              )}
+            </span>
+            <small>Light colours only — every page is dark text on a light page.</small>
+          </label>
         </form>
+
+        <label className="field">
+          Font
+          <select
+            value={brand.font?.family ?? ""} disabled={!writable}
+            onChange={async (e) => {
+              const family = e.target.value;
+              const choice = family === brand.font?.family ? brand.font
+                : FONT_CHOICES.flatMap((g) => g.fonts).find((f) => f.family === family) ?? null;
+              await setFontAction(family ? choice : null);
+              router.refresh();
+              setRenders((n) => n + 1);
+            }}
+          >
+            <option value="">Default (Fraunces headings, Inter text)</option>
+            {brand.font && !FONT_CHOICES.some((g) => g.fonts.some((f) => f.family === brand.font!.family)) && (
+              <option value={brand.font.family}>{brand.font.family} (from your website)</option>
+            )}
+            {FONT_CHOICES.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.fonts.map((f) => <option key={f.family} value={f.family}>{f.family}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
 
         <form action={upload} className="stack">
           <label className="field">
@@ -129,12 +184,6 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
           <form action={remove}>
             <button type="submit" className="link-button">Remove the logo</button>
           </form>
-        )}
-        {brand.font && writable && (
-          <p className="muted brand-font">
-            Font: <span style={{ fontFamily: `"${brand.font.family}"` }}>{brand.font.family}</span> ·{" "}
-            <button type="button" className="link-button" onClick={async () => { await setFontAction(null); router.refresh(); setRenders((n) => n + 1); }}>use the default fonts</button>
-          </p>
         )}
 
         <p className="muted brand-status" aria-live="polite">

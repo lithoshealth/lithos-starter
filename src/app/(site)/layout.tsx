@@ -60,7 +60,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <main>{children}</main>
       <footer className="site-footer">
         <div className="footer-inner">
-          <p className="footer-note">© {new Date().getFullYear()} {brand.name}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
+          <p className="footer-note"><strong>{brand.name}</strong> — {brand.tagline} © {new Date().getFullYear()}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
           <nav className="footer-ops" aria-label="Operations">
             <span>Ops:</span>
             <Link href="/setup">Setup</Link>

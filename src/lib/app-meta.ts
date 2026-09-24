@@ -35,7 +35,8 @@ export function brandCss(brand: Brand): string {
   const colors = `:root{--primary:${c};--primary-hover:color-mix(in srgb,${c} 82%,black);--primary-soft:color-mix(in srgb,${c} 11%,white);--primary-deep:color-mix(in srgb,${c} 78%,white);--on-primary:${onPrimary};--primary-ink:${ink}}`;
   // `html:root` outranks the class next/font puts on <html> for its own variables.
   const font = brand.font ? `html:root{--font-sans:"${brand.font.family}";--font-display:"${brand.font.family}"}` : "";
-  return colors + font;
+  const page = brand.background ? `:root{--paper:${brand.background}}` : "";
+  return colors + font + page;
 }
 
 /** The Google Fonts stylesheet for the brand's font, if it has one. */

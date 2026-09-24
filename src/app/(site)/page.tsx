@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSite } from "@/lib/app-meta";
 import { withName } from "@/lib/programs/content";
+import { DEFAULT_CONFIG } from "@/lib/starter-config";
 
 // Kept for the ops "Journeys" page, which links back here.
 export function HomePageLinks() {
@@ -15,6 +16,9 @@ export function HomePageLinks() {
 export default async function HomePage() {
   const { brand, content: c } = await getSite();
   const name = brand.name;
+  // The company's own tagline (typed, or imported from their site) is the
+  // headline; the demo brand's placeholder isn't, so the program's line is.
+  const headline = brand.tagline !== DEFAULT_CONFIG.brand.tagline ? brand.tagline : c.hero.headline;
   const planHref = (plan: string) => (c.plansLeadTo === "join" ? `/join?plan=${plan.toLowerCase()}` : "/start");
 
   return (
@@ -22,7 +26,7 @@ export default async function HomePage() {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">{c.category}</p>
-          <h1>{c.hero.headline}</h1>
+          <h1>{headline}</h1>
           <p className="lede">{withName(c.hero.lede, name)}</p>
           <div className="hero-actions">
             {/* Care review first: it's the path that exercises the Lithos API end to end. */}

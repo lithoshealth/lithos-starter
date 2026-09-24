@@ -36,6 +36,11 @@ export type Brand = {
    * starter's own fonts.
    */
   font?: { family: string; css: string };
+  /**
+   * The page background, `#rrggbb`. Light colours only: every page is dark text
+   * on a light page. Unset keeps the starter's cream.
+   */
+  background?: string;
 };
 
 export type StarterConfig = {
@@ -67,6 +72,15 @@ function configPath() {
   return path.join(process.cwd(), FILE);
 }
 
+/** Light enough for dark text to read on it — the bar a page background has to clear. */
+export function isLight(hex: string): boolean {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.75;
+}
+
 /** A font is only kept if both parts are plain: it ends up in a stylesheet URL and a CSS rule. */
 function validFont(font: unknown): Brand["font"] {
   const f = font as { family?: unknown; css?: unknown } | null | undefined;
@@ -91,6 +105,7 @@ export function normalizeConfig(raw: unknown): StarterConfig {
       logo: typeof brand.logo === "string" && /^\/brand\/logo\.(png|jpe?g|webp)(\?v=\d+)?$/.test(brand.logo) ? brand.logo : undefined,
       logoWide: brand.logo && brand.logoWide === true ? true : undefined,
       font: validFont(brand.font),
+      background: typeof brand.background === "string" && HEX.test(brand.background) && isLight(brand.background) ? brand.background.toLowerCase() : undefined,
     },
     program: PROGRAMS.some((p) => p.key === program) ? (program as ProgramKey) : undefined,
     intakeStyle: INTAKE_STYLES.some((s) => s.key === intakeStyle) ? (intakeStyle as IntakeStyle) : DEFAULT_CONFIG.intakeStyle,
