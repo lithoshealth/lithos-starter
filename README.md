@@ -82,6 +82,12 @@ by default for new projects, and it answers Lithos's deliveries with a `401` tha
 looks exactly like a signature failure. `/setup` will tell you if this is what's
 happening.
 
+## API reference
+
+The walkthrough covers the path to a first prescription. The full API — every
+endpoint, field, error code and webhook event — is documented at
+**https://docs.lithoshealth.com**.
+
 ## Where things live
 
 | Path | What it is |

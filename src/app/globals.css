@@ -396,3 +396,8 @@ html[data-embedded] .dev-bar { display: none; }
 .review-outcome-declined { background: var(--danger-soft); }
 .review-outcome-asked { background: var(--info-soft); }
 .review-decisions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* The pointer to the full API reference, at the end of /setup. */
+.setup-docs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.setup-docs h2 { font-size: 1.2rem; }
+.setup-docs p { margin: 0.25rem 0 0; max-width: 36rem; }

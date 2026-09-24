@@ -16,6 +16,9 @@ import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 export const metadata: Metadata = { title: "Set up your sandbox" };
 export const dynamic = "force-dynamic";
 
+/** Lithos's API reference — the same link Lithos sends with sandbox credentials. */
+const API_DOCS_URL = "https://docs.lithoshealth.com";
+
 // Written so the page reads the same whatever the app is called — the starter
 // may be rebranded per prospect, so nothing here says "Eucardia".
 const STEPS: Record<StepKey, { title: string; what: string }> = {
@@ -292,6 +295,18 @@ export default async function SetupPage() {
             <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
           </p>
         )}
+      </section>
+
+      {/* Everything above is a guided slice of the API; the reference is the whole of it. */}
+      <section className="setup-docs">
+        <div>
+          <h2>The full API</h2>
+          <p className="muted">
+            This walkthrough covers the path to a first prescription. Every endpoint, field, error code and webhook event —
+            follow-ups, refills, lab orders, messaging, visits — is in the API reference.
+          </p>
+        </div>
+        <a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation ↗</a>
       </section>
 
       <p className="fine-print">
