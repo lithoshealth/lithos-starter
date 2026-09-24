@@ -444,3 +444,12 @@ html[data-embedded] .dev-bar { display: none; }
 /* The brand panel's preview stays in view while its (long) list of controls scrolls. */
 .brand-panel > .live-preview { position: sticky; top: 5.5rem; }
 @media (max-width: 52rem) { .brand-panel > .live-preview { position: static; } }
+
+/* Step 5: the message the partner's app would send its patient, shown not sent. */
+.patient-notification { margin: 0; display: grid; gap: 0.5rem; }
+.notification-card { max-width: 34rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; color: #1a1a1a; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
+.notification-card p { margin: 0 0 0.6rem; }
+.notification-card blockquote { margin: 0 0 0.75rem; padding: 0.6rem 0.8rem; border-left: 3px solid var(--line); background: #f7f7f5; }
+.notification-meta { font-size: 0.85rem; color: #555; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+.notification-button { display: inline-block; padding: 0.45rem 0.9rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem; }
+.question-heard { margin-top: 0.25rem; }

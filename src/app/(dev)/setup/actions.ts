@@ -8,10 +8,8 @@ import type { SetupActionState } from "@/lib/setup/action-state";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
 import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps";
-import { programFor } from "@/lib/setup/programs";
+import { programFor, type ProgramKey } from "@/lib/setup/programs";
 import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@/lib/sandbox-review";
-import { contentFor } from "@/lib/programs/content";
-import { DEFAULT_PROGRAM } from "@/lib/starter-config";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { updateConfig } from "@/lib/starter-config";
@@ -26,6 +24,16 @@ function failure(error: unknown, hint?: string): SetupActionState {
 function refuseOutsideSandbox(): SetupActionState | null {
   if (isSandbox(process.env.LITHOS_API_BASE_URL)) return null;
   return { status: "error", errors: [{ code: "setup.not_sandbox", message: "The walkthrough only writes to the Lithos sandbox." }] };
+}
+
+/** A new sample patient requesting care: the three calls step 3 and the intake make. */
+async function requestCare(program: ProgramKey, treatmentId: string): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
+  const client = getLithosClient();
+  const now = new Date().toISOString();
+  const patientId = (await client.post<{ id: string }>("/v1/patients", { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now })).id;
+  const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program))).id;
+  const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId))).id;
+  return { patientId, carePlanId, encounterId };
 }
 
 const SANDBOX_URLS = {
@@ -187,14 +195,34 @@ export async function declineReviewAction(): Promise<SetupActionState> {
   return { status: "ok" };
 }
 
-/** Step 4, "Ask the patient a question": the encounter is escalated and the question goes to the patient. */
-export async function askPatientAction(): Promise<SetupActionState> {
+/** The longest question the escalate call accepts. */
+const QUESTION_MAX = 10_000;
+
+/**
+ * Step 5, "Ask a patient a question": a new sample patient requests care, and
+ * the clinician — played here, as in step 4 — asks them a question before
+ * deciding. Lithos turns that into an inquiry and tells the app by webhook;
+ * step 5 then shows what the app does with it. Its own patient, so the one
+ * from steps 3–4 keeps whatever was decided about it.
+ */
+export async function askNewPatientAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
-  const { encounterId, program } = await readIds();
-  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Onboard a patient in step 3 first." }] };
+  const question = String(formData.get("question") ?? "").trim();
+  if (!question) return { status: "error", errors: [{ code: "setup.empty_question", message: "Write the clinician's question first." }] };
+  if (question.length > QUESTION_MAX) return { status: "error", errors: [{ code: "setup.question_too_long", message: `Keep the question under ${QUESTION_MAX.toLocaleString()} characters.` }] };
+
+  const ids = await readIds();
+  const program = programFor(ids.program);
+  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
+
+  const client = getLithosClient();
   try {
-    await askPatientAsClinician(getLithosClient(), encounterId, contentFor(program ?? DEFAULT_PROGRAM).clinicianQuestion);
+    const treatment = await readProgramTreatment(program.key);
+    if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
+    const journey = await requestCare(program.key, treatment.id);
+    await writeIds({ ...ids, questionPatientId: journey.patientId, questionEncounterId: journey.encounterId });
+    await askPatientAsClinician(client, journey.encounterId, question);
   } catch (error) {
     return failure(error);
   }

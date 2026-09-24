@@ -11,13 +11,19 @@ import { ActionError } from "./step-actions";
  * it's the patient's turn, a box to relay their answer. Pre-filled with a
  * sample answer — in production this is whatever your patient wrote in your app.
  */
-export function InboxThread({ thread, sampleReply }: { thread: QuestionThread; sampleReply: string }) {
+export function InboxThread({ thread, sampleReply, showQuestion = true }: { thread: QuestionThread; sampleReply: string; showQuestion?: boolean }) {
   const [state, reply, pending] = useActionState(replyToQuestionAction, INITIAL_SETUP_ACTION_STATE, "/setup#step-updates");
   const theirTurn = thread.awaiting === "patient";
   return (
     <article className={theirTurn ? "inbox-thread inbox-thread-open" : "inbox-thread"}>
-      <p className="inbox-from">Clinician · needs an answer from your patient</p>
-      <blockquote>{thread.question}</blockquote>
+      {showQuestion ? (
+        <>
+          <p className="inbox-from">Clinician · needs an answer from your patient</p>
+          <blockquote>{thread.question}</blockquote>
+        </>
+      ) : (
+        <p className="inbox-from">Your patient answers, in your app</p>
+      )}
       {thread.reply && (
         <p className="inbox-reply"><strong>Your patient replied:</strong> {thread.reply}</p>
       )}
@@ -25,7 +31,7 @@ export function InboxThread({ thread, sampleReply }: { thread: QuestionThread; s
         <form action={reply} className="stack">
           <input type="hidden" name="inquiry_id" value={thread.id} />
           <label className="field">
-            Your patient&rsquo;s reply
+            Your patient&rsquo;s reply, from your app
             <textarea name="body" rows={3} defaultValue={sampleReply} required />
           </label>
           <div>
@@ -34,7 +40,7 @@ export function InboxThread({ thread, sampleReply }: { thread: QuestionThread; s
           <ActionError state={state} />
         </form>
       ) : (
-        <p className="muted">Sent. It&rsquo;s the clinician&rsquo;s turn — they read it and decide, in step 4.</p>
+        <p className="muted">Sent with <code>POST /v1/inquiries/{thread.id}/messages</code>. It&rsquo;s the clinician&rsquo;s turn: they read the answer and decide.</p>
       )}
     </article>
   );

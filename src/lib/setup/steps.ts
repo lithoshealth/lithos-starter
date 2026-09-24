@@ -81,6 +81,8 @@ export type StepState = {
   /** The updates step only: whether the webhook setup is complete, and where it stands. */
   setupDone?: boolean;
   endpointSummary?: string;
+  /** The updates step only: the question it asked, and whether the app has heard about it yet. */
+  question?: { asked: boolean; heardAt?: string; thread?: QuestionThread };
   /** The review step only: what a clinician works from, and what was decided. */
   review?: ReviewCard;
   /** The Connect step only: the credentials are missing, so the page can offer the form. */
@@ -119,7 +121,11 @@ export type QuestionThread = {
 
 /** Ids the walkthrough has created, carried in a cookie so a reload doesn't lose the thread. */
 /** What the walkthrough has chosen and created, carried in a cookie so a reload doesn't lose the thread. */
-export type JourneyIds = { program?: ProgramKey; patientId?: string; carePlanId?: string; encounterId?: string };
+export type JourneyIds = {
+  program?: ProgramKey; patientId?: string; carePlanId?: string; encounterId?: string;
+  /** Step 5's own patient: a second care request the clinician asks a question about. */
+  questionPatientId?: string; questionEncounterId?: string;
+};
 
 type CatalogTreatment = {
   id: string; name: string; categories?: string[]; status?: string; brand_name?: string; form?: string;
@@ -508,8 +514,9 @@ const EVENT_LABELS: Record<string, string> = {
  * prescribe, the app re-reads each one to see whose it is and whose turn it
  * is. That re-read is also what fills the care-team inbox.
  */
-async function readUpdates(ids: JourneyIds): Promise<{ feed: FeedItem[]; inbox: QuestionThread[] }> {
-  const ours = new Set([ids.patientId, ids.carePlanId, ids.encounterId].filter(Boolean) as string[]);
+async function readUpdates(ids: JourneyIds): Promise<{ feed: FeedItem[]; inbox: QuestionThread[]; heardAt?: string; thread?: QuestionThread }> {
+  const ours = new Set([ids.patientId, ids.carePlanId, ids.encounterId, ids.questionPatientId, ids.questionEncounterId].filter(Boolean) as string[]);
+  const patients = new Set([ids.patientId, ids.questionPatientId].filter(Boolean) as string[]);
   let events: Awaited<ReturnType<ReturnType<typeof getEventStore>["list"]>> = [];
   try {
     events = await getEventStore().list(200);
@@ -522,7 +529,7 @@ async function readUpdates(ids: JourneyIds): Promise<{ feed: FeedItem[]; inbox: 
   await Promise.all(inquiryIds.map(async (id) => {
     try {
       const inquiry = await getLithosClient().get<InquiryRead>(`/v1/inquiries/${id}`);
-      if (inquiry.patient_id === ids.patientId) inquiries.set(id, inquiry);
+      if (patients.has(inquiry.patient_id)) inquiries.set(id, inquiry);
     } catch {
       /* not ours to read, or gone — leave it out */
     }
@@ -533,7 +540,11 @@ async function readUpdates(ids: JourneyIds): Promise<{ feed: FeedItem[]; inbox: 
     .map((e) => ({ at: e.receivedAt, type: String(e.payload.type), label: EVENT_LABELS[String(e.payload.type)] ?? String(e.payload.type) }))
     .sort((a, b) => a.at.localeCompare(b.at));
   const inbox = [...inquiries.values()].filter((i) => i.status === "open").map(threadFrom);
-  return { feed, inbox };
+
+  // Step 5's question: the first inquiry event about its patient is the moment the app heard it.
+  const asked = [...inquiries.values()].find((i) => i.patient_id === ids.questionPatientId);
+  const heardAt = asked && events.filter((e) => e.payload.resource_id === asked.id).map((e) => e.receivedAt).sort()[0];
+  return { feed, inbox, heardAt, thread: asked && threadFrom(asked) };
 }
 
 /**
@@ -555,27 +566,41 @@ async function checkUpdates(ids: JourneyIds): Promise<StepState> {
     ? await reachesThisApp(endpointRead.endpoint.url.replace(/\/api\/webhooks\/lithos$/, ""))
     : null;
   const endpoint = checkEndpoint(endpointRead, reach);
-  const updates = await readUpdates(ids);
-  const setup = { endpoint: endpoint.endpoint, setupDone: endpoint.status === "done", endpointSummary: endpoint.summary };
+  const { feed, inbox, heardAt, thread } = await readUpdates(ids);
+  const base = {
+    key: "updates" as const, optional: true, feed, inbox,
+    endpoint: endpoint.endpoint, setupDone: endpoint.status === "done", endpointSummary: endpoint.summary,
+    question: { asked: Boolean(ids.questionEncounterId), heardAt, thread },
+  };
 
-  if (updates.feed.length > 0) {
+  // Done when the app has heard the clinician's question — the point of the step.
+  if (heardAt) {
     return {
-      key: "updates", status: "done", optional: true, ...setup, ...updates,
-      summary: `${updates.feed.length} update${updates.feed.length === 1 ? "" : "s"} received about your patient${updates.inbox.length > 0 ? " — a question is waiting in your inbox" : ""}.`,
-      exchange: endpoint.exchange,
+      ...base, status: "done", exchange: endpoint.exchange,
+      summary: thread?.awaiting === "patient"
+        ? "Your app heard the clinician's question — your patient's turn to answer."
+        : "Your patient answered — the clinician has it.",
     };
   }
   if (endpoint.status !== "done") {
     return {
-      key: "updates", status: endpoint.status === "blocked" ? "blocked" : "ready", optional: true, ...setup, ...updates,
+      ...base, status: endpoint.status === "blocked" ? "blocked" : "ready",
       summary: endpoint.status === "blocked" ? endpoint.summary : "Not set up yet — your app hears nothing until it is.",
       diagnosis: endpoint.diagnosis, exchange: endpoint.exchange,
     };
   }
-  const received = await checkReceived(ids, endpointRead.endpoint, reach?.ok === true);
+  if (!base.question.asked) {
+    return { ...base, status: "ready", summary: "Listening. Ask a patient a question and watch it arrive.", exchange: endpoint.exchange };
+  }
+  // Asked, not heard yet: Lithos's delivery log says whether it's on its way or failing.
+  const received = await checkReceived(
+    { patientId: ids.questionPatientId, encounterId: ids.questionEncounterId },
+    endpointRead.endpoint, reach?.ok === true,
+  );
   return {
-    key: "updates", status: received.status === "blocked" ? "blocked" : "ready", optional: true, ...setup, ...updates,
-    summary: received.summary, diagnosis: received.diagnosis, exchange: received.exchange,
+    ...base, status: received.status === "blocked" ? "blocked" : "ready",
+    summary: received.status === "blocked" ? received.summary : "Question asked — waiting for Lithos to tell your app.",
+    diagnosis: received.diagnosis, exchange: received.exchange,
   };
 }
 

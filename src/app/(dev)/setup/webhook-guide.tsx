@@ -1,5 +1,3 @@
-import { RunAgainButton } from "./step-actions";
-
 /**
  * How to actually set up step 5. The checks can tell you whether a webhook
  * arrived; they can't give you a public address or tell you when to look. This
@@ -44,30 +42,13 @@ cloudflared tunnel --url http://localhost:3001`}</pre>
   );
 }
 
-/** Step 5, once set up: what makes a delivery happen, and what to check when one doesn't. */
-export function DeliveryGuide({ secretSet }: { secretSet: boolean }) {
+/** Step 5, registered but unable to verify: the signing secret isn't in .env.local. */
+export function DeliveryGuide() {
   return (
-    <div className="setup-guide stack">
-      {!secretSet && (
-        <p className="demo-note">
-          <strong>This app can&rsquo;t verify deliveries yet:</strong> <code>LITHOS_WEBHOOK_SECRET</code> isn&rsquo;t set, so
-          it refuses every delivery — on purpose. Lithos showed the secret once, when you registered; if you don&rsquo;t
-          have it, get a new one below.
-        </p>
-      )}
-      <h3>How to make one arrive</h3>
-      <p>
-        Webhooks follow real events — an encounter created, reviewed, completed. Lithos sends each one to the endpoint
-        registered <em>at that moment</em>, so anything that happened before you set it up went nowhere. Make something new happen:
-      </p>
-      <ul>
-        <li>run steps 3–4 again with a new patient — the button below clears the old one and takes you there; or</li>
-        <li>submit a care review on the site — the same calls, made by the app.</li>
-      </ul>
-      <div>
-        <RunAgainButton variant="primary" />
-      </div>
-      <p className="muted">Deliveries usually land within seconds. Reload this page to check.</p>
-    </div>
+    <p className="demo-note">
+      <strong>This app can&rsquo;t verify deliveries yet:</strong> <code>LITHOS_WEBHOOK_SECRET</code> isn&rsquo;t set, so
+      it refuses every delivery — on purpose. Lithos showed the secret once, when you registered; if you don&rsquo;t
+      have it, get a new one below.
+    </p>
   );
 }
