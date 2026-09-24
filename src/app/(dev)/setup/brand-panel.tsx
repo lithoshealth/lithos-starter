@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import type { Brand } from "@/lib/starter-config";
-import { removeLogoAction, saveBrandAction, uploadLogoAction, type BrandActionState } from "./brand-actions";
+import { removeLogoAction, saveBrandAction, setFontAction, uploadLogoAction, type BrandActionState } from "./brand-actions";
+import { WebsiteImport, type BrandChoice } from "./website-import";
 import { LivePreview } from "./live-preview";
 
 const IDLE: BrandActionState = { status: "idle" };
@@ -17,6 +18,8 @@ const IDLE: BrandActionState = { status: "idle" };
 export function BrandPanel({ brand, program, writable }: { brand: Brand; program?: string; writable: boolean }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const taglineRef = useRef<HTMLInputElement>(null);
   const colorTimer = useRef<number | undefined>(undefined);
   const lastSubmitted = useRef(JSON.stringify([brand.name, brand.tagline, brand.color]));
   const [color, setColor] = useState(brand.color);
@@ -46,6 +49,31 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
     startTransition(() => save(data));
   }
 
+  /**
+   * Apply what the website import found: the name, tagline and colour into the
+   * fields (and saved, as if typed), the font, then the logo — each through the
+   * same saves the manual controls use.
+   */
+  async function applyImport(choice: BrandChoice) {
+    if (nameRef.current && choice.name) nameRef.current.value = choice.name;
+    if (taglineRef.current && choice.tagline) taglineRef.current.value = choice.tagline;
+    if (choice.color) setColor(choice.color);
+    const data = new FormData();
+    data.set("name", choice.name ?? nameRef.current?.value ?? brand.name);
+    data.set("tagline", choice.tagline ?? taglineRef.current?.value ?? brand.tagline);
+    data.set("color", choice.color ?? color);
+    lastSubmitted.current = JSON.stringify([data.get("name"), data.get("tagline"), data.get("color")]);
+    startTransition(() => save(data));
+    if (choice.font !== undefined) await setFontAction(choice.font);
+    if (choice.logo) {
+      const file = new FormData();
+      file.set("logo", choice.logo);
+      startTransition(() => upload(file));
+    }
+    router.refresh();
+    setRenders((n) => n + 1);
+  }
+
   const error = latest.find((s) => s.status === "error") as { message: string } | undefined;
 
   return (
@@ -60,14 +88,16 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
           </p>
         </div>
 
+        <WebsiteImport onApply={applyImport} disabled={!writable} />
+
         <form ref={formRef} className="stack" onSubmit={(e) => { e.preventDefault(); submitBrand(); }}>
           <label className="field">
             Company name
-            <input name="name" defaultValue={brand.name} maxLength={60} required disabled={!writable} onBlur={submitBrand} />
+            <input ref={nameRef} name="name" defaultValue={brand.name} maxLength={60} required disabled={!writable} onBlur={submitBrand} />
           </label>
           <label className="field">
             Tagline
-            <input name="tagline" defaultValue={brand.tagline} maxLength={120} disabled={!writable} onBlur={submitBrand} />
+            <input ref={taglineRef} name="tagline" defaultValue={brand.tagline} maxLength={120} disabled={!writable} onBlur={submitBrand} />
           </label>
           <label className="field brand-color-field">
             Brand colour
@@ -99,6 +129,12 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
           <form action={remove}>
             <button type="submit" className="link-button">Remove the logo</button>
           </form>
+        )}
+        {brand.font && writable && (
+          <p className="muted brand-font">
+            Font: <span style={{ fontFamily: `"${brand.font.family}"` }}>{brand.font.family}</span> ·{" "}
+            <button type="button" className="link-button" onClick={async () => { await setFontAction(null); router.refresh(); setRenders((n) => n + 1); }}>use the default fonts</button>
+          </p>
         )}
 
         <p className="muted brand-status" aria-live="polite">

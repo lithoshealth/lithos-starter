@@ -45,8 +45,9 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
         <div className="header-inner">
           <Link href="/" className="brand">
             {/* eslint-disable-next-line @next/next/no-img-element -- a user-uploaded logo of unknown size; next/image needs dimensions up front */}
-            {brand.logo ? <img src={brand.logo} alt="" className="brand-logo" /> : <BrandMark />}
-            {brand.name}
+            {brand.logo ? <img src={brand.logo} alt="" className={brand.logoWide ? "brand-logo brand-logo-wide" : "brand-logo"} /> : <BrandMark />}
+            {/* A wordmark already says the name: keep it for screen readers only. */}
+            <span className={brand.logo && brand.logoWide ? "visually-hidden" : undefined}>{brand.name}</span>
           </Link>
           <nav className="site-nav" aria-label="Primary navigation">
             <Link href="/#program">The program</Link>

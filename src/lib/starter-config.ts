@@ -28,6 +28,14 @@ export type Brand = {
   color: string;
   /** Path under /public, e.g. `/brand/logo.png`. Unset shows the default mark. */
   logo?: string;
+  /** The logo is a wordmark — wide, with the name in it — so the header shows it alone. */
+  logoWide?: boolean;
+  /**
+   * A Google Fonts family for headings and body text, and the css2 query that
+   * loads it (checked against Google Fonts when it was chosen). Unset keeps the
+   * starter's own fonts.
+   */
+  font?: { family: string; css: string };
 };
 
 export type StarterConfig = {
@@ -59,6 +67,14 @@ function configPath() {
   return path.join(process.cwd(), FILE);
 }
 
+/** A font is only kept if both parts are plain: it ends up in a stylesheet URL and a CSS rule. */
+function validFont(font: unknown): Brand["font"] {
+  const f = font as { family?: unknown; css?: unknown } | null | undefined;
+  if (typeof f?.family !== "string" || typeof f.css !== "string") return undefined;
+  if (!/^[A-Za-z0-9 ]{2,40}$/.test(f.family) || !/^[A-Za-z0-9+:@;,.]{2,80}$/.test(f.css)) return undefined;
+  return { family: f.family, css: f.css };
+}
+
 /** Anything missing or malformed falls back to the default, field by field — a hand-edited file can't break the app. */
 export function normalizeConfig(raw: unknown): StarterConfig {
   const brand = (raw as { brand?: Partial<Brand> } | null)?.brand ?? {};
@@ -73,6 +89,8 @@ export function normalizeConfig(raw: unknown): StarterConfig {
       color: typeof brand.color === "string" && HEX.test(brand.color) ? brand.color.toLowerCase() : DEFAULT_CONFIG.brand.color,
       // Only our own upload path — never an arbitrary URL.
       logo: typeof brand.logo === "string" && /^\/brand\/logo\.(png|jpe?g|webp)(\?v=\d+)?$/.test(brand.logo) ? brand.logo : undefined,
+      logoWide: brand.logo && brand.logoWide === true ? true : undefined,
+      font: validFont(brand.font),
     },
     program: PROGRAMS.some((p) => p.key === program) ? (program as ProgramKey) : undefined,
     intakeStyle: INTAKE_STYLES.some((s) => s.key === intakeStyle) ? (intakeStyle as IntakeStyle) : DEFAULT_CONFIG.intakeStyle,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
-import { brandCss, getBrand, getSite } from "@/lib/app-meta";
+import { brandCss, brandFontHref, getBrand, getSite } from "@/lib/app-meta";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -24,7 +24,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       {/* The brand colour from starter.config.json, over the stylesheet's defaults. */}
-      <head><style>{brandCss(brand)}</style></head>
+      <head>
+        {brandFontHref(brand) && (
+          <>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={brandFontHref(brand)!} />
+          </>
+        )}
+        <style>{brandCss(brand)}</style>
+      </head>
       <body>{children}</body>
     </html>
   );
