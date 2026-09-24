@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
 import { brandCss, brandFontHref, getBrand, getSite } from "@/lib/app-meta";
+import { ScrollToTop } from "./scroll-to-top";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -33,7 +34,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         )}
         <style>{brandCss(brand)}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ScrollToTop />
+      </body>
     </html>
   );
 }
