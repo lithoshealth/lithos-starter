@@ -68,8 +68,8 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
       const base = `/v1/sandbox/encounters/${ids.encounterId ?? "<encounter id>"}`;
       return [
         { method: "POST", path: `${base}/start_review`, body: {} },
-        { method: "POST", path: `${base}/complete  ← Approve`, body: {} },
-        { method: "POST", path: `${base}/complete  ← Decline`, body: { plan: { eligibility_status: "ineligible", ineligibility_reason_code: "criteria_not_met" } } },
+        { method: "POST", path: `${base}/complete  ← Simulate approval`, body: {} },
+        { method: "POST", path: `${base}/complete  ← Simulate denial`, body: { plan: { eligibility_status: "ineligible", ineligibility_reason_code: "criteria_not_met" } } },
         { method: "POST", path: `${base}/escalate  ← Ask a question`, body: { escalation_reason: "patient_information_required", message_for_patient: "<your question>" } },
       ];
     }
@@ -242,8 +242,8 @@ export default async function SetupPage() {
                 <div className="review-standin">
                   <p>Sandbox only: stand in for the clinician</p>
                   <div className="review-decisions">
-                    <StepAction step="review" action={driveReviewAction} label="Approve" pendingLabel="Prescribing…" />
-                    <StepAction step="review" action={declineReviewAction} label="Decline" pendingLabel="Declining…" variant="ghost" />
+                    <StepAction step="review" action={driveReviewAction} label="Simulate approval" pendingLabel="Simulating approval…" />
+                    <StepAction step="review" action={declineReviewAction} label="Simulate denial" pendingLabel="Simulating denial…" variant="ghost" />
                   </div>
                 </div>
               )}
