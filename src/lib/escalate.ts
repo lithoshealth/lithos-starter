@@ -1,8 +1,9 @@
 import { buildEscalationPlan, type EscalationPlan } from "./escalation";
 import { getLithosClient } from "./lithos/client";
 import { LithosApiError } from "./lithos/errors";
-import type { ApiError, CarePlan, Encounter, EncounterCreate, PatientCreate } from "./lithos/types";
+import type { ApiError, CarePlan, Encounter, EncounterCreate, Modality, PatientCreate } from "./lithos/types";
 import { getMemberRecord, linkMemberToLithos, recordGovernmentInsurance } from "./members";
+import { readModality } from "./sync-visits";
 import { findOpenEncounter, findOpenInitialCarePlan, upsertCarePlan, upsertEncounter } from "./projections";
 
 /**
@@ -37,12 +38,16 @@ export type EscalateInput = {
    * before. Recorded on the member, so it is asked once rather than every time.
    */
   enrolledInGovernmentInsurance?: boolean;
+  /** The hold on the first visit, when Lithos wants a sync encounter. */
+  visit?: { reservationToken: string; idempotencyKey: string };
 };
 
 export type EscalateResult =
   | { status: "blocked"; plan: EscalationPlan }
-  | { status: "failed"; stage: "patient" | "care_plan" | "encounter"; httpStatus: number; errors: ApiError[]; patientId?: string; carePlanId?: string }
-  | { status: "complete"; patientId: string; carePlanId: string; encounterId: string; linkedToExisting: boolean; plan: EscalationPlan; encounter: Encounter };
+  /** Lithos wants a live video visit: hold a time, then escalate again with it. */
+  | { status: "needs_visit"; patientId: string; carePlanId: string }
+  | { status: "failed"; stage: "patient" | "care_plan" | "requirements" | "encounter"; httpStatus: number; errors: ApiError[]; patientId?: string; carePlanId?: string }
+  | { status: "complete"; patientId: string; carePlanId: string; encounterId: string; linkedToExisting: boolean; plan: EscalationPlan; encounter: Encounter; modality?: Modality };
 
 // The protocol's screening hard stops. Answered yes → do not create the encounter.
 const SCREENING_HARD_STOPS: Array<keyof ScreeningAnswers> = [
@@ -120,17 +125,37 @@ export async function escalateMember(input: EscalateInput): Promise<EscalateResu
     }
   }
 
+  // Whether this encounter needs a live video visit is Lithos's call — it
+  // depends on the patient's state and the plan — so ask before creating it.
+  let modality: Modality;
+  try {
+    modality = await readModality(client, patientId, carePlan.id);
+  } catch (error) {
+    if (!(error instanceof LithosApiError)) throw error;
+    return { status: "failed", stage: "requirements", httpStatus: error.status, errors: error.errors, patientId, carePlanId: carePlan.id };
+  }
+
+  // A sync encounter can only be created with its first visit. The patient and
+  // plan exist now, so the member can pick a time and send the request again.
+  if (modality === "sync" && !input.visit) return { status: "needs_visit", patientId, carePlanId: carePlan.id };
+
   const encounterPayload: EncounterCreate = {
     patient_id: patientId,
     care_plan_id: carePlan.id,
     intake_form: { data: { ...plan.intake, ...input.screening } },
     requested_treatments: [input.catalogTreatmentId ? { action: "add", catalog_treatment_id: input.catalogTreatmentId } : { action: "add" }],
+    ...(input.visit ? { reservation_token: input.visit.reservationToken } : {}),
   };
 
   try {
-    const encounter = await client.post<Encounter>("/v1/encounters", encounterPayload);
+    // With a hold, Lithos creates the encounter and books the visit together, or neither.
+    const encounter = await client.post<Encounter>(
+      "/v1/encounters",
+      encounterPayload,
+      input.visit ? { idempotencyKey: input.visit.idempotencyKey } : undefined,
+    );
     await upsertEncounter(member.id, encounter);
-    return { status: "complete", patientId, carePlanId: carePlan.id, encounterId: encounter.id, linkedToExisting, plan, encounter };
+    return { status: "complete", patientId, carePlanId: carePlan.id, encounterId: encounter.id, linkedToExisting, plan, encounter, modality };
   } catch (error) {
     if (!(error instanceof LithosApiError)) throw error;
     return { status: "failed", stage: "encounter", httpStatus: error.status, errors: error.errors, patientId, carePlanId: carePlan.id };

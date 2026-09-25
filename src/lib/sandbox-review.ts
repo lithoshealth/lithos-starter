@@ -15,7 +15,7 @@
 import type { LithosClient } from "./lithos/client";
 
 type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string };
-type EncounterRead = { id: string; status: string; care_plan_id: string; requested_treatments: RequestedLine[] };
+type EncounterRead = { id: string; status: string; care_plan_id: string; requested_treatments: RequestedLine[]; modality?: string };
 type CatalogTreatment = { id: string; name: string; status?: string; categories?: string[]; dosages?: Array<{ id: string }> };
 
 export type SignOffResult = { chose?: string };
@@ -32,6 +32,8 @@ export async function signOffAsClinician(client: LithosClient, encounterId: stri
   const encounter = await client.get<EncounterRead>(`/v1/encounters/${encounterId}`);
   if (encounter.status === "completed") return {};
   if (encounter.status === "pending_review") {
+    // A sync encounter's review starts when both people join the visit's room.
+    if (encounter.modality === "sync") throw new Error("This encounter needs its video visit first — book it and play it out with the test clock.");
     await client.post(`/v1/sandbox/encounters/${encounterId}/start_review`, {});
   }
 

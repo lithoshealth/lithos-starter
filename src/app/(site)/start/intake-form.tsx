@@ -5,6 +5,9 @@ import { startTransition, useActionState, useEffect, useRef, useState, useSyncEx
 import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
+import { VisitStep } from "../_visit/visit-step";
+
+const FORM_ID = "intake-form";
 
 /*
  * The intake as a quiz: one question per screen, a progress bar, and
@@ -85,6 +88,7 @@ export function IntakeForm() {
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
   const retrying = failed && Boolean(state.patientId);
+  const choosingVisit = state.status === "needs_visit";
   const formRef = useRef<HTMLFormElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const headingRefs = useRef<Array<HTMLElement | null>>([]);
@@ -170,7 +174,8 @@ export function IntakeForm() {
   );
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className="quiz">
+    <>
+    <form id={FORM_ID} ref={formRef} action={action} onSubmit={onSubmit} noValidate className="quiz">
       <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={SCREENS.length} aria-valuenow={screen + 1}>
         <span style={{ width: `${((screen + 1) / SCREENS.length) * 100}%` }} />
       </div>
@@ -187,7 +192,9 @@ export function IntakeForm() {
 
         {failed && state.stage !== "connection" && (
           <section className="error-box" aria-live="polite">
-            <h2>{state.stage === "validation" ? "Please check your details" : "We couldn't complete your intake"}</h2>
+            <h2>
+              {state.stage === "validation" ? "Please check your details" : "We couldn't complete your intake"}
+            </h2>
             {state.httpStatus && <p className="muted">The clinical service responded with HTTP {state.httpStatus}.</p>}
             <ul>
               {state.errors.map((error, index) => {
@@ -208,8 +215,11 @@ export function IntakeForm() {
         )}
       </div>
 
-      {failed && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
-      {failed && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
+      {(failed || choosingVisit) && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
+      {(failed || choosingVisit) && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
+
+      {/* Hidden, not unmounted, while a time is picked: the form still sends every answer. */}
+      <div hidden={choosingVisit}>
 
       <div className="quiz-screen" hidden={screen !== 0}>
         {q(0, "What brings you to Eucardia?", "A care review adds a clinician to your membership. Start with what you want help with.")}
@@ -304,7 +314,18 @@ export function IntakeForm() {
         )}
         <span className="muted quiz-count">{screen + 1} of {SCREENS.length}</span>
       </div>
+      </div>
     </form>
+    {choosingVisit && state.offer && (
+      <VisitStep
+        formId={FORM_ID}
+        patientId={state.patientId}
+        carePlanId={state.carePlanId}
+        initialOffer={state.offer}
+        submitting={pending}
+      />
+    )}
+    </>
   );
 }
 

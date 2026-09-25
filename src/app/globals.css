@@ -283,6 +283,22 @@ summary { cursor: pointer; font-weight: 700; }
 .sandbox-panel { border: 1px dashed var(--warning-ink); border-radius: var(--radius-sm); padding: 1rem 1.15rem; background: var(--warning-soft); }
 .sandbox-panel .eyebrow { color: var(--warning-ink); }
 
+/* Sync visits: the slot grid, the booked visit, and its actions. */
+.visit { border-top: 1px solid var(--line); padding-top: 1.25rem; scroll-margin-top: 5rem; }
+.visit h2 { font-size: 1.35rem; }
+.visit-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-start; }
+.slot-day { border: 0; padding: 0; margin: 0; min-width: 0; }
+.slot-day legend { font-weight: 700; margin-bottom: 0.4rem; }
+.slot-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.slot { padding: 0.5rem 0.9rem; font-variant-numeric: tabular-nums; }
+.day-tabs { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.25rem; }
+.day-tab { flex: none; padding: 0.45rem 0.85rem; font-size: 0.9rem; }
+.day-tab-count { opacity: 0.7; font-weight: 500; font-size: 0.8rem; }
+.cancel-visit summary, .visit-history summary { cursor: pointer; color: var(--primary); font-weight: 600; padding: 0.7rem 0; }
+.visit-history ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.35rem; }
+.clock-moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.clock-moves li { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
 /* Grid children default to min-width: auto, so one long unbroken line — a
    JSON response, a URL — widens the whole card past the screen. Let them
    shrink, and let the blocks inside scroll instead. */
