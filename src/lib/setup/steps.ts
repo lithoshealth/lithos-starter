@@ -102,6 +102,8 @@ export type ReviewCard = IntakeReview & {
   patient: { name: string; age?: number; sex?: string; state?: string };
   /** What the intake asked for: named treatments, or the clinician's choice. */
   requested: string[];
+  /** How many answers the intake sent — the one number the chart shows. */
+  intakeAnswers: number;
   /** A decision is final once the encounter completes. */
   outcome?: { kind: "approved" | "declined"; detail: string };
   /** The question thread, while the clinician is waiting on the patient. */
@@ -409,6 +411,7 @@ function reviewCard(encounter: EncounterFull, patient: PatientRead | undefined, 
       state: patient?.address?.state,
     },
     requested,
+    intakeAnswers: Object.keys(encounter.intake_form?.data ?? {}).length,
     outcome,
   };
 }

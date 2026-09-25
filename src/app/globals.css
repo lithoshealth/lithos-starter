@@ -387,13 +387,17 @@ html[data-embedded] .dev-bar { display: none; }
 .review-card { display: grid; gap: 0.9rem; padding: 1.1rem 1.2rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .review-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .review-card-head h3 { font-size: 1.2rem; }
-.review-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem 1rem; margin: 0; }
-.review-facts dt { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.review-facts dd { margin: 0.1rem 0 0; font-weight: 600; }
-.review-flags { padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); background: var(--paper); font-size: 0.92rem; }
-.review-flags ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
-.review-flags p { margin: 0.2rem 0 0; }
-.review-flags-yes { background: var(--warning-soft); color: var(--warning-ink); }
+.chart-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chart-tab { font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: var(--radius-sm); background: var(--paper); color: var(--muted); }
+.chart-tab-on { background: var(--primary-soft); color: var(--primary-ink, var(--primary)); font-weight: 600; }
+.chart-section h4 { display: flex; justify-content: space-between; gap: 1rem; margin: 0 0 0.45rem; font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.chart-section h4 span + span { font-weight: 400; }
+.chart-lines { display: grid; gap: 0.4rem; }
+.chart-lines-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.25rem; }
+.chart-lines span { display: block; height: 0.45rem; border-radius: 0.25rem; background: var(--line); }
+.chart-more { margin: 0; font-size: 0.8rem; color: var(--muted); text-align: center; }
+.review-standin { display: grid; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--line); }
+.review-standin p { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .review-outcome { margin: 0; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.95rem; }
 .review-outcome-approved { background: var(--success-soft); }
 .review-outcome-declined { background: var(--danger-soft); }

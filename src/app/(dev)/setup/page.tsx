@@ -39,7 +39,7 @@ const STEPS: Record<StepKey, { title: string; what: string }> = {
   },
   review: {
     title: "Play the clinician",
-    what: "A licensed clinician reviews every request against your program's protocol, and makes one of three calls: approve and prescribe, decline, or ask the patient a question first — that one is step 5. In production that happens in Lithos's portal; the sandbox lets you make the call yourself — below is what they'd be deciding from.",
+    what: "A licensed Lithos clinician reviews every request: your patient's intake, their history, medications and labs, against your program's protocol and the rules of their state. Then they approve and prescribe, decline, or ask the patient a question first (that's step 5). In production this happens in Lithos's portal. The sandbox lets you stand in for them, so you can see what happens next.",
   },
   updates: {
     title: "Stay in step with your patients' care",
@@ -239,9 +239,12 @@ export default async function SetupPage() {
               )}
               {step.key === "review" && step.review && <ReviewCard review={step.review} />}
               {step.status === "ready" && step.key === "review" && (
-                <div className="review-decisions">
-                  <StepAction step="review" action={driveReviewAction} label="Approve" pendingLabel="Prescribing…" />
-                  <StepAction step="review" action={declineReviewAction} label="Decline" pendingLabel="Declining…" variant="ghost" />
+                <div className="review-standin">
+                  <p>Sandbox only: stand in for the clinician</p>
+                  <div className="review-decisions">
+                    <StepAction step="review" action={driveReviewAction} label="Approve" pendingLabel="Prescribing…" />
+                    <StepAction step="review" action={declineReviewAction} label="Decline" pendingLabel="Declining…" variant="ghost" />
+                  </div>
                 </div>
               )}
               {step.key === "updates" && step.status !== "locked" && (() => {
