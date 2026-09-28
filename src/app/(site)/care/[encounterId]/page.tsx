@@ -3,11 +3,13 @@ import { lithosConnection } from "@/lib/lithos/connection";
 import { NotConnected } from "../../not-connected";
 import Link from "next/link";
 import { getLithosClient } from "@/lib/lithos/client";
+import { readPatientTimeZone } from "@/lib/time-zones";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { CarePlan, EncounterStatus } from "@/lib/lithos/types";
 import { readJourneyStatus } from "@/lib/journey";
 import { isSandboxBaseUrl } from "@/lib/sandbox-review";
 import { ClinicianPanel } from "./clinician-panel";
+import { VisitSection } from "./visit-section";
 import { programFor } from "@/lib/setup/programs";
 
 export const metadata: Metadata = { title: "Your care plan" };
@@ -38,8 +40,15 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 }
 
-export default async function CarePage({ params }: { params: Promise<{ encounterId: string }> }) {
+export default async function CarePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ encounterId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { encounterId } = await params;
+  const query = await searchParams;
   if (!lithosConnection().connected) {
     return (
       <section className="status-card panel stack">
@@ -75,7 +84,16 @@ export default async function CarePage({ params }: { params: Promise<{ encounter
   }
 
   const { encounter, carePlan } = result.value;
-  const copy = ENCOUNTER_COPY[encounter.status] ?? { label: encounter.status, badge: "badge-outline", detail: "", step: 0 };
+  const sync = encounter.modality === "sync";
+  const baseCopy = ENCOUNTER_COPY[encounter.status] ?? { label: encounter.status, badge: "badge-outline", detail: "", step: 0 };
+  // A sync encounter is reviewed on the call, not from a queue.
+  const copy = sync && encounter.status === "pending_review"
+    ? { ...baseCopy, detail: "Your clinician reviews your intake with you on a live video visit." }
+    : baseCopy;
+  // Visit times are shown in the patient's zone, which Lithos keeps on the patient.
+  const timeZone = sync ? await readPatientTimeZone(getLithosClient(), encounter.patient_id).catch(() => "UTC") : "UTC";
+  // A sync encounter can't be signed off before its visit happened.
+  const canSignOff = !sync || (encounter.status === "in_review" && encounter.latest_appointment?.status === "completed");
 
   return (
     <section className="status-card panel stack">
@@ -110,7 +128,14 @@ export default async function CarePage({ params }: { params: Promise<{ encounter
         </div>
       )}
 
-      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && (encounter.status === "pending_review" || encounter.status === "in_review") && (
+      <VisitSection
+        encounter={encounter}
+        timeZone={timeZone}
+        reschedule={query.reschedule === "1"}
+        from={typeof query.from === "string" ? query.from : undefined}
+      />
+
+      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && canSignOff && (encounter.status === "pending_review" || encounter.status === "in_review") && (
         <ClinicianPanel encounterId={encounter.id} />
       )}
 
@@ -123,6 +148,7 @@ export default async function CarePage({ params }: { params: Promise<{ encounter
         <JsonDetails title="Care-plan treatments" value={carePlan.treatments} />
         <JsonDetails title="Clinician" value={carePlan.clinician} />
         {encounter.patient_message && <JsonDetails title="Message from your clinician" value={encounter.patient_message} />}
+        {sync && <JsonDetails title="Latest appointment" value={encounter.latest_appointment} />}
       </div>
     </section>
   );

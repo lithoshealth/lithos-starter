@@ -42,6 +42,17 @@ export async function escalateAction(_prev: ActionState, formData: FormData): Pr
     return { status: "blocked", reasons: result.plan.hardStops.filter((h) => h.triggered).map((h) => `${h.rule} — ${h.basis}`) };
   }
   if (result.status === "failed") return { status: "error", httpStatus: result.httpStatus, errors: result.errors };
+  // Lithos only creates a sync encounter together with its first visit, and the
+  // time is the member's to pick — so the request continues on their own page.
+  if (result.status === "needs_visit") {
+    return {
+      status: "error",
+      errors: [{
+        code: "eucardia.visit_required",
+        message: `Lithos requires a live video visit for this member. Patient ${result.patientId} and care plan ${result.carePlanId} are ready; the member picks a time from their care review page (/me/${memberId}/care-review).`,
+      }],
+    };
+  }
   return { status: "ok", message: `${result.linkedToExisting ? "Linked to existing patient" : "Patient created"} · encounter ${result.encounterId} is ${result.encounter.status.replace("_", " ")}.` };
 }
 

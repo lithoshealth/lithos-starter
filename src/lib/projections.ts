@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { getLithosClient } from "./lithos/client";
-import type { CarePlan, Encounter, Inquiry, LabRequisition } from "./lithos/types";
+import type { Appointment, CarePlan, Encounter, Inquiry, LabRequisition } from "./lithos/types";
 
 /**
  * Local read models of Lithos clinical state. Lithos owns this state; these
@@ -204,8 +204,18 @@ export async function projectEvent(payload: WebhookPayload): Promise<{ projected
       await upsertLabRequisition(await memberIdForPatient(req.patient_id), req);
       return { projected: `lab_requisition ${id} → ${req.status}/${req.pdf_status}` };
     }
+    case "appointment": {
+      // The encounter carries what the member dashboard needs — `needs_appointment`
+      // and `latest_appointment` — so re-read the appointment for its encounter,
+      // then project the encounter. `appointment.started` can arrive after a
+      // terminal event; re-reading makes the order irrelevant.
+      const appointment = await client.get<Appointment>(`/v1/appointments/${encodeURIComponent(id)}`);
+      const encounter = await client.get<Encounter>(`/v1/encounters/${encodeURIComponent(appointment.encounter_id)}`);
+      await upsertEncounter(await memberIdForPatient(encounter.patient_id), encounter);
+      return { projected: `appointment ${id} → ${appointment.status}/${appointment.patient_join.status} (encounter ${encounter.id} needs_appointment=${encounter.needs_appointment})` };
+    }
     default:
-      // prior_authorization.*, appointment.*, … — recorded, not yet projected.
+      // prior_authorization.*, … — recorded, not yet projected.
       return { skipped: `no projection for ${payload.type}` };
   }
 }

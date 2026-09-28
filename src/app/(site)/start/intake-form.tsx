@@ -5,10 +5,13 @@ import { Fragment, startTransition, useActionState, useEffect, useRef, useState,
 import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
+import { VisitStep } from "../_visit/visit-step";
 import type { ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_SCREENING } from "@/lib/intake/lipid";
+
+const FORM_ID = "intake-form";
 
 /*
  * The intake as a quiz: one question per screen, a progress bar, and
@@ -89,6 +92,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
   const retrying = failed && Boolean(state.patientId);
+  const choosingVisit = state.status === "needs_visit";
   const formRef = useRef<HTMLFormElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const headingRefs = useRef<Array<HTMLElement | null>>([]);
@@ -380,7 +384,8 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   const current = screens[screen];
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className={chat ? "quiz quiz-chat" : "quiz"}>
+    <>
+    <form id={FORM_ID} ref={formRef} action={action} onSubmit={onSubmit} noValidate className={chat ? "quiz quiz-chat" : "quiz"}>
       {!chat && (
         <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={screen + 1}>
           <span style={{ width: `${((screen + 1) / screens.length) * 100}%` }} />
@@ -399,7 +404,9 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
 
         {failed && state.stage !== "connection" && (
           <section className="error-box" aria-live="polite">
-            <h2>{state.stage === "validation" ? "Please check your details" : "We couldn't complete your intake"}</h2>
+            <h2>
+              {state.stage === "validation" ? "Please check your details" : "We couldn't complete your intake"}
+            </h2>
             {state.httpStatus && <p className="muted">The clinical service responded with HTTP {state.httpStatus}.</p>}
             <ul>
               {state.errors.map((error, index) => {
@@ -420,8 +427,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         )}
       </div>
 
-      {failed && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
-      {failed && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
+      {(failed || choosingVisit) && state.patientId && <input type="hidden" name="resume_patient_id" value={state.patientId} />}
+      {(failed || choosingVisit) && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
+
+      {/* Hidden, not unmounted, while a time is picked: the form still sends every answer. */}
+      <div hidden={choosingVisit}>
 
       {chat && (
         // The conversation so far: each answered question, then the one being asked.
@@ -486,7 +496,18 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         )}
         <span className="muted quiz-count">{screen + 1} of {screens.length}</span>
       </div>}
+      </div>
     </form>
+    {choosingVisit && state.offer && (
+      <VisitStep
+        formId={FORM_ID}
+        patientId={state.patientId}
+        carePlanId={state.carePlanId}
+        initialOffer={state.offer}
+        submitting={pending}
+      />
+    )}
+    </>
   );
 }
 

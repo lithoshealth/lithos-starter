@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
 import type { CareRequestState } from "@/lib/care-request-state";
+import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
+import { loadVisitOffer } from "@/lib/visit-offer";
 
 const SCREENING_KEYS: Array<keyof ScreeningAnswers> = [
   "established_atherosclerotic_cardiovascular_disease", "recent_cardiac_condition", "drug_hypersensitivity",
@@ -39,18 +41,26 @@ export async function requestCareAction(_prev: CareRequestState, formData: FormD
   // The answers are valid; whether there's anywhere to send them is a separate question.
   if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };
 
+  const reservationToken = String(formData.get("reservation_token") ?? "");
+  const idempotencyKey = String(formData.get("idempotency_key") ?? "");
   const result = await escalateMember({
     memberId,
     screening,
     attestedAt: new Date(),
     catalogTreatmentId,
     enrolledInGovernmentInsurance: governmentInsurance === "true",
+    ...(reservationToken && idempotencyKey ? { visit: { reservationToken, idempotencyKey } } : {}),
   });
 
   if (result.status === "blocked") {
     return { status: "blocked", reasons: result.plan.hardStops.filter((h) => h.triggered).map((h) => `${h.rule} — ${h.basis}`) };
   }
   if (result.status === "failed") return { status: "error", httpStatus: result.httpStatus, errors: result.errors };
+  if (result.status === "needs_visit") {
+    const offer = await loadVisitOffer(getLithosClient(), { patientId: result.patientId, carePlanId: result.carePlanId });
+    return { ...result, offer };
+  }
 
-  redirect(`/care/${encodeURIComponent(result.encounterId)}`);
+  const sync = (result.modality ?? result.encounter.modality) === "sync";
+  redirect(`/care/${encodeURIComponent(result.encounterId)}${sync ? "#visit" : ""}`);
 }

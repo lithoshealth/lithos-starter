@@ -19,7 +19,7 @@
 import type { LithosClient } from "./lithos/client";
 
 type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string };
-type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; requested_treatments: RequestedLine[] };
+type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; requested_treatments: RequestedLine[]; modality?: string };
 type InquiryRead = { id: string; status: string; references?: Array<{ id?: string }> };
 type CatalogTreatment = { id: string; name: string; status?: string; categories?: string[]; dosages?: Array<{ id: string }> };
 
@@ -48,6 +48,8 @@ async function openForReview(client: LithosClient, encounterId: string): Promise
   const encounter = await client.get<EncounterRead>(`/v1/encounters/${encounterId}`);
   if (encounter.status === "completed" || encounter.status === "canceled") return null;
   if (encounter.status === "pending_review") {
+    // A sync encounter's review starts when both people join the visit's room.
+    if (encounter.modality === "sync") throw new Error("This encounter needs its video visit first — book it and play it out with the test clock.");
     await client.post(`/v1/sandbox/encounters/${encounterId}/start_review`, {});
   }
   if (encounter.status === "escalated") {

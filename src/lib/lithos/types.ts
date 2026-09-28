@@ -52,6 +52,13 @@ export type PatientCreate = {
   enrolled_in_government_insurance: boolean;
 };
 
+/** The fields this app reads back. `time_zone` is Lithos's lookup from the ZIP; null when it can't place it. */
+export type Patient = Omit<PatientCreate, "external_id"> & {
+  id: string;
+  external_id: string | null;
+  time_zone: string | null;
+};
+
 export type LipidManagementInitialIntake = {
   indication: "hypercholesterolemia" | "cardiovascular_risk_reduction";
   ldl_c: number;
@@ -110,6 +117,8 @@ export type EncounterCreate = {
   care_plan_id: string;
   intake_form: { data: (LipidManagementInitialIntake | LipidManagementFollowUpIntake | WeightManagementInitialIntake) & Record<string, unknown> };
   requested_treatments: RequestedTreatmentLine[];
+  /** A hold on the first visit. Required when the requirements say `sync`; Lithos books it with the encounter. */
+  reservation_token?: string;
 };
 
 export type EncounterStatus = "pending_review" | "in_review" | "escalated" | "completed" | "canceled";
@@ -216,7 +225,86 @@ export type Encounter = EncounterListItem & {
   requested_treatments: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
   patient_message: Record<string, unknown> | null;
+  // Sync visits. Absent from the published reference while the feature is hidden.
+  modality?: Modality;
+  needs_appointment?: boolean;
+  latest_appointment?: Appointment | null;
 };
+
+export type Modality = "async" | "sync";
+
+export type EncounterRequirements = { requirements: { modality: { value: Modality } } };
+
+export type AppointmentSlot = { starts_at: string; duration_minutes: number; slot_token: string };
+
+export type AppointmentSlotsResponse = {
+  slots: AppointmentSlot[];
+  reason: "no_licensed_availability" | "no_slots_in_range" | null;
+  next_available: string | null;
+};
+
+/** Who the patient will meet — a name and a photo, from the hold onward. */
+export type ClinicianSummary = { first_name: string; last_name: string; profile_picture_url: string | null };
+
+export type SlotReservation = {
+  id: string;
+  status: "active" | "consumed" | "released" | "expired";
+  patient_id: string;
+  care_plan_id: string;
+  reservation_token: string;
+  clinician: ClinicianSummary;
+  rescheduling_appointment_id: string | null;
+  starts_at: string;
+  duration_minutes: number;
+  expires_at: string;
+  created_at: string;
+  consumed_at: string | null;
+  released_at: string | null;
+  expired_at: string | null;
+};
+
+export type AppointmentStatus = "scheduled" | "in_progress" | "completed" | "patient_no_show" | "clinician_no_show" | "canceled";
+
+export type PatientJoin = {
+  status: "provisioning" | "too_early" | "joinable" | "closed";
+  opens_at: string | null;
+  closes_at: string | null;
+  url: string | null;
+};
+
+export type Appointment = {
+  id: string;
+  encounter_id: string;
+  status: AppointmentStatus;
+  starts_at: string;
+  ends_at: string;
+  canceled_by: "partner" | "clinician" | "system" | null;
+  reason: string | null;
+  rescheduled_to_id: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  patient_no_show_at: string | null;
+  clinician_no_show_at: string | null;
+  canceled_at: string | null;
+  /** Whether cancel and reschedule would still be accepted, on the organization's (or the test) clock. */
+  cancelable: boolean;
+  /** When the cancellation notice shuts the window; null when not `scheduled` or the org requires no notice. */
+  cancellation_closes_at: string | null;
+  progress:
+    | "not_started"
+    | "due"
+    | "waiting_for_clinician"
+    | "waiting_for_patient"
+    | "under_way"
+    | "ended"
+    | "presumed_ended"
+    | "settled";
+  clinician: ClinicianSummary;
+  patient_join: PatientJoin;
+};
+
+export type SandboxTestClock = { id: string; frozen_time: string; created_at: string; updated_at: string };
 
 export type CarePlan = {
   id: string;

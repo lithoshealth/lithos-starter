@@ -6,6 +6,9 @@ import { requestCareAction } from "../actions";
 import { INITIAL_CARE_REQUEST_STATE } from "@/lib/care-request-state";
 import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../../not-connected";
+import { VisitStep } from "../../../_visit/visit-step";
+
+const FORM_ID = "care-review-form";
 
 // Same eight fields the protocol requires, in the member's own words. The field
 // names are the Lithos intake contract — don't rename them.
@@ -30,9 +33,11 @@ const OPTIONS: Array<[string, string, string]> = [
 export function CareReviewForm({ memberId, askInsurance }: { memberId: string; askInsurance: boolean }) {
   const [state, action, pending] = useActionState(requestCareAction, INITIAL_CARE_REQUEST_STATE);
   const feedbackRef = useScrollToFeedback(state, state.status !== "idle");
+  const choosingVisit = state.status === "needs_visit";
 
   return (
-    <form action={action} className="stack">
+    <>
+    <form id={FORM_ID} action={action} className="stack">
       <input type="hidden" name="member_id" value={memberId} />
 
       <div ref={feedbackRef} className="feedback-anchor">
@@ -68,6 +73,8 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
       )}
       </div>
 
+      {/* Hidden, not unmounted, while a time is picked: the form still sends every answer. */}
+      <div className="stack" hidden={choosingVisit}>
       <fieldset className="form-section">
         <h2>What you&rsquo;d like to start</h2>
         <p className="hint">
@@ -121,6 +128,18 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
           {pending ? "Sending to the clinical team…" : "Send for clinician review"}
         </button>
       </div>
+      </div>
     </form>
+    {choosingVisit && (
+      <VisitStep
+        formId={FORM_ID}
+        patientId={state.patientId}
+        carePlanId={state.carePlanId}
+        initialOffer={state.offer}
+        submitting={pending}
+        submitLabel="Book this time and send my request"
+      />
+    )}
+    </>
   );
 }

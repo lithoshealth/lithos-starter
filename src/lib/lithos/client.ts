@@ -1,9 +1,12 @@
 import { TokenManager, tokenConfigFromEnv } from "./auth";
 import { LithosApiError, parseApiErrors } from "./errors";
 
+export type RequestOptions = { idempotencyKey?: string };
+
 export type LithosClient = {
   get<T>(path: string): Promise<T>;
-  post<T>(path: string, body: unknown): Promise<T>;
+  post<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
+  delete<T>(path: string): Promise<T>;
 };
 
 type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
@@ -19,12 +22,19 @@ export class ServerLithosClient implements LithosClient {
     return this.request<T>(path, { method: "GET" });
   }
 
-  post<T>(path: string, body: unknown): Promise<T> {
+  post<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
     return this.request<T>(path, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(options.idempotencyKey ? { "idempotency-key": options.idempotencyKey } : {}),
+      },
       body: JSON.stringify(body),
     });
+  }
+
+  delete<T>(path: string): Promise<T> {
+    return this.request<T>(path, { method: "DELETE" });
   }
 
   private async request<T>(path: string, init: RequestInit, mayRetry = true): Promise<T> {
