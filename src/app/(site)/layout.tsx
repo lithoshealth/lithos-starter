@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { APP_NAME } from "@/lib/app-meta";
+import { getBrand } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
+import { EmbedMarker } from "./embed-marker";
 
 function BrandMark() {
   return (
@@ -14,6 +15,7 @@ function BrandMark() {
 
 export default async function SiteLayout({ children }: Readonly<{ children: ReactNode }>) {
   const dev = process.env.NODE_ENV === "development";
+  const brand = await getBrand();
   const connected = lithosConnection().connected;
   // After setup is when webhooks break (a restarted tunnel), so keep watching.
   const health = dev && connected ? await webhookHealth() : null;
@@ -37,10 +39,18 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
             : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
         </div>
       )}
+      <EmbedMarker />
       <div className="demo-bar" role="note">Demo environment · sample patients only · no real medical care is provided here</div>
       <header className="site-header">
         <div className="header-inner">
-          <Link href="/" className="brand"><BrandMark />{APP_NAME}</Link>
+          <Link href="/" className="brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a user-uploaded logo of unknown size; next/image needs dimensions up front */}
+            {brand.logo ? <img src={brand.logo} alt="" className={brand.logoWide ? "brand-logo brand-logo-wide" : "brand-logo"} /> : <BrandMark />}
+            {/* A wordmark already says the name: keep it for screen readers only. */}
+            <span className={brand.logo && brand.logoWide ? "visually-hidden" : undefined}>{brand.name}</span>
+            {/* The company's line, small beside the name — the page headline belongs to the program. */}
+            {brand.tagline && <span className="brand-tagline">{brand.tagline}</span>}
+          </Link>
           <nav className="site-nav" aria-label="Primary navigation">
             <Link href="/#program">The program</Link>
             <Link href="/#numbers">What we measure</Link>
@@ -52,7 +62,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <main>{children}</main>
       <footer className="site-footer">
         <div className="footer-inner">
-          <p className="footer-note">© {new Date().getFullYear()} {APP_NAME}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
+          <p className="footer-note"><strong>{brand.name}</strong> — {brand.tagline} © {new Date().getFullYear()}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
           <nav className="footer-ops" aria-label="Operations">
             <span>Ops:</span>
             <Link href="/setup">Setup</Link>

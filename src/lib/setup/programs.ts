@@ -7,9 +7,9 @@
  * asks patients and what a clinician can prescribe. That choice is worth making
  * on purpose, so it's its own step.
  *
- * `key` is the Lithos care-plan category. Only lipid management is walked
- * end to end for now: the demo brand is a cardiometabolic membership, and a
- * weight program needs its own intake and a demo company to match.
+ * `key` is the Lithos care-plan category. Both are walked end to end: the
+ * chosen program is saved to starter.config.json, and the site's copy
+ * (src/lib/programs/content.ts) and care-review intake follow it.
  *
  * Client-safe: no server imports.
  */
@@ -35,8 +35,8 @@ export const PROGRAMS: Program[] = [
   {
     key: "weight_management",
     label: "Weight loss",
-    supported: false,
-    asks: "height, weight, and about nineteen screening questions",
+    supported: true,
+    asks: "height and weight, whether they already take a GLP-1, seventeen screening questions and any weight-related conditions",
   },
 ];
 

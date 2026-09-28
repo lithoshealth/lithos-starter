@@ -10,6 +10,7 @@ import { readJourneyStatus } from "@/lib/journey";
 import { isSandboxBaseUrl } from "@/lib/sandbox-review";
 import { ClinicianPanel } from "./clinician-panel";
 import { VisitSection } from "./visit-section";
+import { programFor } from "@/lib/setup/programs";
 
 export const metadata: Metadata = { title: "Your care plan" };
 export const dynamic = "force-dynamic";
@@ -110,7 +111,8 @@ export default async function CarePage({
       </div>
 
       <dl className="status-meta">
-        <div><dt>Program</dt><dd>Lipid management</dd></div>
+        {/* From the care plan itself — it's whatever program the intake was sent under, not what the site offers today. */}
+        <div><dt>Program</dt><dd>{programFor(carePlan.category)?.label ?? carePlan.category}</dd></div>
         <div><dt>Plan status</dt><dd><span className={`badge ${carePlan.status === "active" ? "badge-success" : carePlan.status === "ineligible" ? "badge-error" : "badge-info"}`}>{PLAN_COPY[carePlan.status] ?? carePlan.status}</span></dd></div>
         <div><dt>Submitted</dt><dd>{formatDate(encounter.created_at)}</dd></div>
         <div><dt>Last updated</dt><dd>{formatDate(encounter.updated_at)}</dd></div>

@@ -2,11 +2,12 @@
 
 import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
 import { connectAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
 
-function ActionError({ state }: { state: SetupActionState }) {
+export function ActionError({ state }: { state: SetupActionState }) {
   if (state.status !== "error") return null;
   return (
     <div className="error-box" aria-live="polite">
@@ -86,18 +87,20 @@ export function StepAction({
   label,
   pendingLabel,
   step,
+  variant = "primary",
 }: {
   action: (state: SetupActionState) => Promise<SetupActionState>;
   label: string;
   pendingLabel: string;
   /** The step this button belongs to — where the page lands if it has to reload. */
   step: string;
+  variant?: "primary" | "ghost";
 }) {
   const [state, run, pending] = useActionState(action, INITIAL_SETUP_ACTION_STATE, stepAnchor(step));
   return (
     <form action={run} className="stack">
       <div>
-        <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? pendingLabel : label}</button>
+        <button type="submit" className={`btn btn-${variant}`} disabled={pending}>{pending ? pendingLabel : label}</button>
       </div>
       <ActionError state={state} />
     </form>
@@ -147,6 +150,17 @@ export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
   );
 }
 
+/** Re-reads step 5 now that the app can hear Lithos, and brings the demo into view. */
+function TryItButton() {
+  const router = useRouter();
+  return (
+    <button type="button" className="btn btn-primary" onClick={() => {
+      router.refresh();
+      document.getElementById("webhook-demo")?.scrollIntoView({ block: "start" });
+    }}>Try it: ask the patient a question ↑</button>
+  );
+}
+
 /** The signing secret, shown the one time Lithos returns it — with the exact line to paste. */
 function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret: string; saved: boolean }) {
   if (saved) {
@@ -156,8 +170,9 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         <p>
           Lithos returned a signing secret — it only ever does this once — and it&rsquo;s been saved to{" "}
           <code>.env.local</code> as <code>LITHOS_WEBHOOK_SECRET</code>. Nothing to copy. The app uses it to check every
-          delivery really came from Lithos. Go to step 7.
+          delivery really came from Lithos.
         </p>
+        <div><TryItButton /></div>
       </div>
     );
   }
@@ -169,13 +184,13 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         it, and reloading loses it. Set it in your host&rsquo;s environment settings, then redeploy:
       </p>
       <pre className="setup-json">{`LITHOS_WEBHOOK_SECRET=${signingSecret}`}</pre>
-      <p className="muted">Lost it? Step 7 can get you a new one — it registers the address again.</p>
+      <p className="muted">Lost it? Step 5 can get you a new one — it registers the address again.</p>
     </div>
   );
 }
 
 export function WebhookForm({ defaultUrl }: { defaultUrl: string }) {
-  const [state, run, pending] = useActionState(registerWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_endpoint"));
+  const [state, run, pending] = useActionState(registerWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("updates"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
 
   return (
@@ -197,7 +212,7 @@ export function WebhookForm({ defaultUrl }: { defaultUrl: string }) {
 export function RepointForm({
   currentId, currentUrl, defaultUrl, children,
 }: { currentId: string; currentUrl: string; defaultUrl: string; children?: ReactNode }) {
-  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_endpoint"));
+  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("updates"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
 
   return (
@@ -227,13 +242,13 @@ export function RepointForm({
 }
 
 /**
- * For when the signing secret is lost — the usual reason step 7 never goes
+ * For when the signing secret is lost — the usual reason step 5 never goes
  * green. Lithos has no rotate call ("contact us"), so this registers the same
  * address again: disable, then create, which issues a new secret (saved to
  * .env.local in development).
  */
 export function NewSecretForm({ currentId, url }: { currentId: string; url: string }) {
-  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("webhook_received"));
+  const [state, run, pending] = useActionState(repointWebhookAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("updates"));
   if (state.status === "secret") return <SecretOnce url={state.url} signingSecret={state.signingSecret} saved={state.saved} />;
   const base = url.replace(/\/api\/webhooks\/lithos$/, "");
   return (

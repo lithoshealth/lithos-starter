@@ -8,6 +8,8 @@ import { parseJourneyForm, runJourney, type JourneyState } from "@/lib/journey";
 import { holdSlot, releaseHold, type VisitOffer } from "@/lib/sync-visits";
 import { loadVisitOffer } from "@/lib/visit-offer";
 import type { HoldState } from "@/lib/visit-state";
+import { DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
+import { writeJourneyIds } from "@/lib/setup/journey-cookie";
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -15,7 +17,8 @@ function field(formData: FormData, name: string): string {
 }
 
 export async function createJourneyAction(_previous: JourneyState, formData: FormData): Promise<JourneyState> {
-  const parsed = parseJourneyForm(formData);
+  const { program } = await readConfig();
+  const parsed = parseJourneyForm(formData, program ?? DEFAULT_PROGRAM);
   if (!parsed.ok) return { status: "failed", stage: "validation", errors: parsed.errors };
 
   // Validate first, then check the connection: the visitor learns their form
@@ -29,6 +32,10 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
     return { ...result, offer };
   }
   if (result.status === "complete") {
+    // The setup walkthrough follows the latest care review from this browser:
+    // filling in the intake as your first patient (step 3's form) completes
+    // that step, with the real patient, care plan and encounter.
+    await writeJourneyIds({ patientId: result.patientId, carePlanId: result.carePlanId, encounterId: result.encounterId });
     redirect(`/care/${encodeURIComponent(result.encounterId)}${result.modality === "sync" ? "#visit" : ""}`);
   }
   return result;

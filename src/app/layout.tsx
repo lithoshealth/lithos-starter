@@ -1,25 +1,43 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
-import { APP_NAME } from "@/lib/app-meta";
+import { brandCss, brandFontHref, getBrand, getSite } from "@/lib/app-meta";
+import { ScrollToTop } from "./scroll-to-top";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
-export const metadata: Metadata = {
-  title: { default: `${APP_NAME} — Cardiometabolic membership`, template: `%s · ${APP_NAME}` },
-  description: "A membership for managing cholesterol and cardiovascular risk: a panel every quarter, a coach who reads it with you, and medical care added when lifestyle alone isn't enough.",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { brand, content } = await getSite();
+  return {
+    title: { default: `${brand.name} — ${content.category}`, template: `%s · ${brand.name}` },
+    description: content.description,
+    robots: { index: false, follow: false },
+  };
+}
 
 // Only the document shell. The patient-facing site and the developer
 // walkthrough each bring their own chrome — see (site)/layout.tsx and
 // (dev)/layout.tsx — so a developer on /setup isn't looking at a health brand.
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const brand = await getBrand();
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
-      <body>{children}</body>
+      {/* The brand colour from starter.config.json, over the stylesheet's defaults. */}
+      <head>
+        {brandFontHref(brand) && (
+          <>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={brandFontHref(brand)!} />
+          </>
+        )}
+        <style>{brandCss(brand)}</style>
+      </head>
+      <body>
+        {children}
+        <ScrollToTop />
+      </body>
     </html>
   );
 }

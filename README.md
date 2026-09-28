@@ -5,8 +5,10 @@ reach your first encounter in about fifteen minutes.
 
 It wears a demo brand, **Eucardia Health**: a fictional cardiometabolic
 membership that adds prescribing through Lithos. Nothing in the integration
-depends on the brand: `NEXT_PUBLIC_APP_NAME` renames the header and page titles,
-and the marketing copy on the patient-facing pages is yours to replace.
+depends on the brand. The **Make it yours** panel at the top of `/setup` changes the
+name, tagline, colour and logo live, saving them to `starter.config.json` (and the
+logo to `public/brand/`), so they're committed with your code. The longer marketing
+copy on the patient-facing pages is yours to replace.
 
 > **Sandbox only.** This app refuses to create patients anywhere but
 > `api.sandbox.lithoshealth.com`, and rejects anything that isn't obviously fake
@@ -52,15 +54,13 @@ copy has no such limit.
 
 ## The setup walkthrough
 
-`/setup` takes you from credentials to a verified webhook in seven steps:
+`/setup` takes you from credentials to a clinician's decision in four steps, with a fifth, optional:
 
 1. Connect to Lithos — your credentials, checked by minting a token and reading your formulary
-2. Choose your program — what your organization offers (lipid management today; weight loss coming soon)
-3. Create a patient
-4. Create a care plan and an encounter
-5. Sign the encounter off as the clinician (a sandbox helper)
-6. Register a webhook endpoint
-7. Receive a verified webhook
+2. Choose what you offer — lipid management or weight loss. It switches the whole site: home page copy, the care-review intake, and the protocol a clinician reviews against (saved to `starter.config.json`)
+3. Onboard your first patient — choose quiz or chat, then fill in the intake yourself, right in the page. Sending it creates the patient, a care plan and an encounter (or use the sample-patient shortcut)
+4. Play the clinician — an illustrative review of the intake, then approve, decline, or ask the patient a question (sandbox helpers)
+5. *Optional:* stay in step with your patients' care — webhooks. Lithos posts an event whenever something happens; the app shows a feed of what it heard and a care-team inbox for the clinician's questions, where you relay the patient's reply. Setting it up needs a public HTTPS address for the app (a tunnel or a deployment)
 
 Every step is checked against the live API — nothing is ticked by hand, so if you
 do a step your own way (curl, your own code), it still turns green. Each one shows
@@ -80,6 +80,12 @@ Deploying to Vercel? Turn **Deployment Protection** off for production. It's on
 by default for new projects, and it answers Lithos's deliveries with a `401` that
 looks exactly like a signature failure. `/setup` will tell you if this is what's
 happening.
+
+## API reference
+
+The walkthrough covers the path to a first prescription. The full API — every
+endpoint, field, error code and webhook event — is documented at
+**https://docs.lithoshealth.com**.
 
 ## Where things live
 
@@ -122,7 +128,7 @@ your programs from your Lithos contact before relying on any rule in it.
 ## Environment
 
 See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the
-walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 6; everything else is for
+walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 5 (it's saved for you in development); everything else is for
 the membership side or for deploying.
 
 ```sh

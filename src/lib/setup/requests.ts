@@ -1,3 +1,6 @@
+import type { ProgramKey } from "./programs";
+import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
+
 /**
  * The exact request bodies the walkthrough sends.
  *
@@ -30,31 +33,42 @@ export function carePlanRequest(patientId: string, category: string) {
 }
 
 /**
- * A lipid intake that passes the protocol's shape check, requesting one
- * specific treatment from the partner's own formulary. Requesting a named
- * treatment (rather than "clinician's choice") is what lets the sandbox review
- * approve it with an empty body in the next step.
+ * A sample intake for each program that passes its protocol's shape check —
+ * the fields are the program's, so the intake changes with the program.
  */
-export function encounterRequest(patientId: string, carePlanId: string, catalogTreatmentId: string) {
+const SAMPLE_INTAKE: Record<ProgramKey, Record<string, unknown>> = {
+  lipid_management: {
+    indication: "hypercholesterolemia",
+    ldl_c: 162,
+    ldl_c_date: "2026-08-20",
+    familial_hypercholesterolemia: "none",
+    established_atherosclerotic_cardiovascular_disease: false,
+    recent_cardiac_condition: false,
+    drug_hypersensitivity: false,
+    cirrhosis: false,
+    severe_hepatic_impairment: false,
+    severe_renal_impairment: false,
+    pregnancy: false,
+    currently_taking_cyclosporine: false,
+  },
+  weight_management: {
+    height_cm: 170,
+    weight_kg: 98,
+    ...Object.fromEntries(WEIGHT_SCREENING_FIELDS.map((name) => [name, false])),
+  },
+};
+
+/**
+ * The sample intake for the chosen program, requesting one specific treatment
+ * from the partner's own formulary. Requesting a named treatment (rather than
+ * "clinician's choice") is what lets the sandbox review approve it with an
+ * empty body in the next step.
+ */
+export function encounterRequest(program: ProgramKey, patientId: string, carePlanId: string, catalogTreatmentId: string) {
   return {
     patient_id: patientId,
     care_plan_id: carePlanId,
-    intake_form: {
-      data: {
-        indication: "hypercholesterolemia",
-        ldl_c: 162,
-        ldl_c_date: "2026-08-20",
-        familial_hypercholesterolemia: "none",
-        established_atherosclerotic_cardiovascular_disease: false,
-        recent_cardiac_condition: false,
-        drug_hypersensitivity: false,
-        cirrhosis: false,
-        severe_hepatic_impairment: false,
-        severe_renal_impairment: false,
-        pregnancy: false,
-        currently_taking_cyclosporine: false,
-      },
-    },
+    intake_form: { data: SAMPLE_INTAKE[program] },
     requested_treatments: [{ action: "add", catalog_treatment_id: catalogTreatmentId }],
   };
 }
@@ -67,9 +81,7 @@ export function webhookEndpointRequest(url: string) {
 export const STEP_SOURCES = {
   connect: "scripts/setup.mjs · src/lib/lithos/auth.ts (token) · src/lib/lithos/client.ts (requests)",
   program: "src/lib/setup/programs.ts",
-  patient: "src/lib/setup/requests.ts → patientRequest",
-  encounter: "src/lib/setup/requests.ts → encounterRequest",
+  patient: "src/lib/journey.ts (the intake) · src/lib/setup/requests.ts → patientRequest, carePlanRequest, encounterRequest (the shortcut)",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",
-  webhook_endpoint: "src/app/(dev)/setup/actions.ts → registerWebhookAction · src/lib/setup/reachability.ts",
-  webhook_received: "src/app/api/webhooks/lithos/route.ts + src/lib/webhooks/signature.ts",
+  updates: "src/app/api/webhooks/lithos/route.ts (receive + verify) · src/lib/setup/steps.ts → readUpdates (re-read, feed, inbox) · src/app/(dev)/setup/actions.ts → registerWebhookAction, askNewPatientAction, replyToQuestionAction",
 } as const;
