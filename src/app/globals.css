@@ -501,3 +501,9 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .setup-next-card h3 { font-size: 1.05rem; margin: 0; }
 .setup-next-card p { margin: 0; }
 .setup-next-card .fine-print code { overflow-wrap: anywhere; }
+
+/* Before "What's next": run it again, or look back. */
+.setup-again { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.25rem; border: 1px dashed var(--line); border-radius: var(--radius); }
+.setup-again h2 { font-size: 1.1rem; margin: 0; }
+.setup-again p { margin: 0.25rem 0 0; }
+.setup-again-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }

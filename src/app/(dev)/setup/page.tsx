@@ -132,7 +132,6 @@ export default async function SetupPage() {
             step — each checked against the live Lithos API, so nothing here is ticked by hand. About five minutes.
           </p>
         </div>
-        <RunAgainButton />
       </div>
 
       <BrandPanel brand={brand} program={config.program} writable={configWritable()} />
@@ -339,6 +338,20 @@ export default async function SetupPage() {
         })}
       </ol>
 
+      {/* Before moving on: go round again, or look back at the patients already run. */}
+      {connected && ids.encounterId && (
+        <section className="setup-again" aria-label="Try it again">
+          <div>
+            <h2>Try it again</h2>
+            <p className="muted">Run the walkthrough with a new sample patient, or look back at every patient you&rsquo;ve run so far.</p>
+          </div>
+          <div className="setup-again-actions">
+            <RunAgainButton />
+            <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
+          </div>
+        </section>
+      )}
+
       {/* Where to go from here: the app itself, a copy to keep, and the full API. */}
       <section className="setup-next" aria-label="What's next">
         <h2>What&rsquo;s next</h2>
@@ -352,7 +365,6 @@ export default async function SetupPage() {
             </p>
             <p>
               <Link href="/" className="btn btn-primary">Open your site</Link>{" "}
-              {connected && <Link href="/journeys" className="link-button">See every journey</Link>}
             </p>
           </div>
 
