@@ -3,7 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
-import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
+import { INITIAL_SETUP_ACTION_STATE, type IssuedCredentials, type SetupActionState } from "@/lib/setup/action-state";
 import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
 
@@ -34,18 +34,25 @@ function stepAnchor(step: string): string {
   return `/setup#step-${step}`;
 }
 
-/** What step 1 shows once either form has connected the app. */
-function Connected({ treatments }: { treatments: number }) {
+/** What step 1 shows once either form has connected the app — and, after a signup, what was just created. */
+export function Connected({ treatments, issued }: { treatments?: number; issued?: IssuedCredentials }) {
   return (
-      <div className="demo-note">
-        <h2>Connected</h2>
-        <p>
-          Lithos accepted the credentials and returned {treatments} treatment{treatments === 1 ? "" : "s"} in your
-          formulary. They&rsquo;re saved to <code>.env.local</code>, which git ignores.
-        </p>
-        <p>Reload this page to pick up the connection and start step 2.</p>
-        <p><a className="btn btn-primary" href="/setup#step-program">Reload</a></p>
-      </div>
+    <div className="demo-note stack">
+      <h2>{issued ? "Your sandbox credentials" : "Connected"}</h2>
+      {issued && (
+        <dl className="credentials">
+          <div><dt>Organization</dt><dd>{issued.organizationName} <code>{issued.organizationId}</code></dd></div>
+          <div><dt>Client ID</dt><dd><code>{issued.clientIdMasked}</code></dd></div>
+          <div><dt>Client secret</dt><dd><code>{issued.clientSecretMasked}</code></dd></div>
+        </dl>
+      )}
+      <p>
+        {issued ? "Both are saved to " : "Saved to "}<code>.env.local</code>, which git ignores
+        {issued ? " — the full secret only lives there: Lithos shows it once, and this page never does." : "."}{" "}
+        {treatments !== undefined && <>Lithos accepted them and returned {treatments} treatment{treatments === 1 ? "" : "s"} in your formulary.</>}
+      </p>
+      <p><a className="btn btn-primary" href="/setup#step-program">{issued ? "Continue to step 2" : "Reload"}</a></p>
+    </div>
   );
 }
 
@@ -63,7 +70,7 @@ export function ConnectForm({ companyName }: { companyName: string }) {
   const [signup, getCredentials, signingUp] = useActionState(getSandboxCredentialsAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
   const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
 
-  if (signup.status === "connected") return <Connected treatments={signup.treatments} />;
+  if (signup.status === "connected") return <Connected treatments={signup.treatments} issued={signup.issued} />;
   if (state.status === "connected") return <Connected treatments={state.treatments} />;
 
   return (

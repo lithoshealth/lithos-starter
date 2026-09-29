@@ -6,6 +6,7 @@ import { IntakeStylePicker } from "./intake-style-picker";
 import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
+import { readIssued } from "@/lib/setup/issued-cookie";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
 import { ReviewCard } from "./review-card";
@@ -13,7 +14,7 @@ import { InboxThread } from "./inbox-thread";
 import { WebhookDemo } from "./webhook-demo";
 import { contentFor } from "@/lib/programs/content";
 import Link from "next/link";
-import { ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
+import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Set up your sandbox" };
@@ -101,6 +102,7 @@ function Json({ value }: { value: unknown }) {
 
 export default async function SetupPage() {
   const ids = await readJourneyIds();
+  const issued = await readIssued();
   const config = await readConfig();
   const brand = config.brand;
   const content = contentFor(config.program ?? DEFAULT_PROGRAM);
@@ -193,6 +195,8 @@ export default async function SetupPage() {
               )}
 
               {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} />}
+              {/* After a signup the dev server reloads the page; the masked credentials come back from a cookie. */}
+              {step.key === "connect" && step.status === "done" && issued && <Connected issued={issued} />}
 
               {step.programs && step.status !== "locked" && step.status !== "done" && (
                 <ProgramPicker programs={step.programs} />

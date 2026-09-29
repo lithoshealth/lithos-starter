@@ -490,3 +490,10 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .sms-from { margin: 0; font-size: 0.75rem; font-weight: 600; color: #6b6b70; text-align: center; }
 .chat-bubble-app { max-width: 100%; background: #e5e5ea; color: #1a1a1a; border-bottom-left-radius: 0.3rem; font-size: 0.95rem; }
 .sms-link { color: #0a66d8; text-decoration: underline; }
+
+/* Step 1: the credentials sandbox signup just created, masked. */
+.credentials { display: grid; gap: 0.4rem; margin: 0; }
+.credentials > div { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 0.75rem; align-items: baseline; }
+.credentials dt { font-size: 0.85rem; color: var(--muted); }
+.credentials dd { margin: 0; overflow-wrap: anywhere; }
+.credentials code { font-size: 0.85rem; }

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
-import type { SetupActionState } from "@/lib/setup/action-state";
+import { maskCredential, type SetupActionState } from "@/lib/setup/action-state";
 import type { ApiError } from "@/lib/lithos/types";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
@@ -13,6 +13,7 @@ import { programFor, type ProgramKey } from "@/lib/setup/programs";
 import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@/lib/sandbox-review";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
+import { rememberIssued } from "@/lib/setup/issued-cookie";
 import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
@@ -73,8 +74,15 @@ export async function connectAction(_prev: SetupActionState, formData: FormData)
   return checkAndSave({ baseUrl, tokenUrl, clientId, clientSecret });
 }
 
-/** Proves a client ID and secret with Lithos, then writes all four values to .env.local. */
-async function checkAndSave(creds: { baseUrl: string; tokenUrl: string; clientId: string; clientSecret: string }): Promise<SetupActionState> {
+/**
+ * Proves a client ID and secret with Lithos, then writes all four values to
+ * .env.local. `refresh: false` leaves the page as it is — the signup path
+ * shows what it just created before step 1 turns to done.
+ */
+async function checkAndSave(
+  creds: { baseUrl: string; tokenUrl: string; clientId: string; clientSecret: string },
+  { refresh = true }: { refresh?: boolean } = {},
+): Promise<SetupActionState> {
   const checked = await verifyCredentials(creds);
   if (!checked.ok) return { status: "error", errors: [{ code: "setup.credentials_rejected", message: checked.message }] };
 
@@ -87,7 +95,7 @@ async function checkAndSave(creds: { baseUrl: string; tokenUrl: string; clientId
     }
   }
 
-  revalidatePath("/setup");
+  if (refresh) revalidatePath("/setup");
   return { status: "connected", treatments: checked.treatments };
 }
 
@@ -124,7 +132,7 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
   }
 
   const body = (await response.json().catch(() => null)) as
-    | { data?: { client_id: string; client_secret: string; token_url: string; api_base_url: string }; errors?: ApiError[] }
+    | { data?: { organization: { id: string; name: string }; client_id: string; client_secret: string; token_url: string; api_base_url: string }; errors?: ApiError[] }
     | null;
   if (response.status === 404) {
     return { status: "error", httpStatus: 404, errors: [{ code: "setup.signup_unavailable", message: "This sandbox doesn't offer self-signup yet. Paste the credentials your Lithos contact sent instead." }] };
@@ -134,12 +142,23 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
   }
 
   // api_base_url ends in /v1; the app's base URL is the host.
-  return checkAndSave({
+  const saved = await checkAndSave({
     baseUrl: body.data.api_base_url.replace(/\/v1\/?$/, ""),
     tokenUrl: body.data.token_url,
     clientId: body.data.client_id,
     clientSecret: body.data.client_secret,
-  });
+  }, { refresh: false });
+  if (saved.status !== "connected") return saved;
+  // What was just made, masked here: the full values stay on the server.
+  const issued = {
+    organizationName: body.data.organization.name,
+    organizationId: body.data.organization.id,
+    clientIdMasked: maskCredential(body.data.client_id, { head: 14, tail: 4 }),
+    clientSecretMasked: maskCredential(body.data.client_secret, { head: 0, tail: 4 }),
+  };
+  // Writing .env.local reloads the page in development; step 1 reads this back.
+  await rememberIssued(issued);
+  return { ...saved, issued };
 }
 
 /** Step 2: the program this organization will offer. Checked against the live formulary, not just the list. */
