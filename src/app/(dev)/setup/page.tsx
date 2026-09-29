@@ -339,49 +339,44 @@ export default async function SetupPage() {
         })}
       </ol>
 
-      {/* The point of setup is the app, not the checklist: once connected, send
-          people back to use the site's own forms against real sandbox care. */}
-      <section className={connected ? "setup-handoff stack" : "setup-handoff setup-handoff-locked stack"}>
-        <p className="eyebrow">{connected ? "Connected" : "Once you're connected"}</p>
-        <h2>Now use the app itself.</h2>
-        <p>
-          {connected
-            ? <>Your site is connected to Lithos. What you just did by hand, it now does for every visitor: a care review started from your home page makes the same three calls — <code>POST /v1/patients</code>, <code>/v1/care_plans</code>, <code>/v1/encounters</code> — and lands on a live status page. No clinician picks things up in the sandbox, so that page lets you play one, like step 4.</>
-            : <>Connect in step 1 and every form on the site starts creating real sandbox patients and encounters — the same calls this walkthrough makes.</>}
-        </p>
-        {connected && (
-          <p>
-            <Link href="/" className="btn btn-primary">Open your site as a visitor →</Link>{" "}
-            <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
-          </p>
-        )}
-      </section>
-
-      {/* After a demo: the app as it was customised, for the prospect to keep. Local copies only. */}
-      {process.env.NODE_ENV === "development" && connected && (
-        <section className="setup-docs setup-handover">
-          <div>
-            <h2>Hand it over</h2>
+      {/* Where to go from here: the app itself, a copy to keep, and the full API. */}
+      <section className="setup-next" aria-label="What's next">
+        <h2>What&rsquo;s next</h2>
+        <div className="setup-next-cards">
+          <div className="setup-next-card">
+            <h3>Open your site</h3>
             <p className="muted">
-              The app as you&rsquo;ve made it — {brand.name}&rsquo;s brand, program and intake — as a zip, without credentials.
-              Send the credentials separately, the way Lithos sends them: <code>npm run credentials</code> prints them to paste into a
-              1Password item. Once they&rsquo;re pasted in, the app picks up right here: the same organization, the same patient.
+              {connected
+                ? "See it as your patients will. Its forms make the same calls this walkthrough made."
+                : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
+            </p>
+            <p>
+              <Link href="/" className="btn btn-primary">Open your site</Link>{" "}
+              {connected && <Link href="/journeys" className="link-button">See every journey</Link>}
             </p>
           </div>
-          <a className="btn btn-primary" href="/setup/download" download>Download your app</a>
-        </section>
-      )}
 
-      {/* Everything above is a guided slice of the API; the reference is the whole of it. */}
-      <section className="setup-docs">
-        <div>
-          <h2>The full API</h2>
-          <p className="muted">
-            This walkthrough covers the path to a first prescription. Every endpoint, field, error code and webhook event —
-            follow-ups, refills, lab orders, messaging, visits — is in the API reference.
-          </p>
+          {/* A local copy only: it zips this working folder. */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="setup-next-card">
+              <h3>Take it with you</h3>
+              <p className="muted">Your app as you&rsquo;ve made it, to run on your own machine. Credentials aren&rsquo;t included.</p>
+              <p><a className="btn btn-ghost" href="/setup/download" download>Download your app</a></p>
+              {connected && (
+                <p className="fine-print">
+                  Sending it after a demo? <code>npm run credentials</code> prints the credentials for a 1Password item; pasted into
+                  step 1, they pick up right here.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="setup-next-card">
+            <h3>Build on the API</h3>
+            <p className="muted">Every endpoint, field and webhook — follow-ups, refills, labs, messaging, visits.</p>
+            <p><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation ↗</a></p>
+          </div>
         </div>
-        <a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation ↗</a>
       </section>
 
       <p className="fine-print">

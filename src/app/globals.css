@@ -272,8 +272,6 @@ summary { cursor: pointer; font-weight: 700; }
 .setup-guide ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
 .setup-guide-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .setup-guide-options > div { display: grid; gap: 0.4rem; align-content: start; }
-.setup-handoff { border: 1px solid var(--primary); border-radius: var(--radius); padding: 1.35rem; background: var(--primary-soft); }
-.setup-handoff-locked { border-color: var(--line); background: var(--panel); opacity: 0.7; }
 @media (max-width: 40rem) { .setup-guide-options { grid-template-columns: 1fr; } }
 
 /* ---------- responsive ---------- */
@@ -323,8 +321,8 @@ summary { cursor: pointer; font-weight: 700; }
 /* Grid children default to min-width: auto, so one long unbroken line — a
    JSON response, a URL — widens the whole card past the screen. Let them
    shrink, and let the blocks inside scroll instead. */
-.setup-steps > li, .setup-step > *, .setup-guide-options > div, .setup-handoff, .setup-detail { min-width: 0; }
-.setup-step p, .setup-step code, .setup-handoff code, .setup-guide code { overflow-wrap: anywhere; }
+.setup-steps > li, .setup-step > *, .setup-guide-options > div, .setup-detail { min-width: 0; }
+.setup-step p, .setup-step code, .setup-guide code { overflow-wrap: anywhere; }
 .setup-json { max-width: 100%; }
 
 /* The Connect step's three checks. */
@@ -421,9 +419,6 @@ html[data-embedded] .dev-bar { display: none; }
 .review-decisions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 
 /* The pointer to the full API reference, at the end of /setup. */
-.setup-docs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-.setup-docs h2 { font-size: 1.2rem; }
-.setup-docs p { margin: 0.25rem 0 0; max-width: 36rem; }
 
 /* Step 4: the question thread on the review card. */
 .review-thread { display: grid; gap: 0.35rem; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); background: var(--info-soft); font-size: 0.95rem; }
@@ -497,4 +492,12 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .credentials dt { font-size: 0.85rem; color: var(--muted); }
 .credentials dd { margin: 0; overflow-wrap: anywhere; }
 .credentials code { font-size: 0.85rem; }
-.setup-handover { border-color: var(--primary); }
+
+/* The end of /setup: three next steps, side by side. */
+.setup-next { display: grid; gap: 0.9rem; }
+.setup-next h2 { font-size: 1.3rem; }
+.setup-next-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+.setup-next-card { display: grid; align-content: start; gap: 0.5rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
+.setup-next-card h3 { font-size: 1.05rem; margin: 0; }
+.setup-next-card p { margin: 0; }
+.setup-next-card .fine-print code { overflow-wrap: anywhere; }
