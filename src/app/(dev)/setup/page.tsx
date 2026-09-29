@@ -404,19 +404,13 @@ export default async function SetupPage() {
               <h3>{finished ? "Keep it" : "Take it with you"}</h3>
               <p className="muted">Your app as you&rsquo;ve made it, to run on your own machine. Credentials aren&rsquo;t included.</p>
               <p><a className="btn btn-ghost" href="/setup/download" download>Download your app</a></p>
-              {connected && (
-                <p className="fine-print">
-                  Sending it after a demo? <code>npm run credentials</code> prints the credentials for a 1Password item; pasted into
-                  step 1, they pick up right here.
-                </p>
-              )}
             </div>
           )}
 
           <div className="setup-next-card">
             <h3>{finished ? "Grow it" : "Build on the API"}</h3>
             <p className="muted">Every endpoint, field and webhook — follow-ups, refills, labs, messaging, visits.</p>
-            <p><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation ↗</a></p>
+            <p><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation&nbsp;↗</a></p>
           </div>
         </div>
       </section>
