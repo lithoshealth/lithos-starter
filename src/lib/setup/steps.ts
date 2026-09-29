@@ -258,7 +258,9 @@ async function mintTokenCheck(): Promise<InternalCheck> {
       key: "token", status: "blocked", summary: `Token endpoint answered ${response.status}.`, exchange,
       diagnosis: {
         title: "Lithos rejected your client credentials",
-        fix: "Check LITHOS_CLIENT_ID and LITHOS_CLIENT_SECRET for a stray space or a truncated paste. The secret is shown once when your organization is provisioned — if it's lost, ask for it to be rotated rather than re-sent.",
+        fix: response.status === 401
+          ? "Either they were mistyped, or the sandbox organization they belong to was archived — archiving deletes its credentials. Get new sandbox credentials below, or paste another pair."
+          : "Check LITHOS_CLIENT_ID and LITHOS_CLIENT_SECRET for a stray space or a truncated paste. The secret is shown once when your organization is provisioned — if it's lost, ask for it to be rotated rather than re-sent.",
       },
     };
   } catch (error) {
@@ -785,9 +787,17 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
   const credentials = checkCredentials();
   results.push(credentials);
   if (credentials.status === "done") {
-    const token = await checkToken();
+    let token = await checkToken();
+    let organization = token.status === "done" ? await checkOrganization() : undefined;
+    // The token check is cached; if the app's own call then couldn't get a
+    // token, the credentials changed under it (revoked, archived) — check again.
+    if (organization && organization.status !== "done" && /token mint failed with status 401/.test(JSON.stringify(organization.exchange?.response ?? ""))) {
+      delete tokenCheckCache.__setupTokenCheck;
+      token = await checkToken();
+      organization = token.status === "done" ? organization : undefined;
+    }
     results.push(token);
-    if (token.status === "done") results.push(await checkOrganization());
+    if (organization) results.push(organization);
   }
 
   const order: ConnectCheckKey[] = ["credentials", "token", "organization"];
@@ -803,15 +813,19 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
     const summary = failed.key === "credentials" ? "Not connected yet." : failed.summary;
     // Only the "no credentials yet" failure has a form to offer; a rejected
     // pair or a non-sandbox URL needs its own diagnosis, not another text box.
-    const needsCredentials = failed.key === "credentials" && REQUIRED_ENV.some((name) => !process.env[name]);
+    const missing = failed.key === "credentials" && REQUIRED_ENV.some((name) => !process.env[name]);
+    // Rejected credentials (401: mistyped, or their organization archived)
+    // need new ones — offer the same forms, under the diagnosis.
+    const rejected = failed.key === "token" && failed.exchange?.status === 401;
+    const needsCredentials = missing || rejected;
     // No credentials yet isn't a fault — it's where everyone starts. It reads
     // as "your turn", like any other step waiting on the reader, not a red
     // "needs a fix" before they've done anything.
-    if (needsCredentials) {
+    if (missing) {
       const waiting = checks.map((c) => (c.key === "credentials" ? { ...c, status: "skipped" as const } : c));
       return { step: { key: "connect", status: "ready", summary, diagnosis: failed.diagnosis, checks: waiting, needsCredentials }, catalog: [] };
     }
-    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks }, catalog: [] };
+    return { step: { key: "connect", status: "blocked", summary, diagnosis: failed.diagnosis, checks, needsCredentials: rejected || undefined }, catalog: [] };
   }
   return { step: { key: "connect", status: "done", summary: "Connected to your sandbox organization.", checks }, catalog: results[2].catalog ?? [] };
 }
