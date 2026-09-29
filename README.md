@@ -16,17 +16,18 @@ copy on the patient-facing pages is yours to replace.
 
 ## Quick start
 
-You need Node 20+ and Lithos sandbox credentials: a **client ID** (it starts with
-`client_`) and a **client secret**, issued when Lithos sets up your sandbox
-organization. The secret is shown once, so it's in whatever Lithos sent you. No
-credentials yet? Ask your Lithos contact for a sandbox organization.
+You need Node 20+. Sandbox credentials — a **client ID** (it starts with
+`client_`) and a **client secret** — you can get from the app itself: step 1 of
+the walkthrough creates a sandbox organization from your email and company name
+and saves its credentials for you. Already have a pair from Lithos? Paste it
+instead.
 
 **Use a separate sandbox organization for this starter** — not the one you'll build
 your own integration on. An organization has one webhook endpoint and one shared
-set of patients, and sandbox records can't be deleted: run both apps on the same
-credentials and only one of them receives webhooks, patients mix across the two,
-and the starter's sample patients stay in the organization you build on. If you
-only have one, ask your Lithos contact for a second.
+set of patients: run both apps on the same credentials and only one of them
+receives webhooks, and the starter's sample patients mix into the organization
+you build on. Getting credentials in step 1 always creates a new organization,
+so each app can have its own.
 
 ```sh
 git clone https://github.com/lithoshealth/lithos-starter.git
@@ -38,9 +39,9 @@ npm run dev
 Then open **http://localhost:3001** and look around the app first — it runs
 unconnected, and a form you submit will tell you what's missing rather than
 break. When you're ready, click **Open the setup walkthrough** in the bar at the top of any page:
-step 1 takes your client ID and secret, checks them with Lithos, and saves them
-to `.env.local` (gitignored). Prefer the terminal? `npm run setup` asks the same
-two questions before you start the server.
+step 1 gets you sandbox credentials (or takes the ones you have), checks them
+with Lithos, and saves them to `.env.local` (gitignored). Prefer the terminal?
+`npm run setup` takes a pasted pair before you start the server.
 
 > **Setting this up with an AI coding agent?** Agents: stop at the home page.
 > Run the commands above, open http://localhost:3001, and hand over — let the
@@ -56,7 +57,7 @@ copy has no such limit.
 
 `/setup` takes you from credentials to a clinician's decision in four steps, with a fifth, optional:
 
-1. Connect to Lithos — your credentials, checked by minting a token and reading your formulary
+1. Connect to Lithos — get sandbox credentials or paste yours, checked by minting a token and reading your formulary
 2. Choose what you offer — lipid management or weight loss. It switches the whole site: home page copy, the care-review intake, and the protocol a clinician reviews against (saved to `starter.config.json`)
 3. Onboard your first patient — choose quiz or chat, then fill in the intake yourself, right in the page. Sending it creates the patient, a care plan and an encounter (or use the sample-patient shortcut)
 4. Play the clinician — an illustrative review of the intake, then approve, decline, or ask the patient a question (sandbox helpers)

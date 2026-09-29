@@ -177,14 +177,14 @@ function checkCredentials(): InternalCheck {
       diagnosis: process.env.NODE_ENV === "development"
         ? {
             title: "Connect this app to your Lithos sandbox",
-            fix: "Paste the client ID and secret for your sandbox organization below. They're checked with Lithos before anything is saved, and written to .env.local, which git ignores.",
-            then: "Use a sandbox organization that's just for this starter, not the one you'll build your own app on — an organization has one webhook endpoint and one shared set of patients. No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
+            fix: "Get sandbox credentials below with your email and company name — a new sandbox organization is created for this app — or paste a client ID and secret you already have. Either way they're checked with Lithos before anything is saved, and written to .env.local, which git ignores.",
+            then: "Use a sandbox organization that's just for this starter, not the one you'll build your own app on — an organization has one webhook endpoint and one shared set of patients. Getting credentials here always makes a new one.",
           }
         : {
             title: "Connect this app to your Lithos sandbox",
             fix: "A deployed copy has no .env.local to write, so set these in your host's environment settings, then redeploy:",
             command: "LITHOS_API_BASE_URL=https://api.sandbox.lithoshealth.com\nLITHOS_TOKEN_URL=https://api.sandbox.lithoshealth.com/v1/oauth2/token\nLITHOS_CLIENT_ID=…\nLITHOS_CLIENT_SECRET=…",
-            then: "No credentials yet? Ask your Lithos contact for a sandbox organization; it takes minutes once someone is on it.",
+            then: "No credentials yet? Get them from a local copy's setup page, which creates a sandbox organization for you.",
           },
     };
   }

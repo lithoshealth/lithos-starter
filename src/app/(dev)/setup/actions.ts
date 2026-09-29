@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { SetupActionState } from "@/lib/setup/action-state";
+import type { ApiError } from "@/lib/lithos/types";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
 import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps";
@@ -69,12 +70,17 @@ export async function connectAction(_prev: SetupActionState, formData: FormData)
   const baseUrl = process.env.LITHOS_API_BASE_URL || SANDBOX_URLS.LITHOS_API_BASE_URL;
   const tokenUrl = process.env.LITHOS_TOKEN_URL || SANDBOX_URLS.LITHOS_TOKEN_URL;
 
-  const checked = await verifyCredentials({ baseUrl, tokenUrl, clientId, clientSecret });
+  return checkAndSave({ baseUrl, tokenUrl, clientId, clientSecret });
+}
+
+/** Proves a client ID and secret with Lithos, then writes all four values to .env.local. */
+async function checkAndSave(creds: { baseUrl: string; tokenUrl: string; clientId: string; clientSecret: string }): Promise<SetupActionState> {
+  const checked = await verifyCredentials(creds);
   if (!checked.ok) return { status: "error", errors: [{ code: "setup.credentials_rejected", message: checked.message }] };
 
   for (const [name, value] of [
-    ["LITHOS_API_BASE_URL", baseUrl], ["LITHOS_TOKEN_URL", tokenUrl],
-    ["LITHOS_CLIENT_ID", clientId], ["LITHOS_CLIENT_SECRET", clientSecret],
+    ["LITHOS_API_BASE_URL", creds.baseUrl], ["LITHOS_TOKEN_URL", creds.tokenUrl],
+    ["LITHOS_CLIENT_ID", creds.clientId], ["LITHOS_CLIENT_SECRET", creds.clientSecret],
   ]) {
     if (!(await saveToEnvLocal(name, value))) {
       return { status: "error", errors: [{ code: "setup.env_write_failed", message: `Couldn't write ${name} to .env.local. Check the folder is writable, or run npm run setup in a terminal.` }] };
@@ -83,6 +89,57 @@ export async function connectAction(_prev: SetupActionState, formData: FormData)
 
   revalidatePath("/setup");
   return { status: "connected", treatments: checked.treatments };
+}
+
+/**
+ * Step 1, the other way in: get sandbox credentials here and now. Lithos's
+ * sandbox creates a new organization with every program for an email and a
+ * company name, and returns its client ID and secret — once, in this response,
+ * which goes straight into .env.local. The browser never sees the secret.
+ * Unauthenticated by design; the sandbox limits it per email and per address.
+ */
+export async function getSandboxCredentialsAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+  if (process.env.NODE_ENV !== "development") {
+    return { status: "error", errors: [{ code: "setup.not_development", message: "A deployed copy has no .env.local to write. Get credentials from a local copy, then set them in your host's environment settings." }] };
+  }
+  const email = String(formData.get("email") ?? "").trim();
+  const organizationName = String(formData.get("organization_name") ?? "").trim();
+  if (!email || !organizationName) {
+    return { status: "error", errors: [{ code: "setup.missing_signup", message: "Enter your email and your company's name." }] };
+  }
+
+  const baseUrl = process.env.LITHOS_API_BASE_URL || SANDBOX_URLS.LITHOS_API_BASE_URL;
+  if (!isSandbox(baseUrl)) return { status: "error", errors: [{ code: "setup.not_sandbox", message: "Self-signup exists only on the Lithos sandbox." }] };
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/, "")}/v1/sandbox/signups`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, organization_name: organizationName }),
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", errors: [{ code: "setup.unreachable", message: `Couldn't reach ${baseUrl}. Are you online?` }] };
+  }
+
+  const body = (await response.json().catch(() => null)) as
+    | { data?: { client_id: string; client_secret: string; token_url: string; api_base_url: string }; errors?: ApiError[] }
+    | null;
+  if (response.status === 404) {
+    return { status: "error", httpStatus: 404, errors: [{ code: "setup.signup_unavailable", message: "This sandbox doesn't offer self-signup yet. Paste the credentials your Lithos contact sent instead." }] };
+  }
+  if (!response.ok || !body?.data) {
+    return { status: "error", httpStatus: response.status, errors: body?.errors?.length ? body.errors : [{ code: "setup.signup_failed", message: `Lithos answered ${response.status}.` }] };
+  }
+
+  // api_base_url ends in /v1; the app's base URL is the host.
+  return checkAndSave({
+    baseUrl: body.data.api_base_url.replace(/\/v1\/?$/, ""),
+    tokenUrl: body.data.token_url,
+    clientId: body.data.client_id,
+    clientSecret: body.data.client_secret,
+  });
 }
 
 /** Step 2: the program this organization will offer. Checked against the live formulary, not just the list. */

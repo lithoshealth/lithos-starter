@@ -27,7 +27,7 @@ const API_DOCS_URL = "https://docs.lithoshealth.com";
 const STEPS: Record<StepKey, { title: string; what: string }> = {
   connect: {
     title: "Connect to Lithos",
-    what: "Add your client ID and secret — two values Lithos issues when your sandbox organization is set up. They stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
+    what: "Get your own sandbox organization with your email and company name — or paste the client ID and secret you were sent. Either way they stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
   },
   program: {
     title: "Choose what you offer",
@@ -192,7 +192,7 @@ export default async function SetupPage() {
                 </div>
               )}
 
-              {step.key === "connect" && step.needsCredentials && <ConnectForm />}
+              {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} />}
 
               {step.programs && step.status !== "locked" && step.status !== "done" && (
                 <ProgramPicker programs={step.programs} />

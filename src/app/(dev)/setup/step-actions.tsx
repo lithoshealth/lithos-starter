@@ -4,7 +4,7 @@ import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type SetupActionState } from "@/lib/setup/action-state";
-import { connectAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
+import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
 
 export function ActionError({ state }: { state: SetupActionState }) {
@@ -34,31 +34,63 @@ function stepAnchor(step: string): string {
   return `/setup#step-${step}`;
 }
 
-/**
- * Step 1, in the page: paste the client ID and secret.
- *
- * Development only — a deployed copy has no .env.local, and the step shows the
- * variables to set in the host instead. Nothing is saved until Lithos accepts
- * the pair, and the secret is never rendered back.
- */
-export function ConnectForm() {
-  const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
-
-  if (state.status === "connected") {
-    return (
+/** What step 1 shows once either form has connected the app. */
+function Connected({ treatments }: { treatments: number }) {
+  return (
       <div className="demo-note">
         <h2>Connected</h2>
         <p>
-          Lithos accepted the credentials and returned {state.treatments} treatment{state.treatments === 1 ? "" : "s"} in your
+          Lithos accepted the credentials and returned {treatments} treatment{treatments === 1 ? "" : "s"} in your
           formulary. They&rsquo;re saved to <code>.env.local</code>, which git ignores.
         </p>
         <p>Reload this page to pick up the connection and start step 2.</p>
         <p><a className="btn btn-primary" href="/setup#step-program">Reload</a></p>
       </div>
-    );
-  }
+  );
+}
+
+/**
+ * Step 1, in the page. First choice: get sandbox credentials here — an email
+ * and a company name, and Lithos's sandbox creates an organization and returns
+ * its client ID and secret, straight into .env.local. Second: paste credentials
+ * you already have.
+ *
+ * Development only — a deployed copy has no .env.local, and the step shows the
+ * variables to set in the host instead. Nothing is saved until Lithos accepts
+ * the pair, and the secret is never rendered back.
+ */
+export function ConnectForm({ companyName }: { companyName: string }) {
+  const [signup, getCredentials, signingUp] = useActionState(getSandboxCredentialsAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
+  const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
+
+  if (signup.status === "connected") return <Connected treatments={signup.treatments} />;
+  if (state.status === "connected") return <Connected treatments={state.treatments} />;
 
   return (
+    <div className="stack">
+    <form action={getCredentials} className="stack">
+      <label className="field">
+        Your email
+        <input name="email" type="email" placeholder="you@yourcompany.com" autoComplete="email" required />
+      </label>
+      <label className="field">
+        Company name
+        <input name="organization_name" defaultValue={companyName} autoComplete="organization" required />
+      </label>
+      <div>
+        <button type="submit" className="btn btn-primary" disabled={signingUp}>
+          {signingUp ? "Creating your sandbox…" : "Get sandbox credentials"}
+        </button>
+      </div>
+      <p className="muted">
+        Creates your own sandbox organization with every program, and saves its credentials to <code>.env.local</code>.
+        The secret goes straight there — this page never shows it.
+      </p>
+      <ActionError state={signup} />
+    </form>
+
+    <details className="setup-detail">
+      <summary>Already have credentials? Paste them</summary>
     <form action={run} className="stack">
       <label className="field">
         Client ID
@@ -78,6 +110,8 @@ export function ConnectForm() {
       </p>
       <ActionError state={state} />
     </form>
+    </details>
+    </div>
   );
 }
 
