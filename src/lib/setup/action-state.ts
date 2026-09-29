@@ -35,4 +35,7 @@ export function maskCredential(value: string, { head, tail }: { head: number; ta
   return `${value.slice(0, head)}${"•".repeat(12)}${value.slice(-tail)}`;
 }
 
+/** How a client ID is masked for display — also how a masked one is matched to this app's. */
+export const CLIENT_ID_MASK = { head: 14, tail: 4 };
+
 export const INITIAL_SETUP_ACTION_STATE: SetupActionState = { status: "idle" };

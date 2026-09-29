@@ -43,14 +43,27 @@ step 1 gets you sandbox credentials (or takes the ones you have), checks them
 with Lithos, and saves them to `.env.local` (gitignored). Prefer the terminal?
 `npm run setup` takes a pasted pair before you start the server.
 
-### Handing the app to a prospect after a demo
+### Running a sales demo
 
-At the bottom of `/setup`, **Download your app** zips the app as you've made it —
-brand, program, intake, logo — with no credentials, and a note of which patient
-the walkthrough was following. Send the credentials separately, the way Lithos
-sends them: `npm run credentials` prints them to paste into a 1Password item.
-When the prospect opens the app and pastes them into step 1, they're back where
-you left off: the same organization, the same patient, the clinician's decision.
+Keep one clone as the template and make a copy per prospect from it:
+
+```sh
+npm run demo -- "Acme Health"
+```
+
+It updates the template from GitHub, copies it to `../lithos-demos/acme-health`
+with the prospect's name as the brand, installs it, starts it (on 3001, or the
+next free port) and opens the home page. On the call, step 1 of the walkthrough
+takes the prospect's email and company name and makes them their own sandbox
+organization. Run the same command again to reopen that demo where you left it.
+
+If they want to keep it, **Download your app** at the bottom of `/setup` zips the
+app as you've made it — brand, program, intake, logo — with no credentials, and
+a note of which patient the walkthrough was following. Send the credentials
+separately, the way Lithos sends them: `npm run credentials`, in the demo's
+folder, prints them to paste into a 1Password item. When the prospect opens the
+app and pastes them into step 1, they're back where you left off: the same
+organization, the same patient, the clinician's decision.
 
 > **Setting this up with an AI coding agent?** Agents: stop at the home page.
 > Run the commands above, open http://localhost:3001, and hand over — let the

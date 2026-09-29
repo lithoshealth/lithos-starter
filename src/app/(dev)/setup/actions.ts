@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
-import { maskCredential, type SetupActionState } from "@/lib/setup/action-state";
+import { CLIENT_ID_MASK, maskCredential, type SetupActionState } from "@/lib/setup/action-state";
 import type { ApiError } from "@/lib/lithos/types";
 import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
@@ -153,7 +153,7 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
   const issued = {
     organizationName: body.data.organization.name,
     organizationId: body.data.organization.id,
-    clientIdMasked: maskCredential(body.data.client_id, { head: 14, tail: 4 }),
+    clientIdMasked: maskCredential(body.data.client_id, CLIENT_ID_MASK),
     clientSecretMasked: maskCredential(body.data.client_secret, { head: 0, tail: 4 }),
   };
   // Writing .env.local reloads the page in development; step 1 reads this back.
