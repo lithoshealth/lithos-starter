@@ -149,6 +149,8 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
     clientSecret: body.data.client_secret,
   }, { refresh: false });
   if (saved.status !== "connected") return saved;
+  // Who it's for — after a demo, where "Email it" sends the app. Not a secret.
+  await saveToEnvLocal("LITHOS_SIGNUP_EMAIL", email);
   // What was just made, masked here: the full values stay on the server.
   const issued = {
     organizationName: body.data.organization.name,

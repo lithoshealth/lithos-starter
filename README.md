@@ -57,13 +57,16 @@ next free port) and opens the home page. On the call, step 1 of the walkthrough
 takes the prospect's email and company name and makes them their own sandbox
 organization. Run the same command again to reopen that demo where you left it.
 
-If they want to keep it, **Download your app** at the bottom of `/setup` zips the
-app as you've made it — brand, program, intake, logo — with no credentials, and
-a note of which patient the walkthrough was following. Send the credentials
-separately, the way Lithos sends them: `npm run credentials`, in the demo's
-folder, prints them to paste into a 1Password item. When the prospect opens the
-app and pastes them into step 1, they're back where you left off: the same
-organization, the same patient, the clinician's decision.
+If they want to keep it, **Email your app** at the bottom of `/setup` downloads
+the app as you've made it — brand, program, intake, logo, no credentials — and
+opens a Gmail draft to the email from step 1, with how to run it. Drag the zip
+in and send. Whoever opens it clicks **Get sandbox credentials** in step 1 and
+has their own organization, with everything else already set.
+
+To hand over the demo itself — the same organization, patient and decision —
+send its credentials too, the way Lithos sends them: `npm run credentials`, in
+the demo's folder, prints them to paste into a 1Password item. Pasted into
+step 1, they pick up where you left off.
 
 > **Setting this up with an AI coding agent?** Agents: stop at the home page.
 > Run the commands above, open http://localhost:3001, and hand over — let the

@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { HANDOFF_FILE, appFiles, clientIdHash, readHandoff } from "./handoff";
+import { HANDOFF_FILE, START_HERE_FILE, appFiles, clientIdHash, readHandoff } from "./handoff";
 
 async function folder(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "handoff-"));
@@ -14,7 +14,7 @@ async function folder(files: Record<string, string>): Promise<string> {
 }
 
 describe("appFiles", () => {
-  it("never hands over credentials, dependencies or build output", async () => {
+  it("never hands over credentials, dependencies, build output, or the last download's notes", async () => {
     const root = await folder({
       "package.json": "{}",
       "starter.config.json": "{}",
@@ -25,6 +25,7 @@ describe("appFiles", () => {
       "node_modules/next/index.js": "",
       ".next/build.js": "",
       [HANDOFF_FILE]: "{}",
+      [START_HERE_FILE]: "# the last download's",
     });
     // A folder without git: the walk, not git ls-files.
     expect(await appFiles(root)).toEqual([".env.example", "package.json", "public/brand/logo.png", "starter.config.json"]);

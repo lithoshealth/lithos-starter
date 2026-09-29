@@ -7,7 +7,7 @@ import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { readIssued } from "@/lib/setup/issued-cookie";
-import { readHandoff } from "@/lib/setup/handoff";
+import { appFolder, readHandoff } from "@/lib/setup/handoff";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
 import { ReviewCard } from "./review-card";
@@ -15,6 +15,7 @@ import { InboxThread } from "./inbox-thread";
 import { WebhookDemo } from "./webhook-demo";
 import { contentFor } from "@/lib/programs/content";
 import Link from "next/link";
+import { EmailAppButton } from "./email-app";
 import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
@@ -206,7 +207,7 @@ export default async function SetupPage() {
                 </div>
               )}
 
-              {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} handedOver={Boolean(handoff)} />}
+              {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} email={handoff?.email} handedOver={Boolean(handoff)} />}
               {/* After a signup the dev server reloads the page; the masked credentials come back from a cookie. */}
               {step.key === "connect" && step.status === "done" && issued && <Connected issued={issued} />}
 
@@ -402,8 +403,11 @@ export default async function SetupPage() {
           {process.env.NODE_ENV === "development" && (
             <div className="setup-next-card">
               <h3>{finished ? "Keep it" : "Take it with you"}</h3>
-              <p className="muted">Your app as you&rsquo;ve made it, to run on your own machine. Credentials aren&rsquo;t included.</p>
-              <p><a className="btn btn-ghost" href="/setup/download" download>Download your app</a></p>
+              <p className="muted">
+                Your app as you&rsquo;ve made it, to run on any machine. Credentials aren&rsquo;t included: whoever opens it
+                gets their own in step 1.
+              </p>
+              <EmailAppButton to={process.env.LITHOS_SIGNUP_EMAIL || undefined} brandName={brand.name} folder={appFolder(brand.name)} docsUrl={API_DOCS_URL} />
             </div>
           )}
 

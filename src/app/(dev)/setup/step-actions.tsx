@@ -66,7 +66,7 @@ export function Connected({ treatments, issued }: { treatments?: number; issued?
  * variables to set in the host instead. Nothing is saved until Lithos accepts
  * the pair, and the secret is never rendered back.
  */
-export function ConnectForm({ companyName, handedOver }: { companyName: string; handedOver?: boolean }) {
+export function ConnectForm({ companyName, email, handedOver }: { companyName: string; email?: string; handedOver?: boolean }) {
   const [signup, getCredentials, signingUp] = useActionState(getSandboxCredentialsAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
   const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
 
@@ -77,20 +77,20 @@ export function ConnectForm({ companyName, handedOver }: { companyName: string; 
     <form action={getCredentials} className="stack">
       <label className="field">
         Your email
-        <input name="email" type="email" placeholder="you@yourcompany.com" autoComplete="email" required />
+        <input name="email" type="email" placeholder="you@yourcompany.com" autoComplete="email" defaultValue={email} required />
       </label>
       <label className="field">
         Company name
         <input name="organization_name" defaultValue={companyName} autoComplete="organization" required />
       </label>
       <div>
-        <button type="submit" className={handedOver ? "btn btn-ghost" : "btn btn-primary"} disabled={signingUp}>
+        <button type="submit" className="btn btn-primary" disabled={signingUp}>
           {signingUp ? "Creating your sandbox…" : "Get sandbox credentials"}
         </button>
       </div>
       <p className="muted">
-        Creates {handedOver ? "a new, empty" : "your own"} sandbox organization with every program, and saves its credentials to{" "}
-        <code>.env.local</code>. The secret goes straight there — this page never shows it.
+        Creates your own sandbox organization with every program, and saves its credentials to <code>.env.local</code>. The
+        secret goes straight there — this page never shows it.{handedOver && " Your brand, program and intake are already set."}
       </p>
       <ActionError state={signup} />
     </form>
@@ -118,26 +118,13 @@ export function ConnectForm({ companyName, handedOver }: { companyName: string; 
     </form>
   );
 
-  // A copy handed over after a demo leads with the credentials that came with
-  // it: they reconnect it to the demo's organization, where everything is.
-  if (handedOver) {
-    return (
-      <div className="stack">
-        <p><strong>Paste the credentials we sent you</strong> (the 1Password item) to pick up where we left off.</p>
-        {pasteForm}
-        <details className="setup-detail">
-          <summary>Start with a new sandbox organization instead</summary>
-          {signupForm}
-        </details>
-      </div>
-    );
-  }
-
+  // A copy handed over after a demo can also go back to the demo's own
+  // organization, if its credentials were sent along (lib/setup/handoff.ts).
   return (
     <div className="stack">
       {signupForm}
       <details className="setup-detail">
-        <summary>Already have credentials? Paste them</summary>
+        <summary>{handedOver ? "Were you sent credentials? Paste them to pick up where we left off" : "Already have credentials? Paste them"}</summary>
         {pasteForm}
       </details>
     </div>

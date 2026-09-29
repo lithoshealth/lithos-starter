@@ -10,19 +10,22 @@ import type { JourneyIds } from "./steps";
  *
  * After a demo, "Download your app" packs this app as it was customised — the
  * brand, program, intake style and logo live in files — with no credentials.
- * The demo organization's credentials go separately, the way Lithos already
- * sends credentials (1Password). This file records which patient and encounter
- * the walkthrough was following, so when the prospect pastes those credentials
- * the walkthrough picks up where the demo left off.
+ * The prospect gets their own in step 1, with the email this file carries. Or,
+ * to pick up exactly where the demo left off, they paste the demo
+ * organization's credentials, sent separately (1Password): this file records
+ * which patient and encounter the walkthrough was following.
  *
- * Nothing secret in it: ids, and a hash of the client ID so a copy connected to
- * a different organization ignores it.
+ * Nothing secret in it: the prospect's own email, ids, and a hash of the client
+ * ID so a copy connected to a different organization ignores the journey.
  */
 export const HANDOFF_FILE = "lithos-handoff.json";
+export const START_HERE_FILE = "START-HERE.md";
 
 export type Handoff = {
   createdAt: string;
   brandName: string;
+  /** The email the demo signed up with — step 1 starts from it. */
+  email?: string;
   clientIdHash: string;
   journey: Omit<JourneyIds, "program">;
 };
@@ -45,6 +48,10 @@ export async function handoffJourney(clientId: string | undefined): Promise<Omit
   return handoff && handoff.clientIdHash === clientIdHash(clientId) ? handoff.journey : undefined;
 }
 
+/** The zip's name and its top folder: `acme-health` for "Acme Health". */
+export const appFolder = (brandName: string) =>
+  brandName.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "lithos-app";
+
 const NEVER = [/^\.env(?!\.example$)/, /^\.git\//, /^node_modules\//, /^\.next\//, /^\.vercel\//, /\.DS_Store$/, /^next-env\.d\.ts$/];
 
 /**
@@ -60,7 +67,8 @@ export async function appFiles(root = process.cwd()): Promise<string[]> {
   } catch {
     files = await walk(root, "");
   }
-  return [...new Set(files)].filter((f) => f !== HANDOFF_FILE && !NEVER.some((re) => re.test(f))).sort();
+  // The download writes these two fresh; a copy that was itself unzipped has old ones.
+  return [...new Set(files)].filter((f) => f !== HANDOFF_FILE && f !== START_HERE_FILE && !NEVER.some((re) => re.test(f))).sort();
 }
 
 async function walk(root: string, dir: string): Promise<string[]> {
@@ -94,13 +102,17 @@ Then open http://localhost:3001/setup.
 
 ## Connect it
 
-Step 1 asks for your sandbox credentials. Paste the client ID and secret from the
-1Password item we sent you. They're saved to \`.env.local\` on your machine and
-never leave it except to talk to Lithos.
+In step 1, click **Get sandbox credentials**. That gives you your own Lithos
+sandbox organization, and saves its credentials to \`.env.local\` on your
+machine — they never leave it except to talk to Lithos. Your brand, program and
+intake are already set; run a sample patient through steps 3 and 4 to see a
+clinician's decision come back.
 
-Once they're in, you're back where we left off: the same sandbox organization,
-the same sample patient, the clinician's decision. Step 5 (webhooks) will ask
-for your own public address — the one from our call pointed at our laptop.
+If we sent you credentials in 1Password, paste them into step 1 instead: you'll
+be back where we left off, with the same sample patient and decision.
+
+Step 5 (webhooks) asks for a public address for your app — a tunnel or a
+deploy. It's optional.
 
 The full guide is in README.md.
 `;

@@ -91,9 +91,8 @@ ${bold(`${name} is starting at ${url}`)}
   On the call:  open the setup walkthrough from the bar at the top. In step 1, use
                 the prospect's email and company name — that makes their own
                 sandbox organization.
-  If they say yes:  "Download your app" at the bottom of the walkthrough, then
-                ${bold(`npm --prefix "${target}" run credentials`)}
-                for the 1Password item. Send both.
+  If they say yes:  "Email your app" at the bottom of the walkthrough opens a
+                draft to them — drag in the zip it downloaded, and send.
   Stop with Ctrl-C. ${bold(`npm run demo -- "${name}"`)} reopens it.
 `);
 

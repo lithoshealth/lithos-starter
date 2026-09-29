@@ -497,11 +497,12 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .setup-next { display: grid; gap: 0.9rem; }
 .setup-next h2 { font-size: 1.3rem; }
 .setup-next-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
-.setup-next-card { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
+/* Each card is a title, a line, a button and maybe a note, on rows the cards
+   share, so the buttons line up across the row whatever sits above or below. */
+.setup-next-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0.5rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
 .setup-next-card h3 { font-size: 1.05rem; margin: 0; }
 .setup-next-card p { margin: 0; }
-/* Each card ends on its button; the buttons line up across the row. */
-.setup-next-card p:last-child { margin-top: auto; padding-top: 0.5rem; }
+.setup-next-card h3 + p { align-self: start; }
 .setup-next-card .btn { white-space: nowrap; }
 
 /* Once steps 1–4 are done, What's next becomes the finish line. */
