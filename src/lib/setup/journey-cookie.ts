@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { readConfig } from "../starter-config";
+import { handoffJourney } from "./handoff";
 import type { JourneyIds } from "./steps";
 
 /**
@@ -23,13 +24,18 @@ type Stored = JourneyIds & { clientId?: string };
 export async function readJourneyIds(): Promise<JourneyIds> {
   const { program } = await readConfig();
   const raw = (await cookies()).get(COOKIE)?.value;
-  if (!raw) return { program };
-  try {
-    const { clientId, program: _legacy, ...ids } = JSON.parse(raw) as Stored;
-    return clientId && clientId === process.env.LITHOS_CLIENT_ID ? { ...ids, program } : { program };
-  } catch {
-    return { program };
+  if (raw) {
+    try {
+      const { clientId, program: _legacy, ...ids } = JSON.parse(raw) as Stored;
+      if (clientId && clientId === process.env.LITHOS_CLIENT_ID) return { ...ids, program };
+    } catch {
+      /* unreadable — fall through */
+    }
   }
+  // A copy handed over after a demo starts where the demo left off, once it's
+  // connected to the same organization (lib/setup/handoff.ts).
+  const handedOver = await handoffJourney(process.env.LITHOS_CLIENT_ID);
+  return handedOver ? { ...handedOver, program } : { program };
 }
 
 export async function writeJourneyIds(ids: JourneyIds): Promise<void> {

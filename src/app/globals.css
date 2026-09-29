@@ -497,3 +497,4 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .credentials dt { font-size: 0.85rem; color: var(--muted); }
 .credentials dd { margin: 0; overflow-wrap: anywhere; }
 .credentials code { font-size: 0.85rem; }
+.setup-handover { border-color: var(--primary); }

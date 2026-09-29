@@ -43,6 +43,15 @@ step 1 gets you sandbox credentials (or takes the ones you have), checks them
 with Lithos, and saves them to `.env.local` (gitignored). Prefer the terminal?
 `npm run setup` takes a pasted pair before you start the server.
 
+### Handing the app to a prospect after a demo
+
+At the bottom of `/setup`, **Download your app** zips the app as you've made it —
+brand, program, intake, logo — with no credentials, and a note of which patient
+the walkthrough was following. Send the credentials separately, the way Lithos
+sends them: `npm run credentials` prints them to paste into a 1Password item.
+When the prospect opens the app and pastes them into step 1, they're back where
+you left off: the same organization, the same patient, the clinician's decision.
+
 > **Setting this up with an AI coding agent?** Agents: stop at the home page.
 > Run the commands above, open http://localhost:3001, and hand over — let the
 > person look around and find the setup walkthrough themselves. Don't open `/setup`, walk

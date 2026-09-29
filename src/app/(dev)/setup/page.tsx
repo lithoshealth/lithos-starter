@@ -7,6 +7,7 @@ import { LivePreview } from "./live-preview";
 import { STEP_SOURCES, carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
 import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { readIssued } from "@/lib/setup/issued-cookie";
+import { readHandoff } from "@/lib/setup/handoff";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
 import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
 import { ReviewCard } from "./review-card";
@@ -103,6 +104,7 @@ function Json({ value }: { value: unknown }) {
 export default async function SetupPage() {
   const ids = await readJourneyIds();
   const issued = await readIssued();
+  const handoff = await readHandoff();
   const config = await readConfig();
   const brand = config.brand;
   const content = contentFor(config.program ?? DEFAULT_PROGRAM);
@@ -194,7 +196,7 @@ export default async function SetupPage() {
                 </div>
               )}
 
-              {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} />}
+              {step.key === "connect" && step.needsCredentials && <ConnectForm companyName={brand.name} handedOver={Boolean(handoff)} />}
               {/* After a signup the dev server reloads the page; the masked credentials come back from a cookie. */}
               {step.key === "connect" && step.status === "done" && issued && <Connected issued={issued} />}
 
@@ -354,6 +356,21 @@ export default async function SetupPage() {
           </p>
         )}
       </section>
+
+      {/* After a demo: the app as it was customised, for the prospect to keep. Local copies only. */}
+      {process.env.NODE_ENV === "development" && connected && (
+        <section className="setup-docs setup-handover">
+          <div>
+            <h2>Hand it over</h2>
+            <p className="muted">
+              The app as you&rsquo;ve made it — {brand.name}&rsquo;s brand, program and intake — as a zip, without credentials.
+              Send the credentials separately, the way Lithos sends them: <code>npm run credentials</code> prints them to paste into a
+              1Password item. Once they&rsquo;re pasted in, the app picks up right here: the same organization, the same patient.
+            </p>
+          </div>
+          <a className="btn btn-primary" href="/setup/download" download>Download your app</a>
+        </section>
+      )}
 
       {/* Everything above is a guided slice of the API; the reference is the whole of it. */}
       <section className="setup-docs">

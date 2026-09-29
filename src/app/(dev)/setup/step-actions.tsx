@@ -66,15 +66,14 @@ export function Connected({ treatments, issued }: { treatments?: number; issued?
  * variables to set in the host instead. Nothing is saved until Lithos accepts
  * the pair, and the secret is never rendered back.
  */
-export function ConnectForm({ companyName }: { companyName: string }) {
+export function ConnectForm({ companyName, handedOver }: { companyName: string; handedOver?: boolean }) {
   const [signup, getCredentials, signingUp] = useActionState(getSandboxCredentialsAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
   const [state, run, pending] = useActionState(connectAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("connect"));
 
   if (signup.status === "connected") return <Connected treatments={signup.treatments} issued={signup.issued} />;
   if (state.status === "connected") return <Connected treatments={state.treatments} />;
 
-  return (
-    <div className="stack">
+  const signupForm = (
     <form action={getCredentials} className="stack">
       <label className="field">
         Your email
@@ -85,19 +84,19 @@ export function ConnectForm({ companyName }: { companyName: string }) {
         <input name="organization_name" defaultValue={companyName} autoComplete="organization" required />
       </label>
       <div>
-        <button type="submit" className="btn btn-primary" disabled={signingUp}>
+        <button type="submit" className={handedOver ? "btn btn-ghost" : "btn btn-primary"} disabled={signingUp}>
           {signingUp ? "Creating your sandbox…" : "Get sandbox credentials"}
         </button>
       </div>
       <p className="muted">
-        Creates your own sandbox organization with every program, and saves its credentials to <code>.env.local</code>.
-        The secret goes straight there — this page never shows it.
+        Creates {handedOver ? "a new, empty" : "your own"} sandbox organization with every program, and saves its credentials to{" "}
+        <code>.env.local</code>. The secret goes straight there — this page never shows it.
       </p>
       <ActionError state={signup} />
     </form>
+  );
 
-    <details className="setup-detail">
-      <summary>Already have credentials? Paste them</summary>
+  const pasteForm = (
     <form action={run} className="stack">
       <label className="field">
         Client ID
@@ -117,7 +116,30 @@ export function ConnectForm({ companyName }: { companyName: string }) {
       </p>
       <ActionError state={state} />
     </form>
-    </details>
+  );
+
+  // A copy handed over after a demo leads with the credentials that came with
+  // it: they reconnect it to the demo's organization, where everything is.
+  if (handedOver) {
+    return (
+      <div className="stack">
+        <p><strong>Paste the credentials we sent you</strong> (the 1Password item) to pick up where we left off.</p>
+        {pasteForm}
+        <details className="setup-detail">
+          <summary>Start with a new sandbox organization instead</summary>
+          {signupForm}
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <div className="stack">
+      {signupForm}
+      <details className="setup-detail">
+        <summary>Already have credentials? Paste them</summary>
+        {pasteForm}
+      </details>
     </div>
   );
 }
