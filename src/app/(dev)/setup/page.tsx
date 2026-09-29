@@ -26,6 +26,15 @@ const API_DOCS_URL = "https://docs.lithoshealth.com";
 
 // Written so the page reads the same whatever the app is called — the starter
 // may be rebranded per prospect, so nothing here says "Eucardia".
+/** What each finished step amounts to, for the closing recap. */
+const WINS: Record<StepKey, string> = {
+  connect: "Connected to Lithos",
+  program: "A program to offer",
+  patient: "A patient onboarded",
+  review: "A clinician’s decision",
+  updates: "Updates from Lithos",
+};
+
 const STEPS: Record<StepKey, { title: string; what: string }> = {
   connect: {
     title: "Connect to Lithos",
@@ -117,6 +126,8 @@ export default async function SetupPage() {
   const done = required.filter((s) => s.status === "done").length;
   const current = required.find((s) => s.status === "ready" || s.status === "blocked");
   const connected = steps[0]?.status === "done";
+  // Steps 1–4 done: a patient went from your site to a clinician's decision.
+  const finished = done === required.length;
   // The endpoint, when it reaches this app — step 5 can re-register it for a new secret.
   const endpointHere = steps.find((s) => s.key === "updates")?.endpoint;
   const endpointHereOk = endpointHere?.pointsHere ? endpointHere : undefined;
@@ -357,14 +368,29 @@ export default async function SetupPage() {
       </ol>
 
       {/* Where to go from here: the app itself, a copy to keep, and the full API. */}
-      <section className="setup-next" aria-label="What's next">
-        <h2>What&rsquo;s next</h2>
+      <section className={`setup-next${finished ? " setup-finale" : ""}`} aria-label={finished ? "You're on Lithos" : "What's next"}>
+        {finished ? (
+          <div className="setup-finale-head">
+            <span className="setup-finale-mark" aria-hidden="true">✓</span>
+            <p className="eyebrow">All {required.length} steps done</p>
+            <h2>Congratulations — {brand.name} is on Lithos.</h2>
+            <p className="lede">
+              This isn&rsquo;t a mock-up. It&rsquo;s a working app: patients sign up on your site, a Lithos clinician
+              reviews them, and the decision comes back to you. It runs on the sandbox for now, with sample patients.
+            </p>
+            <ul className="setup-finale-wins">
+              {steps.filter((s) => s.status === "done").map((s) => <li key={s.key}>{WINS[s.key]}</li>)}
+            </ul>
+          </div>
+        ) : (
+          <h2>What&rsquo;s next</h2>
+        )}
         <div className="setup-next-cards">
           <div className="setup-next-card">
-            <h3>Open your site</h3>
+            <h3>{finished ? "Use it" : "Open your site"}</h3>
             <p className="muted">
               {connected
-                ? "See it as your patients will. Its forms make the same calls this walkthrough made."
+                ? "See it as your patients will, and sign up as one. Its forms make the same calls this walkthrough made."
                 : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
             </p>
             <p>
@@ -375,7 +401,7 @@ export default async function SetupPage() {
           {/* A local copy only: it zips this working folder. */}
           {process.env.NODE_ENV === "development" && (
             <div className="setup-next-card">
-              <h3>Take it with you</h3>
+              <h3>{finished ? "Keep it" : "Take it with you"}</h3>
               <p className="muted">Your app as you&rsquo;ve made it, to run on your own machine. Credentials aren&rsquo;t included.</p>
               <p><a className="btn btn-ghost" href="/setup/download" download>Download your app</a></p>
               {connected && (
@@ -388,7 +414,7 @@ export default async function SetupPage() {
           )}
 
           <div className="setup-next-card">
-            <h3>Build on the API</h3>
+            <h3>{finished ? "Grow it" : "Build on the API"}</h3>
             <p className="muted">Every endpoint, field and webhook — follow-ups, refills, labs, messaging, visits.</p>
             <p><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation ↗</a></p>
           </div>

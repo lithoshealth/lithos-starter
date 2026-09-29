@@ -502,5 +502,17 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .setup-next-card p { margin: 0; }
 .setup-next-card .fine-print code { overflow-wrap: anywhere; }
 
+/* Once steps 1–4 are done, What's next becomes the finish line. */
+.setup-finale { padding: clamp(1.25rem, 4vw, 2.25rem); border: 1px solid var(--primary); border-radius: calc(var(--radius) * 1.4); background: var(--primary-soft); box-shadow: var(--shadow); gap: 1.4rem; }
+.setup-finale-head { display: grid; gap: 0.5rem; justify-items: start; }
+.setup-finale-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.15; margin: 0; }
+.setup-finale-head .eyebrow, .setup-finale-head .lede { margin: 0; }
+.setup-finale-head .lede { color: var(--ink, inherit); font-size: 1.08rem; }
+.setup-finale-mark { display: inline-grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--primary); color: var(--on-primary, #fff); font-size: 1.3rem; font-weight: 800; }
+.setup-finale-wins { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.setup-finale-wins li { padding: 0.3rem 0.75rem 0.3rem 0.6rem; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 0.88rem; font-weight: 650; }
+.setup-finale-wins li::before { content: "✓ "; color: var(--success); font-weight: 800; }
+.setup-finale .setup-next-card { border-color: transparent; box-shadow: 0 0.2rem 0.8rem rgb(27 33 48 / 6%); }
+
 /* Before "What's next": run it again, or look back. */
 .setup-again-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
