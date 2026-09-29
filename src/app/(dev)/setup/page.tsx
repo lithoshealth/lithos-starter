@@ -336,21 +336,25 @@ export default async function SetupPage() {
             </li>
           );
         })}
-      </ol>
 
-      {/* Before moving on: go round again, or look back at the patients already run. */}
-      {connected && ids.encounterId && (
-        <section className="setup-again" aria-label="Try it again">
-          <div>
-            <h2>Try it again</h2>
-            <p className="muted">Run the walkthrough with a new sample patient, or look back at every patient you&rsquo;ve run so far.</p>
-          </div>
-          <div className="setup-again-actions">
-            <RunAgainButton />
-            <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
-          </div>
-        </section>
-      )}
+        {/* Once a patient has reached a decision: go round again, or look back at the patients already run. */}
+        {connected && ids.encounterId && (
+          <li id="step-again" className="card setup-step setup-step-again">
+            <div className="setup-step-head">
+              <span className="setup-step-num">{steps.length + 1}</span>
+              <div className="setup-step-title">
+                <h2>Try it again</h2>
+                <p className="muted">Run the walkthrough with a new sample patient, or look back at every patient you&rsquo;ve run so far.</p>
+              </div>
+              <span className="badge badge-outline">Optional</span>
+            </div>
+            <div className="setup-again-actions">
+              <RunAgainButton />
+              <Link href="/journeys" className="btn btn-ghost">See every journey</Link>
+            </div>
+          </li>
+        )}
+      </ol>
 
       {/* Where to go from here: the app itself, a copy to keep, and the full API. */}
       <section className="setup-next" aria-label="What's next">
