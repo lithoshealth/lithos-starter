@@ -57,10 +57,11 @@ next free port) and opens the home page. On the call, step 1 of the walkthrough
 takes the prospect's email and company name and makes them their own sandbox
 organization. Run the same command again to reopen that demo where you left it.
 
-If they want to keep it, **Email your app** at the bottom of `/setup` downloads
-the app as you've made it — brand, program, intake, logo, no credentials — and
-opens a Gmail draft to the email from step 1, with how to run it. Drag the zip
-in and send. Whoever opens it clicks **Get sandbox credentials** in step 1 and
+If they want to keep it, **Download app** at the bottom of `/setup` zips the app
+as you've made it — brand, program, intake, logo, no credentials — and **Email
+app** opens a Gmail draft to the email from step 1, with how to run it. Gmail
+blocks zips with code in them as attachments, so add the zip with the draft's
+**Drive** button (Upload) and let Gmail share it when you send. Whoever opens it clicks **Get sandbox credentials** in step 1 and
 has their own organization, with everything else already set.
 
 To hand over the demo itself — the same organization, patient and decision —

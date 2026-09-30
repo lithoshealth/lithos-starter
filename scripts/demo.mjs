@@ -91,8 +91,9 @@ ${bold(`${name} is starting at ${url}`)}
   On the call:  open the setup walkthrough from the bar at the top. In step 1, use
                 the prospect's email and company name — that makes their own
                 sandbox organization.
-  If they say yes:  "Email your app" at the bottom of the walkthrough opens a
-                draft to them — drag in the zip it downloaded, and send.
+  If they say yes:  "Download app", then "Email app", at the bottom of the
+                walkthrough. Add the zip to the draft with its Drive button
+                (Gmail blocks it as an attachment), and send.
   Stop with Ctrl-C. ${bold(`npm run demo -- "${name}"`)} reopens it.
 `);
 

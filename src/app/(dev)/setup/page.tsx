@@ -15,7 +15,7 @@ import { InboxThread } from "./inbox-thread";
 import { WebhookDemo } from "./webhook-demo";
 import { contentFor } from "@/lib/programs/content";
 import Link from "next/link";
-import { EmailAppButton } from "./email-app";
+import { KeepItButtons } from "./email-app";
 import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
@@ -395,7 +395,7 @@ export default async function SetupPage() {
                 : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
             </p>
             <p>
-              <Link href="/" className="btn btn-primary">Open your site</Link>{" "}
+              <Link href="/" className="btn btn-primary">Open app</Link>
             </p>
           </div>
 
@@ -407,7 +407,7 @@ export default async function SetupPage() {
                 Your app as you&rsquo;ve made it, to run on any machine. Credentials aren&rsquo;t included: whoever opens it
                 gets their own in step 1.
               </p>
-              <EmailAppButton to={process.env.LITHOS_SIGNUP_EMAIL || undefined} brandName={brand.name} folder={appFolder(brand.name)} docsUrl={API_DOCS_URL} />
+              <KeepItButtons to={process.env.LITHOS_SIGNUP_EMAIL || undefined} brandName={brand.name} folder={appFolder(brand.name)} docsUrl={API_DOCS_URL} />
             </div>
           )}
 

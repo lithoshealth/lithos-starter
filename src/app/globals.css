@@ -499,14 +499,21 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .setup-next-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
 /* Each card is a title, a line, a button and maybe a note, on rows the cards
    share, so the buttons line up across the row whatever sits above or below. */
-.setup-next-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0.5rem; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
+.setup-next-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0.5rem; padding: 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
 .setup-next-card h3 { font-size: 1.05rem; margin: 0; }
 .setup-next-card p { margin: 0; }
 .setup-next-card h3 + p { align-self: start; }
-.setup-next-card .btn { white-space: nowrap; }
+.setup-next-card .btn { white-space: nowrap; padding-inline: 1rem; }
+.setup-next-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+/* Three across (only ever from 46rem): the middle card holds two buttons, so it
+   gets the room to keep them on one line. */
+.setup-next { container-type: inline-size; }
+@container (min-width: 46rem) {
+  .setup-next-cards:has(> :nth-child(3)) { grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.4fr) minmax(0, 1.1fr); }
+}
 
 /* Once steps 1–4 are done, What's next becomes the finish line. */
-.setup-finale { padding: clamp(1.25rem, 4vw, 2.25rem); border: 1px solid var(--primary); border-radius: calc(var(--radius) * 1.4); background: var(--primary-soft); box-shadow: var(--shadow); gap: 1.4rem; }
+.setup-finale { padding: clamp(1.25rem, 4vw, 2.25rem) clamp(1.25rem, 3vw, 1.75rem); border: 1px solid var(--primary); border-radius: calc(var(--radius) * 1.4); background: var(--primary-soft); box-shadow: var(--shadow); gap: 1.4rem; }
 .setup-finale-head { display: grid; gap: 0.5rem; justify-items: start; }
 .setup-finale-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.15; margin: 0; }
 .setup-finale-head .eyebrow, .setup-finale-head .lede { margin: 0; }
