@@ -55,7 +55,8 @@ It updates the template from GitHub, copies it to `../lithos-demos/acme-health`
 with the prospect's name as the brand, installs it, starts it (on 3001, or the
 next free port) and opens the home page. On the call, step 1 of the walkthrough
 takes the prospect's email and company name and makes them their own sandbox
-organization. Run the same command again to reopen that demo where you left it.
+organization. Run the same command again to reopen that demo where you left it,
+updated to the latest starter.
 
 If they want to keep it, **Download app** at the bottom of `/setup` zips the app
 as you've made it — brand, program, intake, logo, no credentials — and **Email

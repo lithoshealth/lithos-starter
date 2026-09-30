@@ -7,7 +7,8 @@
 // for the prospect and branded with their name, installs it, starts it and
 // opens the browser. Every prospect gets their own folder because the brand,
 // program and credentials live in it — and the folder is what you send them
-// afterwards. Run the same command again to reopen a demo where you left it.
+// afterwards. Run the same command again to reopen a demo where you left it —
+// updated to the latest starter, its brand kept.
 //
 // This copy stays clean: it's only the template the demos are made from.
 
@@ -51,8 +52,20 @@ function git(args, cwd) {
   return spawnSync("git", args, { cwd, encoding: "utf8" });
 }
 
+let dependenciesChanged = false;
 if (existsSync(target)) {
   console.log(`Reopening the ${bold(name)} demo — ${dim(target)}`);
+  // Bring it up to the latest starter too. Its brand, program and logo are
+  // local edits; --autostash carries them over the update.
+  const before = git(["rev-parse", "HEAD"], target).stdout.trim();
+  if (git(["pull", "--ff-only", "--autostash", "--quiet"], target).status !== 0) {
+    console.log(dim("Couldn't update it from GitHub — opening it as it is."));
+  }
+  const after = git(["rev-parse", "HEAD"], target).stdout.trim();
+  if (before && after !== before) {
+    console.log("Updated to the latest starter.");
+    dependenciesChanged = git(["diff", "--quiet", before, after, "--", "package-lock.json"], target).status !== 0;
+  }
 } else {
   // Start from the latest starter. Offline or ahead of GitHub? Use it as it is.
   if (git(["pull", "--ff-only", "--quiet"], here).status !== 0) {
@@ -70,7 +83,7 @@ if (existsSync(target)) {
   writeFileSync(configFile, `${JSON.stringify(config, null, 2)}\n`);
 }
 
-if (!existsSync(path.join(target, "node_modules"))) {
+if (dependenciesChanged || !existsSync(path.join(target, "node_modules"))) {
   console.log("Installing — about half a minute, faster after the first demo.");
   run("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund", "--loglevel=error"], target);
 }
