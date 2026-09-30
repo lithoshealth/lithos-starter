@@ -18,6 +18,8 @@ export function KeepItButtons({ to, brandName, folder, docsUrl }: { to?: string;
     "2. Run: npm install && npm run dev",
     '3. Open http://localhost:3001/setup and click "Get sandbox credentials" in step 1. That creates your own Lithos sandbox organization.',
     "",
+    "Working with a coding agent like Claude Code or Cursor? Unzip it, open the agent in that folder and ask it to get the app running. AGENTS.md in the folder tells it how.",
+    "",
     `START-HERE.md in the folder walks through the rest, and the API reference is at ${docsUrl}.`,
     "",
   ].join("\n");

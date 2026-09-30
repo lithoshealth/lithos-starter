@@ -14,7 +14,8 @@ Start with `README.md`.
 
 The first run is the product demo, so leave the discovering to the person:
 
-1. Clone, `npm install`, `npm run dev`.
+1. Clone (or unzip, if it was sent after a demo — `START-HERE.md` is then in the
+   folder), `npm install`, `npm run dev`.
 2. Open **http://localhost:3001** — the home page, not `/setup` — and hand over.
    Tell them the app runs unconnected, that they can look around and submit a
    form, and that **Open the setup walkthrough** in the bar at the top of every
