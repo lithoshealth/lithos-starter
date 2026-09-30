@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSite } from "@/lib/app-meta";
+import { isDbConfigured } from "@/lib/db";
 import { withName } from "@/lib/programs/content";
 
 // Kept for the ops "Journeys" page, which links back here.
@@ -15,7 +16,10 @@ export function HomePageLinks() {
 export default async function HomePage() {
   const { brand, content: c } = await getSite();
   const name = brand.name;
-  const planHref = (plan: string) => (c.plansLeadTo === "join" ? `/join?plan=${plan.toLowerCase()}` : "/start");
+  // Membership keeps members in your own database; without one, the plans lead
+  // to the care review instead of a sign-up with nowhere to go.
+  const toJoin = c.plansLeadTo === "join" && isDbConfigured();
+  const planHref = (plan: string) => (toJoin ? `/join?plan=${plan.toLowerCase()}` : "/start");
 
   return (
     <>
@@ -133,7 +137,7 @@ export default async function HomePage() {
               </ul>
               <p style={{ marginTop: "0.75rem" }}>
                 <Link href={planHref(plan.name)} className={plan.featured ? "btn btn-primary" : "btn btn-ghost"}>
-                  {c.plansLeadTo === "join" ? `Join ${plan.name}` : `Start with ${plan.name}`}
+                  {toJoin ? `Join ${plan.name}` : `Start with ${plan.name}`}
                 </Link>
               </p>
             </div>
@@ -155,8 +159,8 @@ export default async function HomePage() {
             <h2>{c.cta.headline}</h2>
             <p>{c.cta.body}</p>
           </div>
-          <Link href={c.plansLeadTo === "join" ? "/join" : "/start"} className="btn btn-primary btn-lg">
-            {c.plansLeadTo === "join" ? `Join ${name}` : "Get started"}
+          <Link href={toJoin ? "/join" : "/start"} className="btn btn-primary btn-lg">
+            {toJoin ? `Join ${name}` : "Get started"}
           </Link>
         </div>
         <p className="fine-print" style={{ marginTop: "1rem" }}>{withName(c.emergency, name)}</p>
