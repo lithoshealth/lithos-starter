@@ -64,6 +64,10 @@ form for that. Once they've connected, help with whatever they ask.
   key reused with a different body. A new create follows the same pattern.
 - **Webhooks are thin.** An event carries a type and a `resource_id`; re-read the
   resource with a `GET` and store that. Never treat a payload as state.
+- **Webhooks are answered first, processed after** (`after()` in
+  `src/app/api/webhooks/lithos/route.ts`): verify, store, respond, then project
+  and notify the patient (`src/lib/notifications/`). Notifications carry no
+  clinical detail — they say something is waiting and link into the app.
 - **The event store:** Postgres when `DATABASE_URL` is set, Upstash Redis when
   deployed without it, in-memory locally. The deployed app refuses to fall back
   to process memory.

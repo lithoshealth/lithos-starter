@@ -121,6 +121,7 @@ endpoint, field, error code and webhook event — is documented at
 |---|---|
 | `src/lib/lithos/` | The API client: token minting and caching, requests, the `errors[]` envelope, types, the sandbox-only guard, and idempotency keys — every create is sent with one, so a double click or a retried request makes one record, not two |
 | `src/lib/webhooks/` | Signature verification (HMAC-SHA256 over `"<t>.<raw body>"`) and the delivery handler |
+| `src/lib/notifications/` | Telling the patient when a webhook is theirs to know — the care team wrote, the order shipped, a visit moved. Content-free by design (email isn't a secure channel): it says something is waiting and links into the app. Goes to the outbox on `/events` until you set `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`; another channel is one more `Notifier` |
 | `src/app/api/webhooks/lithos/` | The webhook receiver |
 | `src/lib/setup/` | The walkthrough: step checks and the exact request bodies it sends |
 | `src/lib/journey.ts`, `src/app/start/` | A direct intake form: patient → care plan → encounter in one submission |

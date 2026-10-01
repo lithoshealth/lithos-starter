@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { isDbConfigured } from "@/lib/db";
 import { getEventStore } from "@/lib/events/factory";
+import { getLithosClient } from "@/lib/lithos/client";
+import { notifyPatient } from "@/lib/notifications/notify";
 import { markProcessed, projectEvent, type WebhookPayload } from "@/lib/projections";
 import { outcomeFor, recordWebhookAttempt } from "@/lib/webhooks/attempts";
 import { handleLithosWebhook } from "@/lib/webhooks/handler";
@@ -28,17 +30,30 @@ export async function POST(request: Request): Promise<NextResponse> {
   // apart from a request that never reached the app.
   recordWebhookAttempt(outcomeFor(result));
 
-  // Only a freshly recorded, signature-verified event gets projected. A failed
-  // projection is recorded against the event, never hidden — and the delivery
-  // is still acknowledged, because Lithos retrying won't fix a local problem.
-  if (result.status === 200 && result.body.received && !result.body.duplicate && isDbConfigured()) {
+  // Answer Lithos now; do the work after. Only a freshly recorded, verified
+  // event is processed — a re-delivery was processed the first time. Lithos
+  // retrying won't fix a local problem, so a failure is recorded against the
+  // event (`npm run replay -- --reproject` runs it again), never hidden.
+  if (result.status === 200 && result.body.received && !result.body.duplicate) {
     const payload = JSON.parse(rawBody) as WebhookPayload;
-    try {
-      await projectEvent(payload);
-      await markProcessed(payload.id);
-    } catch (error) {
-      await markProcessed(payload.id, error instanceof Error ? error.message : String(error)).catch(() => undefined);
-    }
+    const appUrl = process.env.APP_URL || new URL(request.url).origin;
+    after(async () => {
+      if (isDbConfigured()) {
+        try {
+          await projectEvent(payload);
+          await markProcessed(payload.id);
+        } catch (error) {
+          await markProcessed(payload.id, error instanceof Error ? error.message : String(error)).catch(() => undefined);
+        }
+      }
+      // The patient hears about it whether or not there's a database: their
+      // contact details are on the Lithos patient.
+      // Logged by event id and outcome only — no patient details in logs.
+      await notifyPatient(payload, getLithosClient(), appUrl).then(
+        (outcome) => console.info(`notify ${payload.id} (${payload.type}): ${"skipped" in outcome ? `skipped, ${outcome.skipped}` : `${outcome.via}${outcome.error ? ` failed, ${outcome.error}` : ""}`}`),
+        (error) => console.error(`notify ${payload.id} (${payload.type}): failed, ${error instanceof Error ? error.message : error}`),
+      );
+    });
   }
 
   return NextResponse.json(result.body, { status: result.status });

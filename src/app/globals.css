@@ -695,3 +695,7 @@ a.card-row:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--li
 @media (max-width: 60rem) {
   .app-demo { position: static; width: auto; margin-top: 0.5rem; }
 }
+
+/* /events: what patients were told. */
+.outbox { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.outbox li { display: grid; gap: 0.15rem; padding: 0.75rem 0.9rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }

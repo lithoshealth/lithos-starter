@@ -2,6 +2,7 @@ import { sandboxOpsOnly } from "@/lib/ops-guard";
 import Link from "next/link";
 import { getEventStore } from "@/lib/events/factory";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
+import { listOutbox } from "@/lib/notifications/notifier";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export default async function EventsPage() {
           <p>{describeFailure(health)} Deliveries that fail are retried, then dropped — and Lithos doesn&rsquo;t tell anyone. <Link href="/setup">Check your endpoint in setup →</Link></p>
         </div>
       )}
+      <PatientNotifications />
+
       <p className="eyebrow">Verified deliveries only</p>
       <h1>Webhook event log</h1>
       <p>Newest first. The log stores event IDs, receive times, and payloads—not delivery headers or secrets.</p>
@@ -35,6 +38,36 @@ export default async function EventsPage() {
           <pre>{JSON.stringify(event.payload, null, 2)}</pre>
         </article>
       ))}
+    </section>
+  );
+}
+
+/**
+ * What patients were told about those events — sent, or kept in the outbox
+ * when no email provider is set (lib/notifications/notifier.ts).
+ */
+function PatientNotifications() {
+  const sent = listOutbox();
+  return (
+    <section className="stack" aria-label="Patient notifications">
+      <p className="eyebrow">Patient notifications</p>
+      <h2>What patients were told</h2>
+      {sent.length === 0 ? (
+        <p className="muted">Nothing yet. When an event is the patient&rsquo;s to know — a message from the care team, a shipped order — it shows here.</p>
+      ) : (
+        <ul className="outbox">
+          {sent.map((n) => (
+            <li key={`${n.eventId}-${n.at}`}>
+              <strong>{n.message.subject}</strong>
+              <span className="muted">
+                {n.via === "email" ? (n.error ? `Email to ${n.to.email ?? n.to.name} failed: ${n.error}` : `Emailed ${n.to.email}`) : `Outbox — would email ${n.to.name}${n.to.email ? ` (${n.to.email})` : ""}`}
+                {" · "}{n.eventType} · {new Date(n.at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+              </span>
+              <span>{n.message.body} <a href={n.message.url}>{n.message.url}</a></span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
