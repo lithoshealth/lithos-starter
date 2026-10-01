@@ -9,6 +9,7 @@
  *
  * Client-safe: no server imports.
  */
+import type { WeightManagementInitialIntake } from "../lithos/types";
 
 /** Conditions, now or in the past — organ systems. Required booleans: unchecked is `false`. */
 export const WEIGHT_SCREENING_ORGANS = [
@@ -48,12 +49,8 @@ export const WEIGHT_COMORBIDITIES = [
 
 type ScreeningField = (typeof WEIGHT_SCREENING_FIELDS)[number];
 
-export type WeightManagementInitialIntake = {
-  height_cm: number;
-  weight_kg: number;
-  comorbidities?: string[];
-  already_on_glp1?: boolean;
-} & Record<ScreeningField, boolean>;
+/** The contract's shape, from the spec (lib/lithos/types.ts). */
+export type { WeightManagementInitialIntake };
 
 /** Lithos's `Patient::HEIGHT_CM_RANGE`, and the schema's weight bounds. */
 const HEIGHT_CM = { min: 50, max: 272 };

@@ -9,14 +9,14 @@ const patient = (id: string, createdAt: string): PatientListItem => ({
   first_name: "Sample",
   last_name: id,
   created_at: createdAt,
-});
+}) as PatientListItem;
 
 const encounter = (
   id: string,
   patientId: string,
   createdAt: string,
   status: EncounterListItem["status"] = "pending_review",
-): EncounterListItem => ({ id, patient_id: patientId, status, created_at: createdAt });
+): EncounterListItem => ({ id, patient_id: patientId, status, created_at: createdAt }) as EncounterListItem;
 
 const page = <T>(data: T[], nextCursor: string | null = null): ListResponse<T> => ({
   data,

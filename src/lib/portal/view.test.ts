@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { CarePlan, Inquiry, Patient } from "@/lib/lithos/types";
+import type { CarePlan, Inquiry, Patient, Prescription } from "@/lib/lithos/types";
 import { journey } from "./journey";
 import { carePath, clinicianName, delivery, greeting, headline, medications, nextStep, progress, type Order, type PortalData, type PortalEncounter } from "./view";
 
 const when = (iso: string) => `at ${iso}`;
-const imad = { first_name: "Imad", last_name: "Mouaddine", credentials: "MD" };
+const imad = { id: "clin_1", npi: "1234567890", first_name: "Imad", last_name: "Mouaddine", credentials: "MD", profile_picture_url: null };
 
 function encounter(overrides: Partial<PortalEncounter> = {}): PortalEncounter {
   return {
@@ -12,9 +12,9 @@ function encounter(overrides: Partial<PortalEncounter> = {}): PortalEncounter {
     escalation_reason: null, created_at: "2026-09-29T20:00:00Z", updated_at: "2026-09-29T20:00:00Z", completed_at: null, canceled_at: null,
     care_plan: { status: "active", category: "lipid_management", clinician_notes: null },
     clinician: null, requested_treatments: [], orders: [], patient_message: null,
-    intake_form: { data: { ldl_c: 162, ldl_c_date: "2026-08-20" } },
+    intake_form: { id: "itk_1", data: { ldl_c: 162, ldl_c_date: "2026-08-20" } },
     ...overrides,
-  };
+  } as PortalEncounter; // the fields the portal reads; the rest of the spec's encounter doesn't matter here
 }
 
 function plan(overrides: Partial<CarePlan> = {}): CarePlan {
@@ -28,7 +28,7 @@ function plan(overrides: Partial<CarePlan> = {}): CarePlan {
         id: "rx_1", patient_id: "pat_1", encounter_id: "enc_1", order_id: "ord_1", strength: "300 mg/1.2 mL",
         instructions: "Inject once monthly.", quantity: 1, days_supply: 28, active: true, notes: null,
         written_at: "2026-09-29T20:00:00Z", expiration_date: "2027-09-29", catalog_treatment_id: "lerochol", written_by: imad,
-      },
+      } as Prescription,
     }],
     ...overrides,
   };
@@ -36,12 +36,12 @@ function plan(overrides: Partial<CarePlan> = {}): CarePlan {
 
 const order = (overrides: Partial<Order> = {}): Order => ({
   id: "ord_1", encounter_id: "enc_1", status: "pending", created_at: "2026-09-29T20:00:00Z", updated_at: "2026-09-29T20:00:00Z", fulfillment: null, ...overrides,
-});
+}) as Order;
 
 const question: Inquiry = {
-  id: "inq_1", patient_id: "pat_1", subject: "A question", status: "open", awaiting: "patient", references: [],
+  id: "inq_1", object: "inquiry", patient_id: "pat_1", subject: "A question", status: "open", awaiting: "patient", references: [],
   created_at: "2026-09-30T10:00:00Z", last_message_at: "2026-09-30T10:00:00Z",
-  messages: [{ id: "msg_1", body: "Any muscle aches?", sender: { type: "clinician", id: "clin_1", ...imad }, attachments: [], created_at: "2026-09-30T10:00:00Z" }],
+  messages: [{ id: "msg_1", object: "message", body: "Any muscle aches?", sender: { type: "clinician", id: "clin_1", first_name: "Imad", last_name: "Mouaddine", credentials: "MD", profile_picture_url: null }, attachments: [], created_at: "2026-09-30T10:00:00Z" }],
 };
 
 function data(overrides: Partial<PortalData> = {}): PortalData {
@@ -62,7 +62,7 @@ describe("nextStep", () => {
     const answer: Inquiry = {
       ...question,
       messages: [
-        { id: "msg_0", body: "Take it with food?", sender: { type: "patient", id: "pat_1" }, attachments: [], created_at: "2026-09-30T09:00:00Z" },
+        { id: "msg_0", object: "message", body: "Take it with food?", sender: { type: "patient", id: "pat_1", first_name: "Sample", last_name: "Walkthrough" }, attachments: [], created_at: "2026-09-30T09:00:00Z" },
         ...question.messages!,
       ],
     };
@@ -116,7 +116,8 @@ describe("medications and delivery", () => {
   it("shows tracking once the pharmacy ships", () => {
     const shipped = order({
       status: "placed", placed_at: "2026-09-30T15:00:00Z", fulfillment: { status: "shipped", carrier: "UPS", tracking_number: "1Z999" },
-      pharmacy: { name: "Walgreens #1234" }, shipping_address: { line1: "410 Sample Street", city: "Brooklyn", state: "NY" },
+      pharmacy: { name: "Walgreens #1234", address: { line1: "123 Main St", city: "San Francisco", state: "CA", postal_code: "94103" } },
+      shipping_address: { line1: "410 Sample Street", city: "Brooklyn", state: "NY", postal_code: "11201" },
     });
     expect(delivery(shipped)).toEqual({
       label: "On its way", stage: 3, at: "2026-09-30T15:00:00Z", pharmacy: "Walgreens #1234", to: "Brooklyn, NY", tracking: "UPS · 1Z999",
@@ -126,19 +127,19 @@ describe("medications and delivery", () => {
 
 describe("progress", () => {
   it("charts LDL-C from each intake, oldest first, dated by the lab", () => {
-    const followUp = encounter({ id: "enc_2", created_at: "2026-12-01T00:00:00Z", intake_form: { data: { ldl_c: 96, ldl_c_date: "2026-11-28" } } });
+    const followUp = encounter({ id: "enc_2", created_at: "2026-12-01T00:00:00Z", intake_form: { id: "itk_2", data: { ldl_c: 96, ldl_c_date: "2026-11-28" } } });
     expect(progress(data({ encounters: [followUp, encounter()] }), "lipid_management")).toEqual({
       label: "LDL-C", unit: "mg/dL", readings: [{ date: "2026-08-20", value: 162 }, { date: "2026-11-28", value: 96 }],
     });
   });
 
   it("charts weight in pounds for weight care", () => {
-    const weighed = encounter({ intake_form: { data: { weight_kg: 100 } } });
+    const weighed = encounter({ intake_form: { id: "itk_3", data: { weight_kg: 100 } } });
     expect(progress(data({ encounters: [weighed] }), "weight_management")?.readings).toEqual([{ date: "2026-09-29", value: 220 }]);
   });
 
   it("has nothing to show without a reading", () => {
-    expect(progress(data({ encounters: [encounter({ intake_form: null })] }), "lipid_management")).toBeUndefined();
+    expect(progress(data({ encounters: [encounter({ intake_form: undefined })] }), "lipid_management")).toBeUndefined();
   });
 });
 

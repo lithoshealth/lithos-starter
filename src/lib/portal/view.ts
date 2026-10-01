@@ -1,4 +1,4 @@
-import type { Appointment, CarePlan, Encounter, Inquiry, InquiryMessage, Patient, Prescription } from "@/lib/lithos/types";
+import type { Appointment, CarePlan, Encounter, Inquiry, InquiryMessage, Order, Patient } from "@/lib/lithos/types";
 
 /**
  * The patient portal, as the patient sees it: everything here is worked out
@@ -7,27 +7,10 @@ import type { Appointment, CarePlan, Encounter, Inquiry, InquiryMessage, Patient
  * order. Pure functions, so they're tested without a sandbox.
  */
 
-type Address = { line1?: string; line2?: string | null; city: string; state: string; postal_code?: string };
+export type { Order };
 
-export type Order = {
-  id: string;
-  encounter_id: string;
-  status: "pending" | "processing" | "placed" | "completed" | "canceled";
-  created_at: string;
-  updated_at: string;
-  processing_at?: string | null;
-  placed_at?: string | null;
-  completed_at?: string | null;
-  canceled_at?: string | null;
-  /** The pharmacy that took the order; null until one has. */
-  pharmacy?: { name: string; address?: Address | null } | null;
-  shipping_address?: Address | null;
-  fulfillment: { status: string | null; carrier: string | null; tracking_number: string | null } | null;
-  prescriptions?: Prescription[];
-};
-
-/** An encounter as the show endpoint returns it: the list item plus the intake it carried. */
-export type PortalEncounter = Encounter & { intake_form?: { data?: Record<string, unknown> } | null };
+/** An encounter as the show endpoint returns it, intake included — what progress readings come from. */
+export type PortalEncounter = Encounter;
 
 export type Clinician = { first_name?: string | null; last_name?: string | null; credentials?: string | null; profile_picture_url?: string | null } | null | undefined;
 

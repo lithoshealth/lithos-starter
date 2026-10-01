@@ -12,14 +12,14 @@ const patient = (id: string): PatientListItem => ({
   first_name: "Sample",
   last_name: "Patient",
   created_at: "2026-08-18T12:00:00Z",
-});
+}) as PatientListItem;
 
 const encounter = (id: string, patientId: string, status: EncounterListItem["status"]): EncounterListItem => ({
   id,
   patient_id: patientId,
   status,
   created_at: "2026-08-18T14:00:00Z",
-});
+}) as EncounterListItem;
 
 function render(directory: JourneyDirectory): string {
   return renderToStaticMarkup(createElement(JourneysDirectory, { directory }));

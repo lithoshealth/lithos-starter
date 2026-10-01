@@ -88,11 +88,11 @@ export async function upsertOrder(memberId: string, order: Order): Promise<void>
 export async function upsertInquiry(memberId: string, inquiry: Inquiry): Promise<void> {
   const sql = getDb();
   // The encounter it's about, if the references name one.
-  const encounterRef = (inquiry.references ?? []).find((r) => typeof r.encounter_id === "string" || (typeof r.id === "string" && r.id.startsWith("enc_")));
+  const encounterRef = (inquiry.references ?? []).find((r) => r.type === "encounter");
   const row = {
     lithos_inquiry_id: inquiry.id,
     member_id: memberId,
-    lithos_encounter_id: (encounterRef?.encounter_id ?? encounterRef?.id ?? null) as string | null,
+    lithos_encounter_id: encounterRef?.id ?? null,
     subject: inquiry.subject,
     status: inquiry.status,
     awaiting: inquiry.awaiting,

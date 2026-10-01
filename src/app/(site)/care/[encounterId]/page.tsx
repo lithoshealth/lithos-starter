@@ -30,6 +30,7 @@ const PLAN_COPY: Record<CarePlan["status"], string> = {
   in_review: "Under clinician review",
   active: "Active — a treatment plan is in place",
   ineligible: "Not eligible for this program",
+  canceled: "Canceled",
 };
 
 function JsonDetails({ title, value }: { title: string; value: unknown }) {

@@ -15,6 +15,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
+    "api:types": "openapi-typescript openapi/lithos-v1.yaml -o src/lib/lithos/openapi.d.ts",
     "test": "vitest run",
     "db:up": "./scripts/db-up.sh",
     "db:seed": "node db/seed.mjs",
@@ -37,6 +38,7 @@
     "@types/react-dom": "19.2.4",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.5",
+    "openapi-typescript": "7.13.0",
     "tsx": "4.23.13",
     "typescript": "5.9.3",
     "vitest": "4.1.11"

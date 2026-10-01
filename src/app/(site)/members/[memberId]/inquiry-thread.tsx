@@ -18,7 +18,7 @@ function senderLabel(sender: InquirySender): string {
   if (isPatient(sender)) return "You";
   const name = [sender.first_name, sender.last_name].filter(Boolean).join(" ");
   if (!name) return "Care team";
-  return sender.credentials ? `${name}, ${sender.credentials}` : name;
+  return "credentials" in sender && sender.credentials ? `${name}, ${sender.credentials}` : name;
 }
 
 /**
