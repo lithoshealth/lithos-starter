@@ -85,7 +85,7 @@ form for that. Once they've connected, help with whatever they ask.
 | `/` | patient | marketing landing (membership first, care as the escalation) |
 | `/start` | patient | direct intake → patient, care plan, encounter |
 | `/care/[encounterId]` | patient | plain-language care status |
-| `/portal`, `/portal/messages`, `/portal/support` | patient | the patient's app, with its own chrome (`src/app/(portal)/`): prescription and delivery, the plan, a care-team chat, help — read live from Lithos, with a demo sign-in (no database). On a local sandbox copy, demo controls move the patient along |
+| `/portal`, `/portal/messages`, `/portal/support` | patient | the patient's app, with its own chrome (`src/app/(portal)/`): prescription and delivery, the plan, a care-team chat, help — read live from Lithos. The demo sign-in picks someone from your own records (a member, care-only or not); their Lithos patient is the link on that record. On a local sandbox copy, demo controls move the patient along |
 | `/join`, `/welcome/[id]` | patient | membership signup — writes to your own DB, no Lithos call |
 | `/me/[id]`, `/me/[id]/care-review` | member | member dashboard; member-initiated escalation into care |
 | `/members`, `/members/[id]` | ops | the partner's own record, Lithos projections, escalation, inquiry replies |

@@ -126,7 +126,7 @@ endpoint, field, error code and webhook event — is documented at
 | `src/lib/setup/` | The walkthrough: step checks and the exact request bodies it sends |
 | `src/lib/journey.ts`, `src/app/start/` | A direct intake form: patient → care plan → encounter in one submission |
 | `src/lib/escalate.ts`, `src/lib/escalation.ts` | Escalating an existing member into care — **illustrative rules, see below** |
-| `src/lib/portal/`, `src/app/(portal)/` | The patient's app (**Sign in** in the header): Home (the prescription, its pharmacy and delivery, the plan), Messages (a chat with the care team) and Support, read live from Lithos. Lithos has no patient logins — your app owns them — so a demo sign-in stands in, with no database. The plan's coaching steps and the support answers are your program's content (`journey.ts`, `support.ts`), illustrative. On a local sandbox copy, demo controls play the clinician, the pharmacy and the care team |
+| `src/lib/portal/`, `src/app/(portal)/` | The patient's app (**Sign in** in the header): Home (the prescription, its pharmacy and delivery, the plan), Messages (a chat with the care team) and Support, read live from Lithos. Lithos has no patient logins — your app owns them — so a demo sign-in stands in: it picks someone from your own records, and their Lithos patient is the link on that record. Everyone who asks for care — through the care review, the walkthrough, or as a member — is one row in your records and one Lithos patient, whichever door they came in by. The plan's coaching steps and the support answers are your program's content (`journey.ts`, `support.ts`), illustrative. On a local sandbox copy, demo controls play the clinician, the pharmacy and the care team |
 
 ## Going further: a partner with its own members
 

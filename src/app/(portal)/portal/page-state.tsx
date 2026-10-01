@@ -2,6 +2,7 @@ import { lithosConnection } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
 import { signedInPortal } from "@/lib/portal/load";
 import type { PortalData } from "@/lib/portal/view";
+import Link from "next/link";
 import { NotConnected } from "../../(site)/not-connected";
 import { signOutAction } from "./actions";
 import { PortalShell } from "./shell";
@@ -23,9 +24,9 @@ export async function portalPageState(): Promise<PageState> {
       ),
     };
   }
-  let data: PortalData | undefined;
+  let signed: Awaited<ReturnType<typeof signedInPortal>>;
   try {
-    data = await signedInPortal();
+    signed = await signedInPortal();
   } catch (error) {
     if (!(error instanceof LithosApiError)) throw error;
     return {
@@ -41,5 +42,21 @@ export async function portalPageState(): Promise<PageState> {
       ),
     };
   }
-  return data ? { kind: "ready", data } : { kind: "signed_out" };
+  if (!signed) return { kind: "signed_out" };
+  if (signed.care) return { kind: "ready", data: signed.care };
+  // In your records, but not a patient yet: nothing for Lithos to show.
+  const first = signed.who.member?.firstName;
+  return {
+    kind: "screen",
+    screen: (
+      <PortalShell eyebrow="Your account" title={first ? `Hi ${first}` : "Welcome"} lede="You haven’t asked for care yet.">
+        <div className="card-soft">
+          <p><strong>Start with a care review</strong></p>
+          <p className="muted">A few questions about your health. A licensed clinician reviews them, and your plan, prescription and messages show up here.</p>
+          <p><Link href="/start" className="btn btn-primary">Start a care review</Link></p>
+        </div>
+        <form action={signOutAction}><button className="link-button">Switch person</button></form>
+      </PortalShell>
+    ),
+  };
 }

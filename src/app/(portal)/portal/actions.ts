@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { ApiError } from "@/lib/lithos/types";
-import { readPortalPatientId, signInAs, signOut } from "@/lib/portal/session";
+import { signedIn } from "@/lib/portal/load";
+import { signInAs, signOut } from "@/lib/portal/session";
 import { contentFor } from "@/lib/programs/content";
 import { askPatientAsClinician, declineAsClinician, isSandboxBaseUrl, signOffAsClinician } from "@/lib/sandbox-review";
 import { programFor } from "@/lib/setup/programs";
@@ -22,10 +23,12 @@ const failed = (error: unknown): PortalActionState => {
   throw error;
 };
 
-/** Demo sign-in: become one of the organization's sample patients. */
+/** Demo sign-in: become one of the people in your records (or, with no database, a Lithos patient). */
 export async function signInAction(formData: FormData): Promise<void> {
+  const memberId = String(formData.get("member_id") ?? "");
   const patientId = String(formData.get("patient_id") ?? "");
-  if (patientId) await signInAs(patientId);
+  if (memberId) await signInAs({ memberId });
+  else if (patientId) await signInAs({ patientId });
   redirect("/portal");
 }
 
@@ -50,7 +53,7 @@ export async function sendMessageAction(_prev: PortalActionState, formData: Form
   const threadId = String(formData.get("thread_id") ?? "");
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { status: "error", errors: [{ code: "portal.empty_message", message: "Write your message first." }] };
-  const patientId = await readPortalPatientId();
+  const patientId = (await signedIn())?.patientId;
   if (!patientId) return { status: "error", errors: [{ code: "portal.signed_out", message: "Sign in again to send it." }] };
 
   const client = getLithosClient();

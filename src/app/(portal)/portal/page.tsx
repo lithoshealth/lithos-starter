@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getBrand } from "@/lib/app-meta";
 import { getLithosClient } from "@/lib/lithos/client";
 import { journey } from "@/lib/portal/journey";
-import { listPatients } from "@/lib/portal/load";
+import { listSignInChoices } from "@/lib/portal/load";
 import { demoSignInEnabled } from "@/lib/portal/session";
 import {
   awaitingPatient, carePath, clinicianFullName, delivery, greeting, headline, medications, newestPlan, nextStep, orderFor, progress,
@@ -37,19 +37,19 @@ export default async function PortalHome() {
 
 async function SignIn() {
   if (!demoSignInEnabled()) return <YourLogin />;
-  const [brand, patients] = await Promise.all([getBrand(), listPatients(getLithosClient())]);
+  const [brand, people] = await Promise.all([getBrand(), listSignInChoices(getLithosClient())]);
   const joined = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   return (
-    <PortalShell eyebrow="Welcome back" title={`Sign in to ${brand.name}`} lede="Pick a sample patient to see the app as they would.">
-      {patients.length ? (
+    <PortalShell eyebrow="Welcome back" title={`Sign in to ${brand.name}`} lede="Pick someone from your records to see the app as they would.">
+      {people.length ? (
         <ul className="portal-patients">
-          {patients.map((p) => (
+          {people.map((p) => (
             <li key={p.id}>
               <form action={signInAction}>
-                <input type="hidden" name="patient_id" value={p.id} />
+                <input type="hidden" name={p.kind === "member" ? "member_id" : "patient_id"} value={p.id} />
                 <button className="portal-patient">
-                  <span className="portal-avatar" aria-hidden="true">{initials(p.first_name, p.last_name)}</span>
-                  <span><strong>{p.first_name} {p.last_name}</strong><span className="muted">Joined {joined(p.created_at)}</span></span>
+                  <span className="portal-avatar" aria-hidden="true">{initials(p.firstName, p.lastName)}</span>
+                  <span><strong>{p.firstName} {p.lastName}</strong><span className="muted">{p.note} · since {joined(p.since)}</span></span>
                   <Icon name="chevron" />
                 </button>
               </form>
@@ -58,7 +58,7 @@ async function SignIn() {
         </ul>
       ) : (
         <div className="card-soft">
-          <p><strong>No patients yet.</strong></p>
+          <p><strong>No one here yet.</strong></p>
           <p className="muted">Onboard one in step 3 of the <Link href="/setup">setup walkthrough</Link>, or through <Link href="/start">the care review</Link>.</p>
         </div>
       )}

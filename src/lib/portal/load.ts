@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { getLithosClient, type LithosClient } from "@/lib/lithos/client";
 import type { CarePlan, Inquiry, ListResponse, PatientListItem } from "@/lib/lithos/types";
-import { readPortalPatientId } from "./session";
+import { getDb, isDbConfigured } from "@/lib/db";
+import { readPortalIdentity } from "./session";
 import type { CatalogEntry, Order, PortalData, PortalEncounter, PortalPatient } from "./view";
 
 /** How many requests back the portal reads. Plenty for a demo; a real app would page. */
@@ -42,16 +43,59 @@ export async function loadPortal(client: LithosClient, patientId: string): Promi
   };
 }
 
-/** The organization's patients, newest first, for the demo sign-in. */
-export async function listPatients(client: LithosClient): Promise<PatientListItem[]> {
-  return (await client.get<ListResponse<PatientListItem>>("/v1/patients?limit=25")).data;
+/** Someone to sign in as: a member from your records, or (with no database) a Lithos patient. */
+export type SignInChoice = {
+  kind: "member" | "patient";
+  id: string;
+  firstName: string;
+  lastName: string;
+  since: string;
+  /** "Essential member", "Care only", "No care yet" — what they are to the brand. */
+  note: string;
+};
+
+/**
+ * Who can sign in, newest first: the people in your own records — the
+ * patient app's users are your users. With no database, the organization's
+ * Lithos patients instead.
+ */
+export async function listSignInChoices(client: LithosClient): Promise<SignInChoice[]> {
+  if (isDbConfigured()) {
+    const rows = await getDb()<Array<{ id: string; first_name: string; last_name: string; plan: string | null; lithos_patient_id: string | null; created_at: Date }>>`
+      SELECT id, first_name, last_name, plan, lithos_patient_id, created_at FROM members ORDER BY created_at DESC LIMIT 25`;
+    return rows.map((m) => ({
+      kind: "member",
+      id: m.id,
+      firstName: m.first_name,
+      lastName: m.last_name,
+      since: m.created_at.toISOString(),
+      note: [m.plan ? `${m.plan[0].toUpperCase()}${m.plan.slice(1)} member` : "Care only", m.lithos_patient_id ? null : "no care yet"].filter(Boolean).join(" · "),
+    }));
+  }
+  const patients = (await client.get<ListResponse<PatientListItem>>("/v1/patients?limit=25")).data;
+  return patients.map((p) => ({ kind: "patient", id: p.id, firstName: p.first_name, lastName: p.last_name, since: p.created_at, note: "Lithos patient" }));
+}
+
+/** Who's signed in, as the app knows them: the member, and their Lithos patient once they have one. */
+export type SignedIn = { member?: { id: string; firstName: string; lastName: string }; patientId?: string };
+
+export async function signedIn(): Promise<SignedIn | undefined> {
+  const identity = await readPortalIdentity();
+  if (!identity) return undefined;
+  if ("patientId" in identity) return { patientId: identity.patientId };
+  if (!isDbConfigured()) return undefined;
+  const [member] = await getDb()<Array<{ id: string; first_name: string; last_name: string; lithos_patient_id: string | null }>>`
+    SELECT id, first_name, last_name, lithos_patient_id FROM members WHERE id = ${identity.memberId}`;
+  if (!member) return undefined;
+  return { member: { id: member.id, firstName: member.first_name, lastName: member.last_name }, patientId: member.lithos_patient_id ?? undefined };
 }
 
 /**
- * The signed-in patient's portal, once per request — the shell and the page
- * both read it. Undefined when nobody is signed in.
+ * The signed-in person's portal, once per request — the shell and the page
+ * both read it. `care` is undefined for a member who hasn't asked for care yet.
  */
-export const signedInPortal = cache(async (): Promise<PortalData | undefined> => {
-  const patientId = await readPortalPatientId();
-  return patientId ? loadPortal(getLithosClient(), patientId) : undefined;
+export const signedInPortal = cache(async (): Promise<{ who: SignedIn; care?: PortalData } | undefined> => {
+  const who = await signedIn();
+  if (!who) return undefined;
+  return { who, care: who.patientId ? await loadPortal(getLithosClient(), who.patientId) : undefined };
 });

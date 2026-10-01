@@ -15,6 +15,8 @@ import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { rememberIssued } from "@/lib/setup/issued-cookie";
 import { signInAs } from "@/lib/portal/session";
+import { isDbConfigured } from "@/lib/db";
+import { findMemberByLithosPatientId, findOrCreateMemberForCare, linkMemberToLithos } from "@/lib/members";
 import { attemptFrom, stepKeys, type Attempt } from "@/lib/lithos/idempotency";
 import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
@@ -34,7 +36,7 @@ function refuseOutsideSandbox(): SetupActionState | null {
 async function requestCare(program: ProgramKey, treatmentId: string, attempt: Attempt): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
   const client = getLithosClient();
   const key = stepKeys(attempt);
-  const patientId = (await client.post<{ id: string }>("/v1/patients", samplePatient(attempt), key("patient"))).id;
+  const patientId = await createSamplePatient(attempt);
   const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program), key("care-plan"))).id;
   const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId), key("encounter"))).id;
   return { patientId, carePlanId, encounterId };
@@ -44,6 +46,24 @@ async function requestCare(program: ProgramKey, treatmentId: string, attempt: At
 function samplePatient(attempt: Attempt) {
   const at = attempt.at.toISOString();
   return { ...patientRequest(String(attempt.at.getTime())), telehealth_consented_at: at, identity_verified_at: at };
+}
+
+/**
+ * The walkthrough's patient, made the way the app makes anyone: in your own
+ * records first (lib/members.ts), with their member id as Lithos's external_id,
+ * linked once Lithos answers — so the walkthrough's patients are members like
+ * everyone else. Sent twice, it's the same member (the email comes from the
+ * attempt) and the same patient (replayed, or the saved link).
+ */
+async function createSamplePatient(attempt: Attempt): Promise<string> {
+  const body = samplePatient(attempt);
+  const member = isDbConfigured() ? await findOrCreateMemberForCare(body) : null;
+  if (member?.lithos_patient_id) return member.lithos_patient_id;
+  const created = await getLithosClient().post<{ id: string }>(
+    "/v1/patients", member ? { ...body, external_id: member.id } : body, stepKeys(attempt)("patient"),
+  );
+  if (member) await linkMemberToLithos(member.id, created.id);
+  return created.id;
 }
 
 const SANDBOX_URLS = {
@@ -225,7 +245,7 @@ export async function onboardSamplePatientAction(_prev: SetupActionState, formDa
 
     let { patientId, carePlanId } = ids;
     if (!patientId || ids.encounterId) {
-      patientId = (await client.post<{ id: string }>("/v1/patients", samplePatient(attempt), key("patient"))).id;
+      patientId = await createSamplePatient(attempt);
       carePlanId = undefined;
       await writeIds({ patientId });
     }
@@ -390,7 +410,11 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
  */
 export async function seeAsPatientAction(): Promise<void> {
   const { patientId } = await readIds();
-  if (patientId) await signInAs(patientId);
+  if (patientId) {
+    // As the member they are in your records, when they're there.
+    const member = isDbConfigured() ? await findMemberByLithosPatientId(patientId) : null;
+    await signInAs(member ? { memberId: member.id } : { patientId });
+  }
   redirect("/portal");
 }
 
