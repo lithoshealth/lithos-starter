@@ -1,3 +1,4 @@
+import { sandboxOpsOnly } from "@/lib/ops-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isDbConfigured } from "@/lib/db";
@@ -15,6 +16,7 @@ function ldlGap(latest: string | null, target: string | null): { text: string; t
 }
 
 export default async function MembersPage() {
+  sandboxOpsOnly();
   if (!isDbConfigured()) {
     return <section className="panel stack"><h1>Members</h1><p className="empty-state">DATABASE_URL isn’t set — run <code>./scripts/db-up.sh</code>.</p></section>;
   }

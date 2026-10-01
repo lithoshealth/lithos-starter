@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getBrand } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
+import { connectedOutsideSandbox } from "@/lib/lithos/sandbox";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
 import { EmbedMarker } from "./embed-marker";
 
@@ -17,6 +18,8 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
   const dev = process.env.NODE_ENV === "development";
   const brand = await getBrand();
   const connected = lithosConnection().connected;
+  // Connected somewhere other than the sandbox: the data may be real, so the ops pages are off.
+  const outside = connectedOutsideSandbox();
   // After setup is when webhooks break (a restarted tunnel), so keep watching.
   const health = dev && connected ? await webhookHealth() : null;
 
@@ -34,9 +37,11 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       )}
       {dev && health?.state !== "failing" && (
         <div className="dev-bar" role="note">
-          {connected
-            ? <>Connected to the Lithos sandbox — forms on this site create real sandbox patients and encounters. <Link href="/setup">Setup →</Link></>
-            : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
+          {outside
+            ? <>Connected to Lithos outside the sandbox ({process.env.LITHOS_API_BASE_URL}). The demo sign-in and the ops pages are off.</>
+            : connected
+              ? <>Connected to the Lithos sandbox — forms on this site create real sandbox patients and encounters. <Link href="/setup">Setup →</Link></>
+              : <>Setting up your Lithos sandbox? <Link href="/setup">Open the setup walkthrough →</Link></>}
         </div>
       )}
       <EmbedMarker />
@@ -64,13 +69,13 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <footer className="site-footer">
         <div className="footer-inner">
           <p className="footer-note"><strong>{brand.name}</strong> — {brand.tagline} © {new Date().getFullYear()}. Care is delivered by licensed clinicians. This is a demo build running against a sandbox — use sample patient details only.</p>
-          <nav className="footer-ops" aria-label="Operations">
+          {!outside && <nav className="footer-ops" aria-label="Operations">
             <span>Ops:</span>
             <Link href="/setup">Setup</Link>
             <Link href="/members">Members</Link>
             <Link href="/journeys">Journeys</Link>
             <Link href="/events">Webhook events</Link>
-          </nav>
+          </nav>}
         </div>
       </footer>
     </>

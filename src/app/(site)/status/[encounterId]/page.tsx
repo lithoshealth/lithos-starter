@@ -1,3 +1,4 @@
+import { sandboxOpsOnly } from "@/lib/ops-guard";
 import Link from "next/link";
 import { lithosConnection } from "@/lib/lithos/connection";
 import { NotConnected } from "../../not-connected";
@@ -22,6 +23,7 @@ export function StatusPageLinks({ encounterId }: { encounterId: string }) {
 }
 
 export default async function StatusPage({ params }: { params: Promise<{ encounterId: string }> }) {
+  sandboxOpsOnly();
   const { encounterId } = await params;
   if (!lithosConnection().connected) {
     return (

@@ -17,6 +17,7 @@
  */
 
 import type { LithosClient } from "./lithos/client";
+import { isSandboxBaseUrl } from "./lithos/sandbox";
 
 type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string };
 type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; requested_treatments: RequestedLine[]; modality?: string };
@@ -25,9 +26,7 @@ type CatalogTreatment = { id: string; name: string; status?: string; categories?
 
 export type SignOffResult = { chose?: string };
 
-export function isSandboxBaseUrl(baseUrl: string | undefined): boolean {
-  return Boolean(baseUrl && /\/\/api\.sandbox\./.test(baseUrl));
-}
+export { isSandboxBaseUrl };
 
 function refuseOutsideSandbox() {
   if (!isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL)) {

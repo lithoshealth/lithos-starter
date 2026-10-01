@@ -1,3 +1,4 @@
+import { sandboxOpsOnly } from "@/lib/ops-guard";
 import { JourneysDirectory } from "./directory";
 import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection } from "@/lib/lithos/connection";
@@ -7,6 +8,7 @@ import { NotConnected } from "../not-connected";
 export const dynamic = "force-dynamic";
 
 export default async function JourneysPage() {
+  sandboxOpsOnly();
   if (!lithosConnection().connected) {
     return (
       <section className="panel stack">

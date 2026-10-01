@@ -1,3 +1,4 @@
+import { sandboxOpsOnly } from "@/lib/ops-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -22,6 +23,7 @@ const ENCOUNTER_LABEL: Record<string, [string, string]> = {
 };
 
 export default async function MemberPage({ params }: { params: Promise<{ memberId: string }> }) {
+  sandboxOpsOnly();
   const { memberId } = await params;
   const record = await getMemberRecord(memberId);
   if (!record) notFound();

@@ -1,5 +1,6 @@
 "use server";
 
+import { connectedOutsideSandbox } from "@/lib/lithos/sandbox";
 import { revalidatePath } from "next/cache";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
 import { getLithosClient } from "@/lib/lithos/client";
@@ -21,6 +22,7 @@ const SCREENING_KEYS: Array<keyof ScreeningAnswers> = [
 
 /** The partner's escalation: screening answered now, treatment chosen by the member, hard stops applied before any call. */
 export async function escalateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (connectedOutsideSandbox()) return { status: "error", errors: [{ code: "ops.sandbox_only", message: "The ops pages work on the Lithos sandbox only. Put them behind your staff login first." }] };
   const memberId = String(formData.get("member_id") ?? "");
   const catalogTreatmentId = String(formData.get("catalog_treatment_id") ?? "") || undefined;
   if (formData.get("attested") !== "on") {
@@ -58,6 +60,7 @@ export async function escalateAction(_prev: ActionState, formData: FormData): Pr
 
 /** Relay the member's reply to the care team, then re-read the thread so the projection is current. */
 export async function replyToInquiryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (connectedOutsideSandbox()) return { status: "error", errors: [{ code: "ops.sandbox_only", message: "The ops pages work on the Lithos sandbox only. Put them behind your staff login first." }] };
   const memberId = String(formData.get("member_id") ?? "");
   const inquiryId = String(formData.get("inquiry_id") ?? "");
   const body = String(formData.get("body") ?? "").trim();

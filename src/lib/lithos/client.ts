@@ -1,5 +1,6 @@
 import { TokenManager, tokenConfigFromEnv } from "./auth";
 import { LithosApiError, parseApiErrors } from "./errors";
+import { isSandboxBaseUrl, nonSandboxAllowed, sandboxOnlyMessage } from "./sandbox";
 
 export type RequestOptions = { idempotencyKey?: string };
 
@@ -71,6 +72,8 @@ let singleton: { key: string; client: ServerLithosClient } | undefined;
 export function getLithosClient(): ServerLithosClient {
   const baseUrl = process.env.LITHOS_API_BASE_URL;
   if (!baseUrl) throw new Error("Missing required server environment variable: LITHOS_API_BASE_URL");
+  // Sandbox-only unless someone opts in on purpose (lib/lithos/sandbox.ts).
+  if (!isSandboxBaseUrl(baseUrl) && !nonSandboxAllowed()) throw new Error(sandboxOnlyMessage(baseUrl));
   const config = tokenConfigFromEnv();
   const key = [baseUrl, config.tokenUrl, config.clientId, config.clientSecret].join("\n");
   if (!singleton || singleton.key !== key) {

@@ -4,6 +4,7 @@ import { getBrand } from "@/lib/app-meta";
 import { getLithosClient } from "@/lib/lithos/client";
 import { journey } from "@/lib/portal/journey";
 import { listPatients } from "@/lib/portal/load";
+import { demoSignInEnabled } from "@/lib/portal/session";
 import {
   awaitingPatient, carePath, clinicianFullName, delivery, greeting, headline, medications, newestPlan, nextStep, orderFor, progress,
   upcomingVisit, type Clinician, type Medication, type NextStep, type PortalData, type Progress,
@@ -35,6 +36,7 @@ export default async function PortalHome() {
 // ------------------------------------------------------------------ sign-in
 
 async function SignIn() {
+  if (!demoSignInEnabled()) return <YourLogin />;
   const [brand, patients] = await Promise.all([getBrand(), listPatients(getLithosClient())]);
   const joined = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   return (
@@ -60,6 +62,26 @@ async function SignIn() {
           <p className="muted">Onboard one in step 3 of the <Link href="/setup">setup walkthrough</Link>, or through <Link href="/start">the care review</Link>.</p>
         </div>
       )}
+    </PortalShell>
+  );
+}
+
+/**
+ * Connected outside the sandbox there's no list of patients to pick from:
+ * the data may be real. A partner's app signs patients in with its own login.
+ */
+async function YourLogin() {
+  const brand = await getBrand();
+  return (
+    <PortalShell eyebrow="Your account" title={`Sign in to ${brand.name}`} lede="Patients sign in here with your own login.">
+      <div className="card-soft">
+        <p><strong>The demo sign-in is off.</strong></p>
+        <p className="muted">
+          This app is connected to Lithos outside the sandbox, where patients are real, so it won&rsquo;t list them or let
+          anyone pick one. Connect your own login in <code>src/lib/portal/session.ts</code>: read the signed-in user and
+          return their Lithos patient ID. Everything else on these pages works as it is.
+        </p>
+      </div>
     </PortalShell>
   );
 }

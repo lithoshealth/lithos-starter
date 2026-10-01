@@ -20,6 +20,7 @@ import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
 import { PROGRAMS, programFor, type ProgramKey, type ProgramOption } from "./programs";
 import { reviewIntake, type IntakeReview } from "../intake/review";
+import { isSandboxBaseUrl as isSandbox } from "@/lib/lithos/sandbox";
 
 export type StepKey =
   | "connect" | "program" | "patient" | "review" | "updates";
@@ -142,9 +143,7 @@ type WebhookDelivery = {
 const REQUIRED_ENV = ["LITHOS_API_BASE_URL", "LITHOS_TOKEN_URL", "LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET"] as const;
 
 /** The walkthrough creates patients. It must never do that against production. */
-export function isSandbox(baseUrl: string | undefined): boolean {
-  return Boolean(baseUrl && /\/\/api\.sandbox\./.test(baseUrl));
-}
+export { isSandbox };
 
 function redactToken(body: unknown): unknown {
   if (typeof body !== "object" || body === null) return body;

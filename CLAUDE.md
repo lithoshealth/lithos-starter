@@ -32,8 +32,11 @@ form for that. Once they've connected, help with whatever they ask.
   never reach the browser.
 - **Sandbox only, obviously fake patients only.** `src/lib/journey.ts` and
   `src/lib/join.ts` enforce Sample/Test names, `example.com` emails and 555
-  phones; `src/lib/setup/steps.ts` refuses any non-sandbox base URL. Keep all of
-  those guards.
+  phones; `src/lib/setup/steps.ts` refuses any non-sandbox base URL. The API
+  client refuses one too (`src/lib/lithos/sandbox.ts`) unless
+  `LITHOS_ALLOW_NON_SANDBOX=1`, and outside the sandbox the patient app's demo
+  sign-in and the ops pages switch off (`src/lib/portal/session.ts`,
+  `src/lib/ops-guard.ts`). Keep all of those guards.
 - Secrets only via env vars — `.env.example` documents the names. `.env.local`
   is gitignored; never commit it, never echo it.
 - Errors from the API render honestly — status plus the `errors[]` envelope

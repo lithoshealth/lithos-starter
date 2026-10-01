@@ -154,6 +154,30 @@ of the lipid management protocol. **It is an example of the kind of screening a
 partner does — not Lithos's clinical criteria.** Get the current protocol for
 your programs from your Lithos contact before relying on any rule in it.
 
+## Taking it to production
+
+This starter is built for the sandbox, and it protects itself there. Pointed at
+any other Lithos API, the API client refuses to run until you set
+`LITHOS_ALLOW_NON_SANDBOX=1` — a deliberate step, not a credentials swap. Even
+then, the demo conveniences stay off outside the sandbox: the patient app's
+sign-in list (anyone could pick any patient), the ops pages (`/journeys`,
+`/members`, `/events`, `/status`), and the demo controls.
+
+What's yours to build before real patients:
+
+- **Your login.** Patients: replace `src/lib/portal/session.ts` with your own
+  sign-in, mapping each user to their Lithos patient ID (you'll keep that
+  mapping in your database). Staff: put the ops pages behind it, then lift
+  `src/lib/ops-guard.ts`.
+- **Hosting and compliance.** HIPAA-ready hosting with a BAA, audit logging,
+  session security, and no patient data in logs.
+- **Running it.** Monitoring and alerts on webhook deliveries (the
+  `/events` page shows what this app heard; Lithos's delivery log shows what it
+  sent), rate limiting on your forms, backups of your own database.
+- **Your content.** The eligibility rules in `src/lib/escalation.ts`, the
+  plan's steps in `src/lib/portal/journey.ts` and the support answers in
+  `src/lib/portal/support.ts` are illustrative. Replace them with yours.
+
 ## Environment
 
 See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the

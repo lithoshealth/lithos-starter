@@ -1,3 +1,4 @@
+import { sandboxOpsOnly } from "@/lib/ops-guard";
 import Link from "next/link";
 import { getEventStore } from "@/lib/events/factory";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
@@ -5,6 +6,7 @@ import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
 export const dynamic = "force-dynamic";
 
 export default async function EventsPage() {
+  sandboxOpsOnly();
   let events;
   try {
     events = await getEventStore().list(100);
