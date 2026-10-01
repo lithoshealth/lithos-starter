@@ -1,4 +1,5 @@
-import { getDb } from "./db";
+import { getDb, newMemberId } from "./db";
+import type { PatientCreate } from "./lithos/types";
 
 export type Member = {
   id: string;
@@ -13,7 +14,8 @@ export type Member = {
   city: string | null;
   state: string | null;
   postal_code: string | null;
-  plan: "essential" | "complete";
+  /** Null for someone who came for care without buying a membership. */
+  plan: "essential" | "complete" | null;
   status: "active" | "paused" | "canceled";
   joined_at: string;
   coach_name: string | null;
@@ -110,6 +112,44 @@ export async function getMemberRecord(memberId: string): Promise<MemberRecord | 
  * second one — the API rejects a reused `external_id`, which is what makes the
  * retry safe.
  */
+/**
+ * The person requesting care, in Eucardia's own records — found by email, or
+ * added without a membership. One person, one row, whichever door they came in
+ * by: a care review now, `/join` later (or the other way round) lands on the
+ * same member, and so on the same Lithos patient. Their id is what Lithos gets
+ * as `external_id`.
+ */
+export async function findOrCreateMemberForCare(
+  patient: Omit<PatientCreate, "external_id" | "telehealth_consented_at" | "identity_verified_at">,
+): Promise<Pick<Member, "id" | "lithos_patient_id">> {
+  const sql = getDb();
+  const email = patient.email.toLowerCase();
+  const [existing] = await sql<Pick<Member, "id" | "lithos_patient_id">[]>`
+    SELECT id, lithos_patient_id FROM members WHERE lower(email) = ${email}`;
+  if (existing) return existing;
+  const [created] = await sql<Pick<Member, "id" | "lithos_patient_id">[]>`
+    INSERT INTO members ${sql({
+      id: newMemberId(),
+      email,
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      date_of_birth: patient.date_of_birth,
+      sex: patient.sex,
+      phone: patient.phone,
+      address_line1: patient.address.line1,
+      address_line2: patient.address.line2 ?? null,
+      city: patient.address.city,
+      state: patient.address.state,
+      postal_code: patient.address.postal_code,
+      enrolled_in_government_insurance: patient.enrolled_in_government_insurance,
+      plan: null,
+      status: "active",
+    })}
+    ON CONFLICT (email) DO UPDATE SET updated_at = now()
+    RETURNING id, lithos_patient_id`;
+  return created;
+}
+
 export async function linkMemberToLithos(memberId: string, lithosPatientId: string): Promise<void> {
   const sql = getDb();
   await sql`

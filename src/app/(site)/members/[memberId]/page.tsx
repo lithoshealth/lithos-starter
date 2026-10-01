@@ -40,7 +40,7 @@ export default async function MemberPage({ params }: { params: Promise<{ memberI
       <section className="panel stack">
         <div className="page-heading">
           <div>
-            <p className="eyebrow">Member · {member.plan} plan · {member.status}</p>
+            <p className="eyebrow">{member.plan ? `Member · ${member.plan} plan` : "Care only · no membership"} · {member.status}</p>
             <h1>{member.first_name} {member.last_name}</h1>
             <p className="muted">Joined {d(member.joined_at as unknown as string)} · coach {member.coach_name ?? "—"} · <code>{member.id}</code></p>
           </div>

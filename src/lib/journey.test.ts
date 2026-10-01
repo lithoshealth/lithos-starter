@@ -72,6 +72,14 @@ describe("journey payloads", () => {
     expect(resumedPost).toHaveBeenCalledWith("/v1/encounters", expect.objectContaining({ patient_id: "pat_1", care_plan_id: "cp_1" }), { idempotencyKey: expect.stringMatching(/:encounter$/) });
   });
 
+  it("carries on with the patient Lithos already has when the external id is taken", async () => {
+    const taken = new LithosApiError(422, [{ code: "patient.external_id_in_use", message: "in use", meta: { existing_patient_id: "pat_existing" } }]);
+    const post = vi.fn().mockRejectedValueOnce(taken).mockResolvedValueOnce({ id: "cp_1" }).mockResolvedValueOnce({ id: "enc_1" });
+    const result = await runJourney(input(), { post, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient, { externalId: "eu_mem_1" });
+    expect(result).toMatchObject({ status: "complete", patientId: "pat_existing", encounterId: "enc_1" });
+    expect(post.mock.calls[1][1]).toEqual({ patient_id: "pat_existing", category: "lipid_management" });
+  });
+
   it("stops before creating an encounter when the requirements check fails", async () => {
     const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" });
     const get = vi.fn().mockRejectedValue(new LithosApiError(422, [{ code: "care_plan.not_encounterable", message: "Not encounterable" }]));

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { isDbConfigured } from "@/lib/db";
-import { createMember, parseJoinForm } from "@/lib/join";
+import { AlreadyAMember, createMember, parseJoinForm } from "@/lib/join";
 import type { JoinState } from "@/lib/join-state";
 
 export async function joinAction(_previous: JoinState, formData: FormData): Promise<JoinState> {
@@ -16,6 +16,12 @@ export async function joinAction(_previous: JoinState, formData: FormData): Prom
     return { status: "failed", errors: [{ field: "database", message: "There's no member database connected, so this signup had nowhere to go." }] };
   }
 
-  const { memberId } = await createMember(parsed.value);
+  let memberId: string;
+  try {
+    ({ memberId } = await createMember(parsed.value));
+  } catch (error) {
+    if (!(error instanceof AlreadyAMember)) throw error;
+    return { status: "failed", errors: [{ field: "email", message: "That email already has a membership. Sign in instead." }] };
+  }
   redirect(`/welcome/${encodeURIComponent(memberId)}`);
 }

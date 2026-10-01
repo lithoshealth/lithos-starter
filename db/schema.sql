@@ -57,6 +57,11 @@ CREATE TABLE IF NOT EXISTS members (
 -- exactly why it's a column: escalation has to answer it, and null means "ask".
 ALTER TABLE members ADD COLUMN IF NOT EXISTS enrolled_in_government_insurance boolean;
 
+-- Not everyone here bought a membership: someone who comes straight to the care
+-- review is in Eucardia's records too — one person, one row, whichever door
+-- they came in by — with no plan. (CHECK passes on NULL, so this is enough.)
+ALTER TABLE members ALTER COLUMN plan DROP NOT NULL;
+
 -- Every biomarker panel we hold, whoever drew it. `source` matters: Eucardia
 -- ordered most of these long before Lithos existed for this member, and a
 -- clinician reviewing an encounter sees only what the intake carries.

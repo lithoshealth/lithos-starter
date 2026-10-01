@@ -244,7 +244,13 @@ export async function runJourney(
       );
       patientId = patient.id;
     } catch (error) {
-      return failure("patient", error, {});
+      // The external id already names a patient — this person, created before
+      // their link was saved here. Lithos says which; carry on with them.
+      const existing = error instanceof LithosApiError
+        ? error.errors.find((e) => e.code === "patient.external_id_in_use")?.meta?.existing_patient_id
+        : undefined;
+      if (typeof existing !== "string") return failure("patient", error, {});
+      patientId = existing;
     }
   }
 

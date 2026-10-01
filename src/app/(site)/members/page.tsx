@@ -52,7 +52,7 @@ export default async function MembersPage() {
                     <Link href={`/members/${encodeURIComponent(m.id)}`}><strong>{m.first_name} {m.last_name}</strong></Link>
                     <code className="secondary-id">{m.id}</code>
                   </td>
-                  <td>{m.plan} <span className={`badge ${m.status === "active" ? "badge-success" : "badge-outline"}`}>{m.status}</span></td>
+                  <td>{m.plan ?? "care only"} <span className={`badge ${m.status === "active" ? "badge-success" : "badge-outline"}`}>{m.status}</span></td>
                   <td>{m.coach_name ?? <span className="muted">—</span>}</td>
                   <td><span className={`badge ${gap.tone}`}>{gap.text}</span></td>
                   <td>{m.panel_count}</td>

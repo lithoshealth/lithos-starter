@@ -41,7 +41,7 @@ export default async function MemberHomePage({ params }: { params: Promise<{ mem
   const encounter = care?.encounters[0] ?? null;
   const status = encounter ? CARE_STATUS[encounter.status] ?? CARE_STATUS.pending_review : null;
   const latest = panels[0];
-  const planLabel = member.plan === "complete" ? "Complete" : "Essential";
+  const planLabel = member.plan === "complete" ? "Complete" : member.plan === "essential" ? "Essential" : "No membership";
 
   // Twelve weeks from the last panel is the re-test the program is built around.
   const daysIntoQuarter = latest ? daysSince(latest.drawn_on) : null;
@@ -51,7 +51,7 @@ export default async function MemberHomePage({ params }: { params: Promise<{ mem
     <section className="stack">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{planLabel} membership · {member.status}</p>
+          <p className="eyebrow">{member.plan ? `${planLabel} membership` : planLabel} · {member.status}</p>
           <h1>Hello, {member.first_name}.</h1>
           <p className="muted">
             Member since {formatDate(member.joined_at)}

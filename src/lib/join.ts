@@ -132,30 +132,45 @@ export function parseJoinForm(formData: FormData): { ok: true; value: JoinInput 
  * member who joined but whose prior lab silently vanished is worse than a
  * failed signup, because nothing downstream would ever notice.
  */
+export class AlreadyAMember extends Error {}
+
+/**
+ * A new membership. Someone who came for care first is already in the records
+ * (lib/members.ts → findOrCreateMemberForCare), with no plan: joining gives that
+ * same row a plan and a coach, so they stay one person with one Lithos patient.
+ * An email that already holds a membership is refused.
+ */
 export async function createMember(input: JoinInput): Promise<{ memberId: string; coach: string }> {
   const sql = getDb();
-  const memberId = newMemberId();
   const coach = COACHES[Math.floor(Math.random() * COACHES.length)];
+  let memberId = newMemberId();
 
   await sql.begin(async (tx) => {
-    await tx`
-      INSERT INTO members ${tx({
-        id: memberId,
-        email: input.email,
-        first_name: input.firstName,
-        last_name: input.lastName,
-        date_of_birth: input.dateOfBirth,
-        sex: input.sex,
-        phone: input.phone,
-        address_line1: input.address.line1,
-        address_line2: input.address.line2,
-        city: input.address.city,
-        state: input.address.state,
-        postal_code: input.address.postalCode,
-        plan: input.plan,
-        status: "active",
-        coach_name: coach,
-      })}`;
+    const [existing] = await tx<{ id: string; plan: string | null }[]>`
+      SELECT id, plan FROM members WHERE lower(email) = ${input.email.toLowerCase()} FOR UPDATE`;
+    if (existing?.plan) throw new AlreadyAMember(input.email);
+    const row = {
+      email: input.email,
+      first_name: input.firstName,
+      last_name: input.lastName,
+      date_of_birth: input.dateOfBirth,
+      sex: input.sex,
+      phone: input.phone,
+      address_line1: input.address.line1,
+      address_line2: input.address.line2,
+      city: input.address.city,
+      state: input.address.state,
+      postal_code: input.address.postalCode,
+      plan: input.plan,
+      status: "active",
+      coach_name: coach,
+    };
+    if (existing) {
+      memberId = existing.id;
+      await tx`UPDATE members SET ${tx({ ...row, joined_at: new Date(), updated_at: new Date() })} WHERE id = ${memberId}`;
+    } else {
+      await tx`INSERT INTO members ${tx({ id: memberId, ...row })}`;
+    }
 
     if (input.priorPanel) {
       await tx`

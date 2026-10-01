@@ -5,6 +5,8 @@ import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
 import { attemptFrom } from "@/lib/lithos/idempotency";
+import { isDbConfigured } from "@/lib/db";
+import { findOrCreateMemberForCare, linkMemberToLithos } from "@/lib/members";
 import { parseJourneyForm, runJourney, type JourneyState } from "@/lib/journey";
 import { holdSlot, releaseHold, type VisitOffer } from "@/lib/sync-visits";
 import { loadVisitOffer } from "@/lib/visit-offer";
@@ -27,7 +29,15 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
   if (!lithosConnection().connected) return { status: "failed", stage: "connection", errors: [notConnectedError()] };
 
   const client = getLithosClient();
-  const result = await runJourney(parsed.value, client, { attempt: attemptFrom(formData) });
+  // The person, in your own records first (lib/members.ts): found by email or
+  // added, and their id is the patient's external_id — so whichever door they
+  // came in by, they're one member and one Lithos patient.
+  const member = isDbConfigured() ? await findOrCreateMemberForCare(parsed.value.patient) : null;
+  if (member?.lithos_patient_id) parsed.value.resume.patientId ??= member.lithos_patient_id;
+  const result = await runJourney(parsed.value, client, { attempt: attemptFrom(formData), externalId: member?.id });
+  // Linked as soon as Lithos has the patient — even if a later step failed.
+  const patientId = "patientId" in result ? result.patientId : undefined;
+  if (member && !member.lithos_patient_id && patientId) await linkMemberToLithos(member.id, patientId);
   if (result.status === "needs_visit") {
     const offer = await loadVisitOffer(client, { patientId: result.patientId, carePlanId: result.carePlanId });
     return { ...result, offer };
