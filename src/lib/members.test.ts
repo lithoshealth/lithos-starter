@@ -2,7 +2,7 @@ import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getDb } from "./db";
+import { getDb, setEmbeddedDbUrl } from "./db";
 import { startEmbeddedDb, type EmbeddedDb } from "./embedded-db";
 import { AlreadyAMember, createMember } from "./join";
 import { findOrCreateMemberForCare, linkMemberToLithos } from "./members";
@@ -13,8 +13,7 @@ cpSync(path.join(process.cwd(), "db", "schema.sql"), path.join(root, "db", "sche
 let db: EmbeddedDb;
 beforeAll(async () => {
   db = await startEmbeddedDb(root);
-  process.env.DATABASE_URL = db.url;
-  process.env.LITHOS_EMBEDDED_DB = "1";
+  setEmbeddedDbUrl(db.url); // as the server's startup does
 }, 30_000);
 afterAll(async () => {
   await getDb().end();

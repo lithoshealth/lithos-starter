@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { databaseUrl } from "../db";
 import { MemoryEventStore } from "./memory-store";
 import { PostgresEventStore } from "./postgres-store";
 import type { EventStore } from "./store";
@@ -11,7 +12,7 @@ const globalEventStore = globalThis as typeof globalThis & {
 export function createEventStore(env: NodeJS.ProcessEnv = process.env): EventStore {
   // Eucardia's own database is the system of record for events once it exists;
   // the Redis and in-memory stores remain as the sample app's fallbacks.
-  if (env.DATABASE_URL) return new PostgresEventStore();
+  if (env === process.env ? databaseUrl() : env.DATABASE_URL) return new PostgresEventStore();
 
   if (env.VERCEL === "1") {
     const url = env.UPSTASH_REDIS_REST_URL;
