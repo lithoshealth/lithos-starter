@@ -9,6 +9,7 @@ try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process
 import { escalateMember } from "../src/lib/escalate";
 import { getLithosClient } from "../src/lib/lithos/client";
 import { getDb } from "../src/lib/db";
+import { newAttempt } from "../src/lib/lithos/idempotency";
 
 const memberId = process.argv[2] ?? "eu_mem_rivera";
 const catalogTreatmentId = process.argv[3] || undefined;
@@ -25,7 +26,7 @@ const result = await escalateMember({
     severe_renal_impairment: false, pregnancy: false, currently_taking_cyclosporine: false,
     ...overrides,
   },
-  attestedAt: new Date(),
+  attempt: newAttempt(),
   catalogTreatmentId,
 });
 

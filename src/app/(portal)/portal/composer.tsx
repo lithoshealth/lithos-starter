@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { sendMessageAction, type PortalActionState } from "./actions";
 import { Icon } from "./icons";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 /** The message box at the bottom of the chat. Sends into the open conversation, or starts one. */
 export function Composer({ threadId, draft }: { threadId?: string; draft?: string }) {
@@ -12,6 +13,7 @@ export function Composer({ threadId, draft }: { threadId?: string; draft?: strin
   useEffect(() => { if (state.status === "done") form.current?.reset(); }, [state]);
   return (
     <form ref={form} action={send} className="chat-composer">
+      <IdempotencyField renewOn={state} />
       {threadId && <input type="hidden" name="thread_id" value={threadId} />}
       <label className="visually-hidden" htmlFor="chat-body">Message your care team</label>
       <textarea id="chat-body" name="body" rows={1} placeholder="Message your care team…" defaultValue={draft} required maxLength={10_000} disabled={pending} />

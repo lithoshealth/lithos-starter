@@ -47,7 +47,7 @@ describe("journey payloads", () => {
     const get = vi.fn().mockResolvedValue(ASYNC);
     const client = { post, get } as unknown as LithosClient;
     await expect(runJourney(value, client, { now, externalId: "sample-fixed" })).resolves.toEqual({ status: "complete", patientId: "pat_1", carePlanId: "cp_1", encounterId: "enc_1", modality: "async" });
-    expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "lipid_management" }]);
+    expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "lipid_management" }, { idempotencyKey: expect.stringMatching(/:care-plan$/) }]);
     expect(get).toHaveBeenCalledWith("/v1/encounter_requirements?patient_id=pat_1&care_plan_id=cp_1");
   });
 
@@ -69,7 +69,7 @@ describe("journey payloads", () => {
     const resumedPost = vi.fn().mockResolvedValue({ id: "enc_2" });
     await expect(runJourney(resumed, { post: resumedPost, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient)).resolves.toMatchObject({ status: "complete", encounterId: "enc_2", modality: "async" });
     expect(resumedPost).toHaveBeenCalledTimes(1);
-    expect(resumedPost).toHaveBeenCalledWith("/v1/encounters", expect.objectContaining({ patient_id: "pat_1", care_plan_id: "cp_1" }), undefined);
+    expect(resumedPost).toHaveBeenCalledWith("/v1/encounters", expect.objectContaining({ patient_id: "pat_1", care_plan_id: "cp_1" }), { idempotencyKey: expect.stringMatching(/:encounter$/) });
   });
 
   it("stops before creating an encounter when the requirements check fails", async () => {
@@ -113,13 +113,26 @@ describe("journey payloads", () => {
     expect(result).not.toHaveProperty("encounterId");
   });
 
-  it("sends no hold or idempotency key for an async encounter", async () => {
+  it("sends no hold for an async encounter, and keys it from the attempt", async () => {
     const resumed = input();
     resumed.resume = { patientId: "pat_1", carePlanId: "cp_1" };
     const post = vi.fn().mockResolvedValueOnce({ id: "enc_1" });
-    await runJourney(resumed, { post, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient);
+    await runJourney(resumed, { post, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient, { attempt: { key: "a1", at: new Date() } });
     expect(post.mock.calls[0][1]).not.toHaveProperty("reservation_token");
-    expect(post.mock.calls[0][2]).toBeUndefined();
+    expect(post.mock.calls[0][2]).toEqual({ idempotencyKey: "a1:encounter" });
+  });
+
+  it("sends the same keys and bodies when one attempt is sent twice — so Lithos replays rather than duplicates", async () => {
+    const attempt = { key: "1790000000000-0f0e0d0c-0b0a-4908-8706-050403020100", at: new Date("2026-10-01T15:00:00Z") };
+    const send = async () => {
+      const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" }).mockResolvedValueOnce({ id: "enc_1" });
+      await runJourney(input(), { post, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient, { attempt });
+      return post.mock.calls;
+    };
+    const first = await send();
+    expect(await send()).toEqual(first);
+    expect(first.map((call) => call[2].idempotencyKey)).toEqual([`${attempt.key}:patient`, `${attempt.key}:care-plan`, `${attempt.key}:encounter`]);
+    expect(first[0][1]).toMatchObject({ external_id: `sample-${attempt.key}`, telehealth_consented_at: "2026-10-01T15:00:00.000Z" });
   });
 });
 
@@ -165,6 +178,6 @@ describe("weight-management journey", () => {
     if (!parsed.ok) throw new Error("fixture invalid");
     const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" }).mockResolvedValueOnce({ id: "enc_1" });
     await runJourney(parsed.value, { post, get: vi.fn() } as unknown as LithosClient, { externalId: "sample-fixed" });
-    expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "weight_management" }]);
+    expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "weight_management" }, { idempotencyKey: expect.stringMatching(/:care-plan$/) }]);
   });
 });

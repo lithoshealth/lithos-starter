@@ -5,6 +5,7 @@ import type { QuestionThread } from "@/lib/setup/steps";
 import { INITIAL_SETUP_ACTION_STATE } from "@/lib/setup/action-state";
 import { replyToQuestionAction } from "./actions";
 import { ActionError } from "./step-actions";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 /**
  * One question in the care team's inbox: the clinician's message and, while
@@ -27,6 +28,7 @@ export function InboxThread({ thread, sampleReply, showQuestion = true }: { thre
       )}
       {theirTurn ? (
         <form action={reply} className="stack">
+          <IdempotencyField renewOn={state} />
           <input type="hidden" name="inquiry_id" value={thread.id} />
           <label className="field">
             Your patient&rsquo;s reply, from your app

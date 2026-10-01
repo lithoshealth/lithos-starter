@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
+import { attemptFrom } from "@/lib/lithos/idempotency";
 import { parseJourneyForm, runJourney, type JourneyState } from "@/lib/journey";
 import { holdSlot, releaseHold, type VisitOffer } from "@/lib/sync-visits";
 import { loadVisitOffer } from "@/lib/visit-offer";
@@ -26,7 +27,7 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
   if (!lithosConnection().connected) return { status: "failed", stage: "connection", errors: [notConnectedError()] };
 
   const client = getLithosClient();
-  const result = await runJourney(parsed.value, client);
+  const result = await runJourney(parsed.value, client, { attempt: attemptFrom(formData) });
   if (result.status === "needs_visit") {
     const offer = await loadVisitOffer(client, { patientId: result.patientId, carePlanId: result.carePlanId });
     return { ...result, offer };

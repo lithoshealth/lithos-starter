@@ -8,6 +8,7 @@ import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { ApiError, Inquiry } from "@/lib/lithos/types";
 import { upsertInquiry } from "@/lib/projections";
+import { attemptFrom, stepKeys } from "@/lib/lithos/idempotency";
 
 export type ActionState =
   | { status: "idle" }
@@ -37,7 +38,7 @@ export async function escalateAction(_prev: ActionState, formData: FormData): Pr
   const enrolledInGovernmentInsurance =
     governmentInsurance === "true" ? true : governmentInsurance === "false" ? false : undefined;
 
-  const result = await escalateMember({ memberId, screening, attestedAt: new Date(), catalogTreatmentId, enrolledInGovernmentInsurance });
+  const result = await escalateMember({ memberId, screening, attempt: attemptFrom(formData), catalogTreatmentId, enrolledInGovernmentInsurance });
   revalidatePath(`/members/${memberId}`);
 
   if (result.status === "blocked") {
@@ -68,7 +69,7 @@ export async function replyToInquiryAction(_prev: ActionState, formData: FormDat
 
   const client = getLithosClient();
   try {
-    await client.post(`/v1/inquiries/${encodeURIComponent(inquiryId)}/messages`, { body });
+    await client.post(`/v1/inquiries/${encodeURIComponent(inquiryId)}/messages`, { body }, stepKeys(attemptFrom(formData))("message"));
     const inquiry = await client.get<Inquiry>(`/v1/inquiries/${encodeURIComponent(inquiryId)}`);
     await upsertInquiry(memberId, inquiry);
   } catch (error) {

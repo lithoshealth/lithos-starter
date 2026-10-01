@@ -5,6 +5,7 @@ import type { ApiError, CarePlan, Encounter, EncounterCreate, Modality, PatientC
 import { getMemberRecord, linkMemberToLithos, recordGovernmentInsurance } from "./members";
 import { readModality } from "./sync-visits";
 import { findOpenEncounter, findOpenInitialCarePlan, upsertCarePlan, upsertEncounter } from "./projections";
+import { stepKeys, type Attempt } from "./lithos/idempotency";
 
 /**
  * Push a member into Lithos medical care. This is the partner's side of the
@@ -29,8 +30,12 @@ export type ScreeningAnswers = {
 export type EscalateInput = {
   memberId: string;
   screening: ScreeningAnswers;
-  /** Timestamps of the telehealth consent and identity check taken at escalation. */
-  attestedAt: Date;
+  /**
+   * The escalation as one attempt (lib/lithos/idempotency.ts): its time is when
+   * the telehealth consent and identity check were taken, and each create is
+   * keyed from it, so sending it twice makes one patient, plan and encounter.
+   */
+  attempt: Attempt;
   /** The option the member chose at intake (protocol: patient chooses). Omitted = provider-choice line. */
   catalogTreatmentId?: string;
   /**
@@ -55,6 +60,7 @@ const SCREENING_HARD_STOPS: Array<keyof ScreeningAnswers> = [
 ];
 
 export async function escalateMember(input: EscalateInput): Promise<EscalateResult> {
+  const key = stepKeys(input.attempt);
   // Persist the answer before building the plan, so the hard stop below reads
   // what the member actually said rather than a default.
   if (input.enrolledInGovernmentInsurance !== undefined) {
@@ -78,11 +84,11 @@ export async function escalateMember(input: EscalateInput): Promise<EscalateResu
   if (!patientId) {
     const payload: PatientCreate = {
       ...plan.patient,
-      telehealth_consented_at: input.attestedAt.toISOString(),
-      identity_verified_at: input.attestedAt.toISOString(),
+      telehealth_consented_at: input.attempt.at.toISOString(),
+      identity_verified_at: input.attempt.at.toISOString(),
     };
     try {
-      const created = await client.post<{ id: string }>("/v1/patients", payload);
+      const created = await client.post<{ id: string }>("/v1/patients", payload, key("patient"));
       patientId = created.id;
     } catch (error) {
       if (!(error instanceof LithosApiError)) throw error;
@@ -117,7 +123,7 @@ export async function escalateMember(input: EscalateInput): Promise<EscalateResu
     carePlan = existingPlan;
   } else {
     try {
-      carePlan = await client.post<CarePlan>("/v1/care_plans", { patient_id: patientId, category: "lipid_management" });
+      carePlan = await client.post<CarePlan>("/v1/care_plans", { patient_id: patientId, category: "lipid_management" }, key("care-plan"));
       await upsertCarePlan(member.id, carePlan);
     } catch (error) {
       if (!(error instanceof LithosApiError)) throw error;
@@ -152,7 +158,7 @@ export async function escalateMember(input: EscalateInput): Promise<EscalateResu
     const encounter = await client.post<Encounter>(
       "/v1/encounters",
       encounterPayload,
-      input.visit ? { idempotencyKey: input.visit.idempotencyKey } : undefined,
+      input.visit ? { idempotencyKey: input.visit.idempotencyKey } : key("encounter"),
     );
     await upsertEncounter(member.id, encounter);
     return { status: "complete", patientId, carePlanId: carePlan.id, encounterId: encounter.id, linkedToExisting, plan, encounter, modality };

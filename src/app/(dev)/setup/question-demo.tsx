@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE } from "@/lib/setup/action-state";
 import { askNewPatientAction } from "./actions";
 import { ActionError } from "./step-actions";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 /**
  * Step 5's first stop: the clinician's question, written already from the
@@ -15,6 +16,7 @@ export function AskQuestionForm({ question, again, disabled }: { question: strin
   const [state, ask, pending] = useActionState(askNewPatientAction, INITIAL_SETUP_ACTION_STATE, "/setup#webhook-demo");
   return (
     <form action={ask} className="stack ask-question">
+      <IdempotencyField renewOn={state} />
       <label className="visually-hidden" htmlFor={again ? "question-again" : "question"}>The clinician&rsquo;s question</label>
       <textarea
         id={again ? "question-again" : "question"} name="question" className="chat-bubble chat-bubble-clinician"

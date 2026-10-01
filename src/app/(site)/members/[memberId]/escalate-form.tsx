@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { escalateAction, type ActionState } from "./actions";
 import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../not-connected";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 const SCREENING: Array<[string, string]> = [
   ["established_atherosclerotic_cardiovascular_disease", "Diagnosed heart disease, stroke/TIA, or peripheral artery disease"],
@@ -37,6 +38,7 @@ export function EscalateForm({
 
   return (
     <form action={action} className="stack">
+      <IdempotencyField renewOn={state} />
       <input type="hidden" name="member_id" value={memberId} />
 
       {state.status === "blocked" && (

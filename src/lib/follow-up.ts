@@ -4,6 +4,7 @@ import { LithosApiError } from "./lithos/errors";
 import type { ApiError, CarePlan, Encounter, EncounterCreate, LipidManagementFollowUpIntake, RequestedTreatmentLine } from "./lithos/types";
 import { getMemberRecord } from "./members";
 import { upsertEncounter } from "./projections";
+import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
 /**
  * The treat-to-target recheck — the loop a preventive clinic lives on, and the
@@ -45,6 +46,8 @@ export type FollowUpInput = {
   /** Catalog slug to add as a second agent when still above target (the protocol's "suggest the complementary agent"). */
   addAgent?: string;
   fhResponsive?: LipidManagementFollowUpIntake["familial_hypercholesterolemia_responsive"];
+  /** The recheck as one attempt (lib/lithos/idempotency.ts): sent twice, one encounter. */
+  attempt?: Attempt;
 };
 
 export type FollowUpResult =
@@ -136,7 +139,7 @@ export async function followUpMember(input: FollowUpInput): Promise<FollowUpResu
   };
 
   try {
-    const encounter = await client.post<Encounter>("/v1/encounters", payload);
+    const encounter = await client.post<Encounter>("/v1/encounters", payload, stepKeys(input.attempt ?? newAttempt())("encounter"));
     await upsertEncounter(member.id, encounter);
     return { status: "complete", encounterId: encounter.id, encounter, decision, lines };
   } catch (error) {

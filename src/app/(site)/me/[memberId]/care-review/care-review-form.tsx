@@ -7,6 +7,7 @@ import { INITIAL_CARE_REQUEST_STATE } from "@/lib/care-request-state";
 import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../../not-connected";
 import { VisitStep } from "../../../_visit/visit-step";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 const FORM_ID = "care-review-form";
 
@@ -38,6 +39,7 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
   return (
     <>
     <form id={FORM_ID} action={action} className="stack">
+      <IdempotencyField renewOn={state} />
       <input type="hidden" name="member_id" value={memberId} />
 
       <div ref={feedbackRef} className="feedback-anchor">

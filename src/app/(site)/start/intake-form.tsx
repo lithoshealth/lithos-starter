@@ -10,6 +10,7 @@ import type { ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_SCREENING } from "@/lib/intake/lipid";
+import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
 
@@ -89,6 +90,8 @@ function NotLoadedNotice() {
 export function IntakeForm({ brandName, program, style }: { brandName: string; program: ProgramKey; style: IntakeStyle }) {
   const chat = style === "chat";
   const [state, action, pending] = useActionState(createJourneyAction, INITIAL_JOURNEY_STATE);
+  const attempt = useRef("");
+  useEffect(() => { attempt.current = ""; }, [state]);
   const failed = state.status === "failed";
   const feedbackRef = useScrollToFeedback(state, failed);
   const retrying = failed && Boolean(state.patientId);
@@ -368,6 +371,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     if (screen < last) return next();
     for (let i = 0; i < screens.length; i++) if (!screenValid(i)) return;
     const data = new FormData(event.currentTarget);
+    // One attempt per sent intake (lib/lithos/idempotency.ts): stamped when it's
+    // sent, kept for a double submit, cleared by the answer below.
+    attempt.current ||= newAttemptKey();
+    data.set("idempotency_key", attempt.current);
     startTransition(() => action(data));
   }
 

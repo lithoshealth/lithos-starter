@@ -119,7 +119,7 @@ endpoint, field, error code and webhook event — is documented at
 
 | Path | What it is |
 |---|---|
-| `src/lib/lithos/` | The API client: token minting and caching, requests, the `errors[]` envelope, types |
+| `src/lib/lithos/` | The API client: token minting and caching, requests, the `errors[]` envelope, types, the sandbox-only guard, and idempotency keys — every create is sent with one, so a double click or a retried request makes one record, not two |
 | `src/lib/webhooks/` | Signature verification (HMAC-SHA256 over `"<t>.<raw body>"`) and the delivery handler |
 | `src/app/api/webhooks/lithos/` | The webhook receiver |
 | `src/lib/setup/` | The walkthrough: step checks and the exact request bodies it sends |

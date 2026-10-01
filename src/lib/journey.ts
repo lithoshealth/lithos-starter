@@ -12,6 +12,7 @@ import type { LithosClient } from "./lithos/client";
 import { readModality, type VisitOffer } from "./sync-visits";
 import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
 import type { ProgramKey } from "./setup/programs";
+import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
 /** `connection`: the form was valid, but the app has no Lithos credentials to send it with. */
 export type JourneyStage = "validation" | "connection" | "patient" | "care_plan" | "requirements" | "encounter" | "configuration";
@@ -225,16 +226,21 @@ function failure(stage: JourneyStage, error: unknown, ids: { patientId?: string;
 export async function runJourney(
   input: JourneyInput,
   client: LithosClient,
-  options: { now?: Date; externalId?: string } = {},
+  options: { now?: Date; externalId?: string; attempt?: Attempt } = {},
 ): Promise<JourneyState> {
   let patientId = input.resume.patientId;
   let carePlanId = input.resume.carePlanId;
+  // One attempt per submit (lib/lithos/idempotency.ts): sent twice, each step
+  // replays instead of making a second patient, plan or encounter.
+  const attempt = options.attempt ?? newAttempt(options.now);
+  const key = stepKeys(attempt);
 
   if (!patientId) {
     try {
       const patient = await client.post<IdResponse>(
         "/v1/patients",
-        buildPatientPayload(input, options.now ?? new Date(), options.externalId ?? `sample-${crypto.randomUUID()}`),
+        buildPatientPayload(input, options.now ?? attempt.at, options.externalId ?? `sample-${attempt.key}`),
+        key("patient"),
       );
       patientId = patient.id;
     } catch (error) {
@@ -247,7 +253,7 @@ export async function runJourney(
       const carePlan = await client.post<IdResponse>("/v1/care_plans", {
         patient_id: patientId,
         category: input.program,
-      });
+      }, key("care-plan"));
       carePlanId = carePlan.id;
     } catch (error) {
       return failure("care_plan", error, { patientId });
@@ -276,7 +282,7 @@ export async function runJourney(
     const encounter = await client.post<IdResponse>(
       "/v1/encounters",
       buildEncounterPayload(input, patientId, carePlanId),
-      input.visit ? { idempotencyKey: input.visit.idempotencyKey } : undefined,
+      input.visit ? { idempotencyKey: input.visit.idempotencyKey } : key("encounter"),
     );
     encounterId = encounter.id;
   } catch (error) {

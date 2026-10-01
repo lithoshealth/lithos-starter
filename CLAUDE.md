@@ -56,6 +56,12 @@ form for that. Once they've connected, help with whatever they ask.
   document shell. Route groups don't change URLs.
 - **The setup walkthrough derives every step from a live API call.** Never mark a
   step done from local state alone — that's what makes it trustworthy.
+- **Every create is idempotent.** Patients, care plans, encounters, conversations,
+  messages and webhook endpoints are sent with an `Idempotency-Key` from the
+  attempt (`src/lib/lithos/idempotency.ts`); forms carry one in
+  `<IdempotencyField />` (`src/app/idempotency-field.tsx`). The attempt also
+  fixes the body — consent time, sample external ids — because Lithos refuses a
+  key reused with a different body. A new create follows the same pattern.
 - **Webhooks are thin.** An event carries a type and a `resource_id`; re-read the
   resource with a `GET` and store that. Never treat a payload as state.
 - **The event store:** Postgres when `DATABASE_URL` is set, Upstash Redis when

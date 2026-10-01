@@ -9,6 +9,7 @@ import { readPortalPatientId, signInAs, signOut } from "@/lib/portal/session";
 import { contentFor } from "@/lib/programs/content";
 import { askPatientAsClinician, declineAsClinician, isSandboxBaseUrl, signOffAsClinician } from "@/lib/sandbox-review";
 import { programFor } from "@/lib/setup/programs";
+import { attemptFrom, stepKeys } from "@/lib/lithos/idempotency";
 
 export type PortalActionState =
   | { status: "idle" }
@@ -53,12 +54,14 @@ export async function sendMessageAction(_prev: PortalActionState, formData: Form
   if (!patientId) return { status: "error", errors: [{ code: "portal.signed_out", message: "Sign in again to send it." }] };
 
   const client = getLithosClient();
+  // Sent twice (a double tap, a lost response), it's one message.
+  const key = stepKeys(attemptFrom(formData));
   try {
     if (threadId) {
-      await client.post(`/v1/inquiries/${encodeURIComponent(threadId)}/messages`, { body });
+      await client.post(`/v1/inquiries/${encodeURIComponent(threadId)}/messages`, { body }, key("message"));
     } else {
       const subject = body.length > 60 ? `${body.slice(0, 57).trimEnd()}…` : body;
-      await client.post(`/v1/patients/${encodeURIComponent(patientId)}/inquiries`, { subject, message: { body } });
+      await client.post(`/v1/patients/${encodeURIComponent(patientId)}/inquiries`, { subject, message: { body } }, key("conversation"));
     }
   } catch (error) {
     return failed(error);

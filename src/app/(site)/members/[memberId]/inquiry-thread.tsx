@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { Inquiry, InquirySender } from "@/lib/lithos/types";
 import { replyToInquiryAction, type ActionState } from "./actions";
+import { IdempotencyField } from "@/app/idempotency-field";
 
 function when(value: string | null | undefined): string {
   return value ? new Date(value).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
@@ -57,6 +58,7 @@ export function InquiryThread({ memberId, inquiry }: { memberId: string; inquiry
 
       {yourTurn && (
         <form action={action} className="stack">
+          <IdempotencyField renewOn={state} />
           <input type="hidden" name="member_id" value={memberId} />
           <input type="hidden" name="inquiry_id" value={inquiry.id} />
           {state.status === "error" && <div className="error-box"><ul>{state.errors.map((e, i) => <li key={i}>{e.message}</li>)}</ul></div>}

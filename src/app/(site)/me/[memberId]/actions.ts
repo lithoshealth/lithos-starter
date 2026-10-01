@@ -6,6 +6,7 @@ import type { CareRequestState } from "@/lib/care-request-state";
 import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { loadVisitOffer } from "@/lib/visit-offer";
+import { attemptFrom } from "@/lib/lithos/idempotency";
 
 const SCREENING_KEYS: Array<keyof ScreeningAnswers> = [
   "established_atherosclerotic_cardiovascular_disease", "recent_cardiac_condition", "drug_hypersensitivity",
@@ -46,7 +47,7 @@ export async function requestCareAction(_prev: CareRequestState, formData: FormD
   const result = await escalateMember({
     memberId,
     screening,
-    attestedAt: new Date(),
+    attempt: attemptFrom(formData),
     catalogTreatmentId,
     enrolledInGovernmentInsurance: governmentInsurance === "true",
     ...(reservationToken && idempotencyKey ? { visit: { reservationToken, idempotencyKey } } : {}),

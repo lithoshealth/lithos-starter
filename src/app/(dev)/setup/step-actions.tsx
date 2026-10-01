@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type IssuedCredentials, type SetupActionState } from "@/lib/setup/action-state";
 import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
+import { IdempotencyField } from "../../idempotency-field";
 
 export function ActionError({ state }: { state: SetupActionState }) {
   if (state.status !== "error") return null;
@@ -139,7 +140,7 @@ export function StepAction({
   step,
   variant = "primary",
 }: {
-  action: (state: SetupActionState) => Promise<SetupActionState>;
+  action: (state: SetupActionState, formData: FormData) => Promise<SetupActionState>;
   label: string;
   pendingLabel: string;
   /** The step this button belongs to — where the page lands if it has to reload. */
@@ -149,6 +150,7 @@ export function StepAction({
   const [state, run, pending] = useActionState(action, INITIAL_SETUP_ACTION_STATE, stepAnchor(step));
   return (
     <form action={run} className="stack">
+      <IdempotencyField renewOn={state} />
       <div>
         <button type="submit" className={`btn btn-${variant}`} disabled={pending}>{pending ? pendingLabel : label}</button>
       </div>
@@ -245,6 +247,7 @@ export function WebhookForm({ defaultUrl }: { defaultUrl: string }) {
 
   return (
     <form action={run} className="stack">
+      <IdempotencyField renewOn={state} />
       <label className="field">
         Your app&rsquo;s public HTTPS address
         <input name="public_url" defaultValue={defaultUrl} placeholder="https://something.trycloudflare.com" required />
@@ -270,6 +273,7 @@ export function RepointForm({
       <summary>Point your endpoint at this app instead</summary>
       {children}
       <form action={run} className="stack" style={{ marginTop: "0.5rem" }}>
+        <IdempotencyField renewOn={state} />
         <input type="hidden" name="current_endpoint_id" value={currentId} />
         <label className="field">
           This app&rsquo;s public HTTPS address
@@ -303,6 +307,7 @@ export function NewSecretForm({ currentId, url }: { currentId: string; url: stri
   const base = url.replace(/\/api\/webhooks\/lithos$/, "");
   return (
     <form action={run} className="stack">
+      <IdempotencyField renewOn={state} />
       <input type="hidden" name="current_endpoint_id" value={currentId} />
       <input type="hidden" name="public_url" value={base} />
       <input type="hidden" name="confirm_repoint" value="on" />

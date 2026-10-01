@@ -15,6 +15,7 @@ import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { rememberIssued } from "@/lib/setup/issued-cookie";
 import { signInAs } from "@/lib/portal/session";
+import { attemptFrom, stepKeys, type Attempt } from "@/lib/lithos/idempotency";
 import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
@@ -30,13 +31,19 @@ function refuseOutsideSandbox(): SetupActionState | null {
 }
 
 /** A new sample patient requesting care: the three calls step 3 and the intake make. */
-async function requestCare(program: ProgramKey, treatmentId: string): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
+async function requestCare(program: ProgramKey, treatmentId: string, attempt: Attempt): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
   const client = getLithosClient();
-  const now = new Date().toISOString();
-  const patientId = (await client.post<{ id: string }>("/v1/patients", { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now })).id;
-  const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program))).id;
-  const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId))).id;
+  const key = stepKeys(attempt);
+  const patientId = (await client.post<{ id: string }>("/v1/patients", samplePatient(attempt), key("patient"))).id;
+  const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program), key("care-plan"))).id;
+  const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId), key("encounter"))).id;
   return { patientId, carePlanId, encounterId };
+}
+
+/** A sample patient whose every field comes from the attempt, so sending it twice sends the same body. */
+function samplePatient(attempt: Attempt) {
+  const at = attempt.at.toISOString();
+  return { ...patientRequest(String(attempt.at.getTime())), telehealth_consented_at: at, identity_verified_at: at };
 }
 
 const SANDBOX_URLS = {
@@ -201,7 +208,7 @@ export async function clearProgramAction(): Promise<void> {
  * sample answers. Picks up where a half-finished run stopped (a patient with
  * no care requested yet) rather than creating another.
  */
-export async function onboardSamplePatientAction(): Promise<SetupActionState> {
+export async function onboardSamplePatientAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
 
@@ -210,22 +217,22 @@ export async function onboardSamplePatientAction(): Promise<SetupActionState> {
   if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
 
   const client = getLithosClient();
+  const attempt = attemptFrom(formData);
+  const key = stepKeys(attempt);
   try {
     const treatment = await readProgramTreatment(program.key);
     if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
 
     let { patientId, carePlanId } = ids;
     if (!patientId || ids.encounterId) {
-      const now = new Date().toISOString();
-      const body = { ...patientRequest(String(Date.now())), telehealth_consented_at: now, identity_verified_at: now };
-      patientId = (await client.post<{ id: string }>("/v1/patients", body)).id;
+      patientId = (await client.post<{ id: string }>("/v1/patients", samplePatient(attempt), key("patient"))).id;
       carePlanId = undefined;
       await writeIds({ patientId });
     }
-    carePlanId ??= (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program.key))).id;
+    carePlanId ??= (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program.key), key("care-plan"))).id;
     await writeIds({ patientId, carePlanId });
 
-    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, patientId, carePlanId, treatment.id));
+    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, patientId, carePlanId, treatment.id), key("encounter"));
     await writeIds({ patientId, carePlanId, encounterId: encounter.id });
   } catch (error) {
     return failure(error);
@@ -296,10 +303,12 @@ export async function askNewPatientAction(_prev: SetupActionState, formData: For
   if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
 
   const client = getLithosClient();
+  const attempt = attemptFrom(formData);
+  const key = stepKeys(attempt);
   try {
     const treatment = await readProgramTreatment(program.key);
     if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
-    const journey = await requestCare(program.key, treatment.id);
+    const journey = await requestCare(program.key, treatment.id, attemptFrom(formData));
     await writeIds({ ...ids, questionPatientId: journey.patientId, questionEncounterId: journey.encounterId });
     await askPatientAsClinician(client, journey.encounterId, question);
   } catch (error) {
@@ -326,7 +335,7 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
 
   try {
     const created = await getLithosClient().post<{ id: string; url: string; signing_secret: string }>(
-      "/v1/webhook_endpoints", webhookEndpointRequest(url),
+      "/v1/webhook_endpoints", webhookEndpointRequest(url), stepKeys(attemptFrom(formData))("webhook-endpoint"),
     );
     revalidatePath("/setup");
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
@@ -365,7 +374,7 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
   const client = getLithosClient();
   try {
     await client.post(`/v1/webhook_endpoints/${currentId}/disable`, {});
-    const created = await client.post<{ id: string; url: string; signing_secret: string }>("/v1/webhook_endpoints", webhookEndpointRequest(url));
+    const created = await client.post<{ id: string; url: string; signing_secret: string }>("/v1/webhook_endpoints", webhookEndpointRequest(url), stepKeys(attemptFrom(formData))("webhook-endpoint"));
     revalidatePath("/setup");
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
@@ -409,7 +418,7 @@ export async function replyToQuestionAction(_prev: SetupActionState, formData: F
   if (!/^inq_/.test(inquiryId)) return { status: "error", errors: [{ code: "setup.no_inquiry", message: "No question to reply to." }] };
   if (!body) return { status: "error", errors: [{ code: "setup.empty_reply", message: "Write your patient's reply first." }] };
   try {
-    await getLithosClient().post(`/v1/inquiries/${inquiryId}/messages`, { body });
+    await getLithosClient().post(`/v1/inquiries/${inquiryId}/messages`, { body }, stepKeys(attemptFrom(formData))("message"));
   } catch (error) {
     return failure(error);
   }
