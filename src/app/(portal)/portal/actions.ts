@@ -28,9 +28,16 @@ export async function signInAction(formData: FormData): Promise<void> {
   redirect("/portal");
 }
 
+/** Demo: back to the list of sample patients. */
 export async function signOutAction(): Promise<void> {
   await signOut();
   redirect("/portal");
+}
+
+/** Sign out, as a patient would: back to the site's home page. */
+export async function signOutToSiteAction(): Promise<void> {
+  await signOut();
+  redirect("/");
 }
 
 /**

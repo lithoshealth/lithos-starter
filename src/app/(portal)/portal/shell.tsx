@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { getBrand } from "@/lib/app-meta";
 import { isSandboxBaseUrl } from "@/lib/sandbox-review";
 import { awaitingPatient, type PortalData } from "@/lib/portal/view";
-import { signOutAction } from "./actions";
+import { signOutAction, signOutToSiteAction } from "./actions";
 import { DemoControls } from "./demo-controls";
 import { Icon } from "./icons";
 
@@ -45,7 +45,13 @@ export async function PortalShell({ tab, eyebrow, title, lede, data, children }:
                 <Link href="/portal/messages" className="app-bell" aria-label={unread ? `${unread} message waiting` : "Messages"}>
                   <Icon name="bell" />{unread > 0 && <span className="app-dot" />}
                 </Link>
-                <span className="app-avatar" aria-hidden="true">{initials(data.patient.first_name, data.patient.last_name)}</span>
+                <details className="app-menu">
+                  <summary className="app-avatar" aria-label="Your account">{initials(data.patient.first_name, data.patient.last_name)}</summary>
+                  <div className="app-menu-panel">
+                    <p className="app-menu-name">{data.patient.first_name} {data.patient.last_name}</p>
+                    <form action={signOutToSiteAction}><button className="app-menu-item">Sign out</button></form>
+                  </div>
+                </details>
               </div>
             )}
           </div>

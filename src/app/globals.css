@@ -536,6 +536,14 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .app-bell { position: relative; color: inherit; display: inline-flex; }
 .app-dot { position: absolute; top: -1px; right: -1px; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5ee0b6; box-shadow: 0 0 0 2px var(--primary); }
 .app-avatar { display: inline-grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: color-mix(in srgb, #fff 22%, transparent); font-size: 0.8rem; font-weight: 700; }
+.app-menu { position: relative; }
+.app-menu summary { list-style: none; cursor: pointer; }
+.app-menu summary::-webkit-details-marker { display: none; }
+.app-menu[open] summary { background: color-mix(in srgb, #fff 35%, transparent); }
+.app-menu-panel { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 40; min-width: 12rem; padding: 0.4rem; border-radius: 0.8rem; background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.app-menu-name { margin: 0; padding: 0.5rem 0.7rem 0.6rem; font-weight: 700; font-size: 0.9rem; border-bottom: 1px solid var(--line); }
+.app-menu-item { width: 100%; margin-top: 0.3rem; padding: 0.55rem 0.7rem; border: 0; border-radius: 0.5rem; background: none; color: var(--ink); font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
+.app-menu-item:hover { background: var(--primary-soft); }
 .app-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
 .app-title { margin: 0.2rem 0 0; color: inherit; font-size: 1.9rem; font-weight: 600; }
 .app-lede { margin: 0.45rem 0 0; max-width: 26rem; font-size: 0.95rem; opacity: 0.88; }
