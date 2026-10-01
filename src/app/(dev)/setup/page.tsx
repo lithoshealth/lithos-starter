@@ -388,12 +388,15 @@ export default async function SetupPage() {
         )}
         <div className="setup-next-cards">
           <div className="setup-next-card">
-            {/* Once a patient has a decision, the app is theirs: open it signed in as the walkthrough's patient. */}
+            {/* Once a patient has a decision, the app has two sides: the site a visitor finds, and the patient's own app. */}
             {finished && ids.patientId ? (
               <>
                 <h3>Use it</h3>
-                <p className="muted">Your app, as your patient sees it: their prescription, its delivery, and their care team.</p>
-                <form action={seeAsPatientAction}><button className="btn btn-primary">Open app</button></form>
+                <p className="muted">Your app two ways: as someone finding you for the first time, and as a patient coming back.</p>
+                <div className="setup-next-stack">
+                  <Link href="/" className="btn btn-ghost">As a visitor</Link>
+                  <form action={seeAsPatientAction}><button className="btn btn-primary">As a patient</button></form>
+                </div>
               </>
             ) : (
               <>
