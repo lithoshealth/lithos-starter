@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CarePlan, Inquiry, Patient } from "@/lib/lithos/types";
-import { carePath, clinicianName, delivery, medications, nextStep, progress, type Order, type PortalData, type PortalEncounter } from "./view";
+import { journey } from "./journey";
+import { carePath, clinicianName, delivery, greeting, headline, medications, nextStep, progress, type Order, type PortalData, type PortalEncounter } from "./view";
 
 const when = (iso: string) => `at ${iso}`;
 const imad = { first_name: "Imad", last_name: "Mouaddine", credentials: "MD" };
@@ -46,7 +47,7 @@ const question: Inquiry = {
 function data(overrides: Partial<PortalData> = {}): PortalData {
   return {
     patient: { id: "pat_1", first_name: "Sample", last_name: "Walkthrough", time_zone: "America/New_York" } as Patient,
-    carePlans: [plan()], encounters: [encounter()], orders: [order()], inquiries: [], treatmentNames: { lerochol: "Lerochol" },
+    carePlans: [plan()], encounters: [encounter()], orders: [order()], inquiries: [], catalog: { lerochol: { name: "Lerochol", form: "subcutaneous_injection", presentation: "prefilled_syringe" } },
     ...overrides,
   };
 }
@@ -55,6 +56,19 @@ describe("nextStep", () => {
   it("puts the care team's unanswered question first, whatever else is going on", () => {
     const step = nextStep(data({ inquiries: [question] }), when);
     expect(step).toMatchObject({ kind: "question", title: "Dr. Mouaddine has a question for you", detail: "Any muscle aches?", inquiryId: "inq_1" });
+  });
+
+  it("calls it a reply when the patient started the conversation", () => {
+    const answer: Inquiry = {
+      ...question,
+      messages: [
+        { id: "msg_0", body: "Take it with food?", sender: { type: "patient", id: "pat_1" }, attachments: [], created_at: "2026-09-30T09:00:00Z" },
+        ...question.messages!,
+      ],
+    };
+    const step = nextStep(data({ inquiries: [answer] }), when);
+    expect(step).toMatchObject({ kind: "question", title: "Dr. Mouaddine replied to you", reply: true });
+    expect(headline(data({ inquiries: [answer] }), step, when)).toBe("You have a new message from your care team.");
   });
 
   it("says a clinician is reviewing while the request is open", () => {
@@ -94,14 +108,19 @@ describe("carePath", () => {
 describe("medications and delivery", () => {
   it("names the treatment, with the prescription behind it", () => {
     expect(medications(data())).toEqual([{
-      name: "Lerochol", strength: "300 mg/1.2 mL", instructions: "Inject once monthly.", daysSupply: 28,
-      prescriber: "Dr. Mouaddine", refillDueAt: "2026-10-27T00:00:00Z", orderId: "ord_1",
+      name: "Lerochol", strength: "300 mg/1.2 mL", amount: "1 prefilled syringe", instructions: "Inject once monthly.", daysSupply: 28,
+      prescriber: "Dr. Mouaddine", writtenAt: "2026-09-29T20:00:00Z", refillDueAt: "2026-10-27T00:00:00Z", refillEligible: false, orderId: "ord_1",
     }]);
   });
 
   it("shows tracking once the pharmacy ships", () => {
-    const shipped = order({ status: "placed", fulfillment: { status: "shipped", carrier: "UPS", tracking_number: "1Z999" } });
-    expect(delivery(shipped)).toMatchObject({ label: "Shipped", detail: "Shipped with UPS · tracking 1Z999" });
+    const shipped = order({
+      status: "placed", placed_at: "2026-09-30T15:00:00Z", fulfillment: { status: "shipped", carrier: "UPS", tracking_number: "1Z999" },
+      pharmacy: { name: "Walgreens #1234" }, shipping_address: { line1: "410 Sample Street", city: "Brooklyn", state: "NY" },
+    });
+    expect(delivery(shipped)).toEqual({
+      label: "On its way", stage: 3, at: "2026-09-30T15:00:00Z", pharmacy: "Walgreens #1234", to: "Brooklyn, NY", tracking: "UPS · 1Z999",
+    });
   });
 });
 
@@ -128,5 +147,36 @@ describe("clinicianName", () => {
     expect(clinicianName(imad)).toBe("Dr. Mouaddine");
     expect(clinicianName({ first_name: "Ana", last_name: "Silva", credentials: "NP" })).toBe("Ana Silva, NP");
     expect(clinicianName(null)).toBe("Your clinician");
+  });
+});
+
+describe("journey", () => {
+  const approved = "2026-09-01T12:00:00Z";
+  const now = new Date("2026-09-20T12:00:00Z");
+
+  it("waits for the delivery before the first dose, whatever the calendar says", () => {
+    const steps = journey("lipid_management", approved, null, null, now);
+    expect(steps.map((s) => `${s.title}:${s.state}`)).toEqual([
+      "Your plan is approved:done", "First dose:next", "Two-week check-in:later", "Recheck your LDL-C:later", "Three-month review:later",
+    ]);
+    expect(steps[1]).toMatchObject({ date: null, detail: "When it arrives. Your coach walks you through it." });
+  });
+
+  it("dates the first dose by the delivery, and adds Lithos's refill date", () => {
+    const steps = journey("lipid_management", approved, "2026-10-01T00:00:00Z", "2026-09-05T15:00:00Z", now);
+    expect(steps.map((s) => `${s.title}:${s.state}`)).toEqual([
+      "Your plan is approved:done", "First dose:done", "Two-week check-in:done", "Refill check-in:next", "Recheck your LDL-C:later", "Three-month review:later",
+    ]);
+  });
+
+  it("has nothing to show before the plan is approved", () => {
+    expect(journey("lipid_management", null, null, null, now)).toEqual([]);
+  });
+});
+
+describe("greeting", () => {
+  it("follows the patient's own clock", () => {
+    expect(greeting(new Date("2026-09-30T13:00:00Z"), "America/New_York")).toBe("Good morning");
+    expect(greeting(new Date("2026-09-30T13:00:00Z"), "Asia/Tokyo")).toBe("Good evening");
   });
 });

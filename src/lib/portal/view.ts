@@ -7,12 +7,21 @@ import type { Appointment, CarePlan, Encounter, Inquiry, InquiryMessage, Patient
  * order. Pure functions, so they're tested without a sandbox.
  */
 
+type Address = { line1?: string; line2?: string | null; city: string; state: string; postal_code?: string };
+
 export type Order = {
   id: string;
   encounter_id: string;
   status: "pending" | "processing" | "placed" | "completed" | "canceled";
   created_at: string;
   updated_at: string;
+  processing_at?: string | null;
+  placed_at?: string | null;
+  completed_at?: string | null;
+  canceled_at?: string | null;
+  /** The pharmacy that took the order; null until one has. */
+  pharmacy?: { name: string; address?: Address | null } | null;
+  shipping_address?: Address | null;
   fulfillment: { status: string | null; carrier: string | null; tracking_number: string | null } | null;
   prescriptions?: Prescription[];
 };
@@ -20,32 +29,44 @@ export type Order = {
 /** An encounter as the show endpoint returns it: the list item plus the intake it carried. */
 export type PortalEncounter = Encounter & { intake_form?: { data?: Record<string, unknown> } | null };
 
+export type Clinician = { first_name?: string | null; last_name?: string | null; credentials?: string | null; profile_picture_url?: string | null } | null | undefined;
+
+export type PortalPatient = Patient & { assigned_clinician?: Clinician };
+
+/** What the catalog says about a treatment, for naming it the way a patient would. */
+export type CatalogEntry = { name: string; form?: string | null; presentation?: string | null };
+
 export type PortalData = {
-  patient: Patient;
+  patient: PortalPatient;
   carePlans: CarePlan[];
   encounters: PortalEncounter[];
   orders: Order[];
   inquiries: Inquiry[];
-  /** Catalog treatment id → the name a patient knows it by. */
-  treatmentNames: Record<string, string>;
+  catalog: Record<string, CatalogEntry>;
 };
 
-type Person = { first_name?: string | null; last_name?: string | null; credentials?: string | null } | null | undefined;
-
 /** "Dr. Mouaddine" for an MD or DO; otherwise the full name and credentials. */
-export function clinicianName(person: Person): string {
+export function clinicianName(person: Clinician): string {
   if (!person?.last_name) return "Your clinician";
   const credentials = person.credentials?.toUpperCase();
   if (credentials === "MD" || credentials === "DO") return `Dr. ${person.last_name}`;
   return [person.first_name, person.last_name].filter(Boolean).join(" ") + (credentials ? `, ${credentials}` : "");
 }
 
+/** "Imad Mouaddine, MD" — for a card that introduces them. */
+export function clinicianFullName(person: Clinician): string {
+  if (!person?.last_name) return "Your care team";
+  return [person.first_name, person.last_name].filter(Boolean).join(" ") + (person.credentials ? `, ${person.credentials}` : "");
+}
+
 const newestFirst = <T extends { created_at: string }>(items: T[]) => [...items].sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+export const newestPlan = (data: PortalData): CarePlan | undefined => newestFirst(data.carePlans)[0];
 
 // ------------------------------------------------------------------ next step
 
 export type NextStep =
-  | { kind: "question"; title: string; detail: string; inquiryId: string }
+  | { kind: "question"; title: string; detail: string; inquiryId: string; reply: boolean }
   | { kind: "book_visit"; title: string; detail: string; encounterId: string }
   | { kind: "visit"; title: string; detail: string; encounterId: string; appointment: Appointment }
   | { kind: "in_review"; title: string; detail: string }
@@ -56,20 +77,28 @@ export type NextStep =
 const lastFromCareTeam = (inquiry: Inquiry): InquiryMessage | undefined =>
   [...(inquiry.messages ?? [])].reverse().find((m) => m.sender.type !== "patient");
 
+/** Conversations where the care team is waiting on the patient. */
+export function awaitingPatient(data: PortalData): Inquiry[] {
+  return newestFirst(data.inquiries).filter((i) => i.status === "open" && i.awaiting === "patient");
+}
+
 /**
  * The one thing to put at the top: whatever the patient has to do, and failing
  * that, what's happening. Their own action always comes first — a question left
  * unanswered holds up their care.
  */
 export function nextStep(data: PortalData, formatWhen: (iso: string) => string): NextStep {
-  const question = newestFirst(data.inquiries).find((i) => i.status === "open" && i.awaiting === "patient");
+  const question = awaitingPatient(data)[0];
   if (question) {
     const message = lastFromCareTeam(question);
+    // The patient wrote first: what's waiting is an answer to them, not a question.
+    const reply = question.messages?.[0]?.sender.type === "patient";
     return {
       kind: "question",
-      title: `${clinicianName(message?.sender)} has a question for you`,
+      title: `${clinicianName(message?.sender)} ${reply ? "replied to you" : "has a question for you"}`,
       detail: message?.body ?? question.subject ?? "Your care team is waiting on your answer.",
       inquiryId: question.id,
+      reply,
     };
   }
 
@@ -101,7 +130,7 @@ export function nextStep(data: PortalData, formatWhen: (iso: string) => string):
     };
   }
 
-  const plan = newestFirst(data.carePlans)[0];
+  const plan = newestPlan(data);
   if (plan?.status === "ineligible") {
     return { kind: "not_a_fit", title: "A note from your clinician", detail: plan.clinician_notes ?? "This program isn't the right fit for you right now." };
   }
@@ -109,7 +138,7 @@ export function nextStep(data: PortalData, formatWhen: (iso: string) => string):
   const inFlight = newestFirst(data.orders).find((o) => o.status !== "completed" && o.status !== "canceled");
   if (inFlight) {
     const medicine = medications(data).find((m) => m.orderId === inFlight.id)?.name ?? "Your medication";
-    return { kind: "shipping", title: `${medicine} is on its way`, detail: delivery(inFlight).detail };
+    return { kind: "shipping", title: `${medicine} is on its way`, detail: delivery(inFlight).label };
   }
 
   const refill = medications(data).find((m) => m.refillDueAt);
@@ -118,6 +147,24 @@ export function nextStep(data: PortalData, formatWhen: (iso: string) => string):
     title: "You're all set",
     detail: refill?.refillDueAt ? `Your next refill check-in is ${formatWhen(refill.refillDueAt)}.` : "Nothing needs you right now.",
   };
+}
+
+/** The line under "Hi Sample" in the header: the state of things, in one sentence. */
+export function headline(data: PortalData, step: NextStep, formatDay: (iso: string) => string): string {
+  const med = medications(data)[0];
+  switch (step.kind) {
+    case "question": return step.reply ? "You have a new message from your care team." : "Your clinician has a question for you.";
+    case "book_visit": return "Your next step is a short video visit with a clinician.";
+    case "visit": return step.title + ".";
+    case "in_review": return "A clinician is reviewing your request.";
+    case "not_a_fit": return "Your clinician has left you a note.";
+    case "shipping": return med ? `Your ${med.name} prescription is active, and on its way.` : "Your prescription is on its way.";
+    case "all_set":
+      if (!med) return "Welcome back.";
+      return med.refillDueAt
+        ? `Your ${med.name} prescription is active. Next refill check-in on ${formatDay(med.refillDueAt)}.`
+        : `Your ${med.name} prescription is active.`;
+  }
 }
 
 // ------------------------------------------------------------------ the care path
@@ -139,7 +186,6 @@ export function carePath(data: PortalData): PathStep[] {
     : encounter.status === "completed" && encounter.care_plan?.status === "active" ? 3
     : encounter.status === "completed" ? 2
     : 1;
-  // The step after the last one reached is where things are now.
   return PATH.map(([done, current], index) =>
     index < reached ? { label: done, state: "done" } : index === reached ? { label: current, state: "current" } : { label: done, state: "todo" });
 }
@@ -149,12 +195,26 @@ export function carePath(data: PortalData): PathStep[] {
 export type Medication = {
   name: string;
   strength: string;
+  /** "1 prefilled syringe", "30 tablets". */
+  amount: string;
   instructions: string;
   daysSupply: number;
   prescriber: string;
+  writtenAt: string;
   refillDueAt: string | null;
+  refillEligible: boolean;
   orderId: string | null;
 };
+
+const PRESENTATION: Record<string, [one: string, many: string]> = {
+  tablet: ["tablet", "tablets"], capsule: ["capsule", "capsules"], prefilled_syringe: ["prefilled syringe", "prefilled syringes"],
+  auto_injector: ["auto-injector", "auto-injectors"], multidose_pen: ["pen", "pens"], vial: ["vial", "vials"],
+};
+
+function amount(quantity: number, presentation: string | null | undefined): string {
+  const words = presentation ? PRESENTATION[presentation] ?? [presentation.replace(/_/g, " "), presentation.replace(/_/g, " ")] : null;
+  return words ? `${quantity} ${quantity === 1 ? words[0] : words[1]}` : `Quantity ${quantity}`;
+}
 
 /** What the patient is on now: each active treatment's current prescription. */
 export function medications(data: PortalData): Medication[] {
@@ -163,35 +223,48 @@ export function medications(data: PortalData): Medication[] {
       .filter((t) => t.status === "active" && t.current_prescription?.active)
       .map((t) => {
         const rx = t.current_prescription!;
+        const entry = data.catalog[t.catalog_treatment_id];
         return {
-          name: data.treatmentNames[t.catalog_treatment_id] ?? t.catalog_treatment_id,
+          name: entry?.name ?? t.catalog_treatment_id,
           strength: rx.strength,
+          amount: amount(rx.quantity, entry?.presentation),
           instructions: rx.instructions,
           daysSupply: rx.days_supply,
-          prescriber: clinicianName(rx.written_by as Person),
+          prescriber: clinicianName(rx.written_by as Clinician),
+          writtenAt: rx.written_at,
           refillDueAt: t.refill_due_at,
+          refillEligible: t.refill_status === "eligible",
           orderId: rx.order_id,
         };
       }),
   );
 }
 
+export type Delivery = {
+  label: string;
+  /** 1 at the pharmacy, 2 being prepared, 3 shipped, 4 delivered; 0 canceled. */
+  stage: number;
+  /** When it reached this stage. */
+  at: string;
+  pharmacy: string | null;
+  /** "Brooklyn, NY" — where it's going. */
+  to: string | null;
+  tracking: string | null;
+};
+
 /** An order in the patient's words. Tracking shows once the pharmacy ships. */
-export function delivery(order: Order): { label: string; detail: string; done: boolean } {
-  const shipped = order.fulfillment?.tracking_number
-    ? `Shipped${order.fulfillment.carrier ? ` with ${order.fulfillment.carrier}` : ""} · tracking ${order.fulfillment.tracking_number}`
+export function delivery(order: Order): Delivery {
+  const to = order.shipping_address ? `${order.shipping_address.city}, ${order.shipping_address.state}` : null;
+  const tracking = order.fulfillment?.tracking_number
+    ? `${order.fulfillment.carrier ? `${order.fulfillment.carrier} · ` : ""}${order.fulfillment.tracking_number}`
     : null;
+  const base = { pharmacy: order.pharmacy?.name ?? null, to, tracking };
   switch (order.status) {
-    case "pending":
-      return { label: "Sent to the pharmacy", detail: "Your prescription is with the pharmacy.", done: false };
-    case "processing":
-      return { label: "Being prepared", detail: shipped ?? "The pharmacy is preparing your order.", done: false };
-    case "placed":
-      return { label: shipped ? "Shipped" : "With the pharmacy", detail: shipped ?? "The pharmacy has your order and will ship it soon.", done: false };
-    case "completed":
-      return { label: "Delivered", detail: "Your order was delivered.", done: true };
-    case "canceled":
-      return { label: "Canceled", detail: "This order was canceled.", done: true };
+    case "pending": return { ...base, label: "Sent to the pharmacy", stage: 1, at: order.created_at };
+    case "processing": return { ...base, label: "Being prepared", stage: 2, at: order.processing_at ?? order.updated_at };
+    case "placed": return { ...base, label: "On its way", stage: 3, at: order.placed_at ?? order.updated_at };
+    case "completed": return { ...base, label: "Delivered", stage: 4, at: order.completed_at ?? order.updated_at };
+    case "canceled": return { ...base, label: "Canceled", stage: 0, at: order.canceled_at ?? order.updated_at };
   }
 }
 
@@ -241,7 +314,18 @@ export function progress(data: PortalData, program: string | undefined): Progres
 
 // ------------------------------------------------------------------ messages
 
-/** Conversations with the care team, newest activity first. */
-export function conversations(data: PortalData): Inquiry[] {
-  return [...data.inquiries].sort((a, b) => (b.last_message_at ?? b.created_at).localeCompare(a.last_message_at ?? a.created_at));
+/**
+ * The conversation the Messages tab opens on: one waiting on the patient, else
+ * the latest open one, else the latest. Lithos threads by topic; a chat app
+ * shows one conversation at a time.
+ */
+export function currentThread(data: PortalData): Inquiry | undefined {
+  const threads = newestFirst(data.inquiries);
+  return awaitingPatient(data)[0] ?? threads.find((t) => t.status === "open") ?? threads[0];
+}
+
+/** "Good morning", in the patient's own time zone. */
+export function greeting(now: Date, timeZone: string): string {
+  const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now));
+  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 }
