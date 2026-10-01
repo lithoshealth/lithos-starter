@@ -395,7 +395,7 @@ export default async function SetupPage() {
                 <p className="muted">Your app two ways: as someone finding you for the first time, and as a patient coming back.</p>
                 <div className="setup-next-stack">
                   <Link href="/" className="btn btn-ghost">As a visitor</Link>
-                  <form action={seeAsPatientAction}><button className="btn btn-primary">As a patient</button></form>
+                  <form action={seeAsPatientAction}><button className="btn btn-ghost">As a patient</button></form>
                 </div>
               </>
             ) : (
@@ -406,7 +406,7 @@ export default async function SetupPage() {
                     ? "Your site, as a new patient finds it. Its forms make the same calls this walkthrough made."
                     : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
                 </p>
-                <p><Link href="/" className="btn btn-primary">Open app</Link></p>
+                <div className="setup-next-stack"><Link href="/" className="btn btn-ghost">Open app</Link></div>
               </>
             )}
           </div>
@@ -426,7 +426,7 @@ export default async function SetupPage() {
           <div className="setup-next-card">
             <h3>{finished ? "Grow it" : "Build on the API"}</h3>
             <p className="muted">Every endpoint, field and webhook — follow-ups, refills, labs, messaging, visits.</p>
-            <p><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation&nbsp;↗</a></p>
+            <div className="setup-next-stack"><a className="btn btn-ghost" href={API_DOCS_URL} target="_blank" rel="noopener">API documentation&nbsp;↗</a></div>
           </div>
         </div>
       </section>

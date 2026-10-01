@@ -26,9 +26,9 @@ export function KeepItButtons({ to, brandName, folder, docsUrl }: { to?: string;
   const draft = `https://mail.google.com/mail/?${new URLSearchParams({ view: "cm", fs: "1", to: to ?? "", su: subject, body })}`;
 
   return (
-    <p className="setup-next-actions">
+    <div className="setup-next-stack">
       <a className="btn btn-ghost" href="/setup/download" download>Download app</a>
       <a className="btn btn-ghost" href={draft} target="_blank" rel="noopener">Email app</a>
-    </p>
+    </div>
   );
 }
