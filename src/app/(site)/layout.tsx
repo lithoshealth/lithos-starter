@@ -60,8 +60,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
             <Link href="/#program">The program</Link>
             <Link href="/#numbers">What we measure</Link>
             <Link href="/start">Care review</Link>
-            <Link href="/portal">Sign in</Link>
-            <Link href="/#plans" className="btn btn-primary">See plans</Link>
+            <Link href="/portal" className="btn btn-primary">Sign in</Link>
           </nav>
         </div>
       </header>
