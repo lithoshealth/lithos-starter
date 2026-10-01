@@ -11,7 +11,7 @@ export default async function DevLayout({ children }: Readonly<{ children: React
         <div className="header-inner">
           <span className="dev-brand">Lithos sandbox <span className="muted">· {name} starter</span></span>
           <nav className="site-nav" aria-label="Developer navigation">
-            <Link href="/">Open the app</Link>
+            <Link href="/">Open your site</Link>
             <Link href="/events">Webhook log</Link>
           </nav>
         </div>

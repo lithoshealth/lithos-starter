@@ -382,28 +382,30 @@ export default async function SetupPage() {
             <ul className="setup-finale-wins">
               {steps.filter((s) => s.status === "done").map((s) => <li key={s.key}>{WINS[s.key]}</li>)}
             </ul>
-            {/* The payoff: the same patient, from their side — their prescription, delivery and care team. */}
-            {ids.patientId && (
-              <form action={seeAsPatientAction} className="setup-finale-cta">
-                <button className="btn btn-primary">See it as your patient →</button>
-                <span className="muted">Their prescription, its delivery, and their care team — the app they come back to.</span>
-              </form>
-            )}
           </div>
         ) : (
           <h2>What&rsquo;s next</h2>
         )}
         <div className="setup-next-cards">
           <div className="setup-next-card">
-            <h3>{finished ? "Use it" : "Open your site"}</h3>
-            <p className="muted">
-              {connected
-                ? "Your site, as a new patient finds it. Its forms make the same calls this walkthrough made."
-                : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
-            </p>
-            <p>
-              <Link href="/" className={finished ? "btn btn-ghost" : "btn btn-primary"}>Open app</Link>
-            </p>
+            {/* Once a patient has a decision, the app is theirs: open it signed in as the walkthrough's patient. */}
+            {finished && ids.patientId ? (
+              <>
+                <h3>Use it</h3>
+                <p className="muted">Your app, as your patient sees it: their prescription, its delivery, and their care team.</p>
+                <form action={seeAsPatientAction}><button className="btn btn-primary">Open app</button></form>
+              </>
+            ) : (
+              <>
+                <h3>Open your site</h3>
+                <p className="muted">
+                  {connected
+                    ? "Your site, as a new patient finds it. Its forms make the same calls this walkthrough made."
+                    : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
+                </p>
+                <p><Link href="/" className="btn btn-primary">Open app</Link></p>
+              </>
+            )}
           </div>
 
           {/* A local copy only: it zips this working folder. */}
