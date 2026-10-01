@@ -16,7 +16,8 @@ export function MembershipUnavailable() {
         This copy of the app doesn&rsquo;t have one, so there&rsquo;s no member to show.
       </p>
       <p className="demo-note">
-        Run <code>./scripts/db-up.sh</code> locally, or set <code>DATABASE_URL</code> where it&rsquo;s deployed.
+        Locally, <code>npm run dev</code> runs its own database — restart it if this copy predates that. Where it&rsquo;s
+        deployed, set <code>DATABASE_URL</code> to a hosted Postgres.
         Connecting to Lithos is a separate step, and needs no database: the setup walkthrough covers it.
       </p>
       <p>

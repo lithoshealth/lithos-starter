@@ -130,14 +130,17 @@ endpoint, field, error code and webhook event — is documented at
 
 ## Going further: a partner with its own members
 
-The walkthrough needs no database. The rest of the app shows what a partner that
-already has users looks like — members who exist in your own records before
-Lithos ever sees them, with a membership signup (`/join`), a member dashboard, and
-escalation into care. That side needs Postgres:
+The rest of the app shows what a partner that already has users looks like —
+members who exist in your own records before Lithos ever sees them, with a
+membership signup (`/join`), a member dashboard, and escalation into care.
 
-```sh
-./scripts/db-up.sh    # Homebrew Postgres or Docker, then schema + sample members
-```
+That side keeps its records in Postgres, and there's nothing to install for it:
+with no `DATABASE_URL`, `npm run dev` runs Postgres itself — PGlite, real Postgres
+inside Node — keeping its data in `.lithos-db/` (never committed, never in the
+downloaded zip) and seeding sample members on the first start. The scripts
+(`npm run db:seed`, `npm run replay`, …) use it while the app is running. A
+deployed app needs a hosted Postgres: set `DATABASE_URL`. `./scripts/db-up.sh`
+still sets up a Homebrew or Docker Postgres if you'd rather run your own.
 
 Worth reading once you've done the walkthrough:
 

@@ -52,7 +52,7 @@ export async function handoffJourney(clientId: string | undefined): Promise<Omit
 export const appFolder = (brandName: string) =>
   brandName.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "lithos-app";
 
-const NEVER = [/^\.env(?!\.example$)/, /^\.git\//, /^node_modules\//, /^\.next\//, /^\.vercel\//, /\.DS_Store$/, /^next-env\.d\.ts$/];
+const NEVER = [/^\.env(?!\.example$)/, /^\.git\//, /^\.lithos-db\//, /^node_modules\//, /^\.next\//, /^\.vercel\//, /\.DS_Store$/, /^next-env\.d\.ts$/];
 
 /**
  * Every file of the app worth handing over: what git tracks plus anything new

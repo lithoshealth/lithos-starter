@@ -68,8 +68,13 @@ form for that. Once they've connected, help with whatever they ask.
   `src/app/api/webhooks/lithos/route.ts`): verify, store, respond, then project
   and notify the patient (`src/lib/notifications/`). Notifications carry no
   clinical detail — they say something is waiting and link into the app.
-- **The event store:** Postgres when `DATABASE_URL` is set, Upstash Redis when
-  deployed without it, in-memory locally. The deployed app refuses to fall back
+- **The database:** Postgres. With no `DATABASE_URL`, `npm run dev` runs it
+  embedded (PGlite, `src/lib/embedded-db.ts`, data in `.lithos-db/`, started by
+  `src/instrumentation.ts`), so it's always there locally; a deployed app sets
+  `DATABASE_URL`. Scripts find the running app's database through
+  `db/running.mjs` — never open `.lithos-db/` from a second process.
+- **The event store:** Postgres when `DATABASE_URL` is set (locally, always),
+  Upstash Redis when deployed without it. The deployed app refuses to fall back
   to process memory.
 
 ## Routes

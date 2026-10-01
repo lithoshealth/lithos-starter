@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // 127.0.0.1, the page never hydrates: every button becomes a full reload that
   // lands at the top of /setup. Tunnel hosts stay blocked — browse locally.
   allowedDevOrigins: ["127.0.0.1"],
+  // The embedded database (src/lib/embedded-db.ts) loads its WebAssembly from
+  // its own package folder, so Node loads it as it is rather than bundled.
+  serverExternalPackages: ["@electric-sql/pglite", "@electric-sql/pglite-socket"],
   // Pin the project root to this folder. Otherwise Next.js looks upward for a
   // lockfile, and a stray one higher up (a leftover ~/package-lock.json is
   // common) makes it print a warning on every start — the first thing a new

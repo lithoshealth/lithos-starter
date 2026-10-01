@@ -6,6 +6,8 @@
 // set any of the eight. Consent is taken now. Prints the stages, the
 // reconciliation outcome, and what Lithos stored.
 try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process.cwd()); } catch {}
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+process.env.DATABASE_URL = (await import("../db/running.mjs")).requireDatabaseUrl();
 import { escalateMember } from "../src/lib/escalate";
 import { getLithosClient } from "../src/lib/lithos/client";
 import { getDb } from "../src/lib/db";

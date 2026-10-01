@@ -7,6 +7,8 @@
 // a refill line (plus an `add` line when still above target and an agent is
 // named). Prints the decision and what Lithos stored.
 try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process.cwd()); } catch {}
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+process.env.DATABASE_URL = (await import("../db/running.mjs")).requireDatabaseUrl();
 import { followUpMember } from "../src/lib/follow-up";
 import { getLithosClient } from "../src/lib/lithos/client";
 

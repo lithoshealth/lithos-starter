@@ -6,6 +6,8 @@
 // INSERT … ON CONFLICT DO UPDATE, sql.json, and idempotent event recording.
 // Writes then deletes its own rows against the seeded member eu_mem_rivera.
 try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process.cwd()); } catch {}
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+process.env.DATABASE_URL = (await import("../db/running.mjs")).requireDatabaseUrl();
 import { PostgresEventStore } from "../src/lib/events/postgres-store";
 import { upsertCarePlan, upsertEncounter, markProcessed } from "../src/lib/projections";
 import { getDb } from "../src/lib/db";

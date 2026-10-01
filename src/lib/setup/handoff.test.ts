@@ -14,7 +14,7 @@ async function folder(files: Record<string, string>): Promise<string> {
 }
 
 describe("appFiles", () => {
-  it("never hands over credentials, dependencies, build output, or the last download's notes", async () => {
+  it("never hands over credentials, the database, dependencies, build output, or the last download's notes", async () => {
     const root = await folder({
       "package.json": "{}",
       "starter.config.json": "{}",
@@ -24,6 +24,7 @@ describe("appFiles", () => {
       ".env.example": "LITHOS_CLIENT_ID=",
       "node_modules/next/index.js": "",
       ".next/build.js": "",
+      ".lithos-db/data/base/1/1259": "the demo's database",
       [HANDOFF_FILE]: "{}",
       [START_HERE_FILE]: "# the last download's",
     });

@@ -9,6 +9,8 @@
 // Loads the member through getMemberRecord — the same path the app uses — so a
 // new field on the record can't silently go missing here.
 try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process.cwd()); } catch {}
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+process.env.DATABASE_URL = (await import("../db/running.mjs")).requireDatabaseUrl();
 import { buildEscalationPlan } from "../src/lib/escalation";
 import { getMemberRecord } from "../src/lib/members";
 import { getDb } from "../src/lib/db";

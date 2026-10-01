@@ -13,7 +13,8 @@ export function getDb(): postgres.Sql {
     if (!url) throw new Error("Missing required server environment variable: DATABASE_URL");
     globalForDb.__eucardiaDb = postgres(url, {
       // Serverless: keep the footprint small and don't hold connections open.
-      max: process.env.VERCEL === "1" ? 1 : 5,
+      // The embedded database (lib/embedded-db.ts) runs one query at a time.
+      max: process.env.VERCEL === "1" || process.env.LITHOS_EMBEDDED_DB === "1" ? 1 : 5,
       idle_timeout: 20,
       connect_timeout: 10,
     });

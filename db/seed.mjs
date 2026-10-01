@@ -14,13 +14,12 @@
 import postgres from "postgres";
 import { readFileSync } from "node:fs";
 
-const url = process.env.DATABASE_URL;
-if (!url) {
-  console.error("DATABASE_URL is not set. Start Postgres and export it, e.g.\n" +
-    "  export DATABASE_URL=postgres://$(whoami)@localhost:5432/eucardia");
-  process.exit(1);
-}
-const sql = postgres(url, { max: 1 });
+import { requireDatabaseUrl } from "./running.mjs";
+
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+const url = requireDatabaseUrl();
+// The schema is idempotent, so a re-run's "already exists, skipping" notices are expected.
+const sql = postgres(url, { max: 1, onnotice: () => {} });
 
 const TODAY = new Date("2026-09-16T00:00:00Z");
 const day = (n) => new Date(TODAY.getTime() - n * 86_400_000);

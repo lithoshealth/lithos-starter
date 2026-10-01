@@ -16,6 +16,8 @@
 // oldest first, and clears process_error where a re-run now succeeds (e.g. a
 // member linked since). Idempotent: every write is an upsert.
 try { const { loadEnvConfig } = await import("@next/env"); loadEnvConfig(process.cwd()); } catch {}
+// DATABASE_URL, or the database the running app started (db/running.mjs).
+process.env.DATABASE_URL = (await import("../db/running.mjs")).requireDatabaseUrl();
 import { getLithosClient } from "../src/lib/lithos/client";
 import { PostgresEventStore } from "../src/lib/events/postgres-store";
 import { markProcessed, projectEvent } from "../src/lib/projections";
