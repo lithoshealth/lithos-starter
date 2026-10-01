@@ -15,7 +15,7 @@ export function Composer({ threadId, draft }: { threadId?: string; draft?: strin
       {threadId && <input type="hidden" name="thread_id" value={threadId} />}
       <label className="visually-hidden" htmlFor="chat-body">Message your care team</label>
       <textarea id="chat-body" name="body" rows={1} placeholder="Message your care team…" defaultValue={draft} required maxLength={10_000} disabled={pending} />
-      <button className="chat-send" aria-label="Send" disabled={pending}><Icon name="send" size={18} /></button>
+      <button className="chat-send" aria-label="Send" disabled={pending}><Icon name="send" size={20} /></button>
       {state.status === "error" && (
         <p className="chat-error" role="alert">{state.httpStatus ? `Lithos answered ${state.httpStatus}: ` : ""}{state.errors.map((e) => e.message).join(" ")}</p>
       )}

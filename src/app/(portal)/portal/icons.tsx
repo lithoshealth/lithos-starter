@@ -8,7 +8,7 @@ const paths = {
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4m8-4v4",
   check: "M5 12.5 10 17 19 7",
   chevron: "M9 6l6 6-6 6",
-  send: "M4 12 20 4l-6 16-3-7z",
+  send: "M12 19V5M5.5 11.5 12 5l6.5 6.5",
   refresh: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
 } as const;
 
