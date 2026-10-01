@@ -9,7 +9,7 @@ import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { readIssued } from "@/lib/setup/issued-cookie";
 import { appFolder, readHandoff } from "@/lib/setup/handoff";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction } from "./actions";
+import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction, seeAsPatientAction } from "./actions";
 import { ReviewCard } from "./review-card";
 import { InboxThread } from "./inbox-thread";
 import { WebhookDemo } from "./webhook-demo";
@@ -382,6 +382,13 @@ export default async function SetupPage() {
             <ul className="setup-finale-wins">
               {steps.filter((s) => s.status === "done").map((s) => <li key={s.key}>{WINS[s.key]}</li>)}
             </ul>
+            {/* The payoff: the same patient, from their side — their prescription, delivery and care team. */}
+            {ids.patientId && (
+              <form action={seeAsPatientAction} className="setup-finale-cta">
+                <button className="btn btn-primary">See it as your patient →</button>
+                <span className="muted">Their prescription, its delivery, and their care team — the app they come back to.</span>
+              </form>
+            )}
           </div>
         ) : (
           <h2>What&rsquo;s next</h2>
@@ -391,11 +398,11 @@ export default async function SetupPage() {
             <h3>{finished ? "Use it" : "Open your site"}</h3>
             <p className="muted">
               {connected
-                ? "See it as your patients will, and sign up as one. Its forms make the same calls this walkthrough made."
+                ? "Your site, as a new patient finds it. Its forms make the same calls this walkthrough made."
                 : "Look around now; once you connect in step 1, its forms create real sandbox patients."}
             </p>
             <p>
-              <Link href="/" className="btn btn-primary">Open app</Link>
+              <Link href="/" className={finished ? "btn btn-ghost" : "btn btn-primary"}>Open app</Link>
             </p>
           </div>
 

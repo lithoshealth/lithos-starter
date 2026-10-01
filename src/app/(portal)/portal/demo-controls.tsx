@@ -34,7 +34,7 @@ export function DemoControls({ data }: { data: PortalData }) {
   const program = data.carePlans[0]?.category ?? "";
   return (
     <aside className="app-demo" aria-label="Demo controls">
-      <p className="app-demo-title">Demo controls <span>sandbox only</span></p>
+      <p className="app-demo-title">Demo controls <span>sandbox only</span><a href="/setup" className="app-demo-back">Setup</a></p>
       {available.length ? (
         <div className="app-demo-moves">
           {available.map((m) => (

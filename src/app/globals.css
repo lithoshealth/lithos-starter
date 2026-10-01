@@ -522,6 +522,8 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .setup-finale-wins { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .setup-finale-wins li { padding: 0.3rem 0.75rem 0.3rem 0.6rem; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 0.88rem; font-weight: 650; }
 .setup-finale-wins li::before { content: "✓ "; color: var(--success); font-weight: 800; }
+.setup-finale-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.7rem; }
+.setup-finale-cta .muted { flex: 1; min-width: 14rem; }
 .setup-finale .setup-next-card { border-color: transparent; box-shadow: 0 0.2rem 0.8rem rgb(27 33 48 / 6%); }
 
 /* Before "What's next": run it again, or look back. */
@@ -596,7 +598,7 @@ a.card-row:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--li
 .rx-facts strong { font-size: 1.05rem; }
 .rx-how p { font-size: 0.92rem; color: var(--ink); margin-top: 0.2rem !important; }
 .rx-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.6rem; margin-top: 0.2rem; }
-.rx-actions .btn { white-space: nowrap; }
+.rx-actions .btn { white-space: nowrap; width: 100%; }
 .rx-actions:has(> :only-child) { grid-template-columns: 1fr; }
 .rx-btn-primary { color: var(--on-primary, #fff); background: var(--primary); border-color: var(--primary); border-radius: 0.8rem; }
 .rx-btn-primary:hover { background: var(--primary-hover); }
@@ -679,6 +681,8 @@ a.card-row:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--li
 .app-demo { position: fixed; z-index: 30; right: 1rem; bottom: 5.5rem; width: 15rem; padding: 0.8rem 0.9rem; border-radius: 0.9rem; background: #1b2130; color: #e7ecf3; box-shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 25%); display: grid; gap: 0.5rem; font-size: 0.82rem; }
 .app-demo-title { margin: 0; font-weight: 700; }
 .app-demo-title span { font-weight: 500; opacity: 0.6; margin-left: 0.3rem; }
+.app-demo-back { float: right; color: #9fd8c6; font-weight: 600; text-decoration: none; }
+.app-demo-back::before { content: "← "; }
 .app-demo-moves { display: grid; gap: 0.35rem; }
 .app-demo-btn { width: 100%; padding: 0.45rem 0.7rem; border-radius: 0.5rem; border: 1px solid #3a4357; background: #262e40; color: #e7ecf3; font: inherit; font-size: 0.82rem; text-align: left; cursor: pointer; }
 .app-demo-btn:hover { background: #313a50; }

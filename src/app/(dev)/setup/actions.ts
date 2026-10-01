@@ -14,6 +14,7 @@ import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { rememberIssued } from "@/lib/setup/issued-cookie";
+import { signInAs } from "@/lib/portal/session";
 import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
@@ -371,6 +372,17 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
   } catch (error) {
     return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 5.");
   }
+}
+
+/**
+ * The finish line's "See it as your patient": sign the patient app in as the
+ * walkthrough's own patient and open it — the demo sign-in, without picking
+ * them out of a list of identical sample names.
+ */
+export async function seeAsPatientAction(): Promise<void> {
+  const { patientId } = await readIds();
+  if (patientId) await signInAs(patientId);
+  redirect("/portal");
 }
 
 export async function resetSetupAction(): Promise<void> {
