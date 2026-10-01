@@ -198,7 +198,8 @@ legend { font-weight: 750; padding-inline: 0.4rem; }
 .form-grid label, .attestation { display: flex; flex-direction: column; gap: 0.3rem; }
 .form-grid .wide { grid-column: 1 / -1; }
 button { border: 1px solid var(--primary); border-radius: 999px; padding: 0.7rem 1.15rem; font: inherit; font-weight: 650; color: var(--on-primary, #fff); background: var(--primary); cursor: pointer; width: fit-content; }
-button:hover:not(:disabled) { background: var(--primary-hover); }
+/* Zero specificity, so a button's own class (.btn-ghost, a menu item…) decides its hover. */
+:where(button:hover:not(:disabled)) { background: var(--primary-hover); }
 .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
 .attestation { flex-direction: row; align-items: flex-start; }
 details { border-top: 1px solid var(--line); padding-top: 0.75rem; }
