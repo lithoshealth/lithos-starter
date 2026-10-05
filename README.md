@@ -43,43 +43,6 @@ step 1 gets you sandbox credentials (or takes the ones you have), checks them
 with Lithos, and saves them to `.env.local` (gitignored). Prefer the terminal?
 `npm run setup` takes a pasted pair before you start the server.
 
-### Running a sales demo
-
-Keep one clone as the template and make a copy per prospect from it:
-
-```sh
-npm run demo -- "Acme Health"
-```
-
-It updates the template from GitHub, copies it to `../lithos-demos/acme-health`
-with the prospect's name as the brand, installs it, starts it (on 3001, or the
-next free port) and opens the home page. On the call, step 1 of the walkthrough
-takes the prospect's email and company name and makes them their own sandbox
-organization. Run the same command again to reopen that demo where you left it,
-updated to the latest starter.
-
-If they want to keep it, **Download app** at the bottom of `/setup` zips the app
-as you've made it — brand, program, intake, logo, no credentials — and **Email
-app** opens a Gmail draft to the email from step 1, with how to run it. Gmail
-blocks zips with code in them as attachments, so add the zip with the draft's
-**Drive** button (Upload) and let Gmail share it when you send. Whoever opens it clicks **Get sandbox credentials** in step 1 and
-has their own organization, with everything else already set.
-
-To hand over the demo itself — the same organization, patient and decision —
-send its credentials too, the way Lithos sends them: `npm run credentials`, in
-the demo's folder, prints them to paste into a 1Password item. Pasted into
-step 1, they pick up where you left off.
-
-> **Setting this up with an AI coding agent?** Agents: stop at the home page.
-> Run the commands above, open http://localhost:3001, and hand over — let the
-> person look around and find the setup walkthrough themselves. Don't open `/setup`, walk
-> the intake, or enter credentials for them unless they ask. More in `AGENTS.md`.
-
-Browse on `localhost` (or `127.0.0.1`). The dev server only sends its JavaScript
-to those, so opened any other way — your tunnel's address, or your laptop's
-network address from a phone — pages render but nothing responds. A deployed
-copy has no such limit.
-
 ## The setup walkthrough
 
 `/setup` takes you from credentials to a clinician's decision in four steps, with a fifth, optional:
