@@ -58,10 +58,11 @@ export function Connected({ treatments, issued }: { treatments?: number; issued?
 }
 
 /**
- * Step 1, in the page. First choice: get sandbox credentials here — an email
- * and a company name, and Lithos's sandbox creates an organization and returns
- * its client ID and secret, straight into .env.local. Second: paste credentials
- * you already have.
+ * Step 1, in the page: two choices side by side, so it works wherever someone
+ * comes from. "I have credentials": paste the client ID and secret from the
+ * Lithos console, a Lithos contact, or a demo handed over. "Generate new
+ * credentials": an email and a company name, and Lithos's sandbox creates an
+ * organization and returns its client ID and secret, straight into .env.local.
  *
  * Development only — a deployed copy has no .env.local, and the step shows the
  * variables to set in the host instead. Nothing is saved until Lithos accepts
@@ -90,8 +91,7 @@ export function ConnectForm({ companyName, email, handedOver }: { companyName: s
         </button>
       </div>
       <p className="muted">
-        Creates your own sandbox organization with every program, and saves its credentials to <code>.env.local</code>. The
-        secret goes straight there — this page never shows it.{handedOver && " Your brand, program and intake are already set."}
+        The secret goes straight to <code>.env.local</code>; this page never shows it.{handedOver && " Your brand, program and intake are already set."}
       </p>
       <ActionError state={signup} />
     </form>
@@ -112,8 +112,7 @@ export function ConnectForm({ companyName, email, handedOver }: { companyName: s
         <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Checking with Lithos…" : "Connect"}</button>
       </div>
       <p className="muted">
-        Checked with Lithos before anything is saved, then written to <code>.env.local</code> — gitignored, and never sent anywhere
-        but Lithos. Prefer a terminal? <code>npm run setup</code> asks the same two questions.
+        Checked with Lithos before anything is saved to <code>.env.local</code>. Prefer a terminal? <code>npm run setup</code>.
       </p>
       <ActionError state={state} />
     </form>
@@ -122,12 +121,21 @@ export function ConnectForm({ companyName, email, handedOver }: { companyName: s
   // A copy handed over after a demo can also go back to the demo's own
   // organization, if its credentials were sent along (lib/setup/handoff.ts).
   return (
-    <div className="stack">
-      {signupForm}
-      <details className="setup-detail">
-        <summary>{handedOver ? "Were you sent credentials? Paste them to pick up where we left off" : "Already have credentials? Paste them"}</summary>
+    <div className="connect-choices">
+      <section className="connect-choice">
+        <h3>I have credentials</h3>
+        <p className="muted">
+          {handedOver
+            ? "Were you sent credentials with this app? Paste them to pick up where we left off."
+            : "From your Lithos console, or sent by your Lithos contact. Use these to connect to the sandbox you already have."}
+        </p>
         {pasteForm}
-      </details>
+      </section>
+      <section className="connect-choice">
+        <h3>Generate new credentials</h3>
+        <p className="muted">A new sandbox organization, with every program, from your email and company name.</p>
+        {signupForm}
+      </section>
     </div>
   );
 }

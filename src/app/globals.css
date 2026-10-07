@@ -494,6 +494,13 @@ textarea.chat-bubble-clinician:disabled { opacity: 0.7; }
 .credentials dd { margin: 0; overflow-wrap: anywhere; }
 .credentials code { font-size: 0.85rem; }
 
+/* Step 1: connect with credentials you have, or generate new ones. Two equal
+   cards, side by side where there's room. */
+.connect-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; align-items: start; }
+.connect-choice { display: grid; gap: 0.6rem; padding: 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); min-width: 0; }
+.connect-choice h3 { font-size: 1.05rem; margin: 0; }
+.connect-choice > p { margin: 0; }
+
 /* The end of /setup: three next steps, side by side. */
 .setup-next { display: grid; gap: 0.9rem; }
 .setup-next h2 { font-size: 1.3rem; }
