@@ -22,8 +22,8 @@ function input() {
   return parsed.value;
 }
 
-const SYNC = { requirements: { modality: { value: "sync" } } };
-const ASYNC = { requirements: { modality: { value: "async" } } };
+const SYNC = { passed: true, reasons: [], requirements: { modality: { value: "sync" } } };
+const ASYNC = { passed: true, reasons: [], requirements: { modality: { value: "async" } } };
 
 describe("journey payloads", () => {
   it("constructs exact patient, care-plan, and initial encounter requests", async () => {
@@ -48,7 +48,24 @@ describe("journey payloads", () => {
     const client = { post, get } as unknown as LithosClient;
     await expect(runJourney(value, client, { now, externalId: "sample-fixed" })).resolves.toEqual({ status: "complete", patientId: "pat_1", carePlanId: "cp_1", encounterId: "enc_1", modality: "async" });
     expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "lipid_management" }, { idempotencyKey: expect.stringMatching(/:care-plan$/) }]);
-    expect(get).toHaveBeenCalledWith("/v1/encounter_requirements?patient_id=pat_1&care_plan_id=cp_1");
+    expect(get).toHaveBeenCalledWith("/v1/encounter_precheck?patient_id=pat_1&care_plan_id=cp_1");
+  });
+
+  it("stops with the precheck's reasons when Lithos can't take the encounter", async () => {
+    const value = input();
+    const now = new Date("2026-08-18T12:00:00.000Z");
+    const post = vi.fn()
+      .mockResolvedValueOnce({ id: "pat_1" })
+      .mockResolvedValueOnce({ id: "cp_1" });
+    const get = vi.fn().mockResolvedValue({
+      passed: false,
+      reasons: [{ code: "encounter.no_licensed_availability", message: "No Lithos clinician licensed in TX is taking encounters right now." }],
+      requirements: { modality: { value: "async" } },
+    });
+    const client = { post, get } as unknown as LithosClient;
+    const result = await runJourney(value, client, { now, externalId: "sample-fixed" });
+    expect(result.status).toBe("failed");
+    expect(post).toHaveBeenCalledTimes(2);
   });
 
   it("rejects non-synthetic data before any API request", () => {

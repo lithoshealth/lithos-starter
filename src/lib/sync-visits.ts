@@ -15,13 +15,14 @@
  */
 
 import type { LithosClient } from "./lithos/client";
+import { LithosApiError } from "./lithos/errors";
 import { formatVisitTime } from "./time-zones";
 import type {
   ApiError,
   Appointment,
   AppointmentSlotsResponse,
   Encounter,
-  EncounterRequirements,
+  EncounterPrecheck,
   Modality,
   SlotReservation,
 } from "./lithos/types";
@@ -71,10 +72,20 @@ export function slotWindow(from: Date, days = SLOT_WINDOW_DAYS): { from: string;
   return { from: from.toISOString(), to: new Date(from.getTime() + days * DAY_MS).toISOString() };
 }
 
+/**
+ * Asks Lithos, before the encounter exists, whether it can take one and how:
+ * async, or a live visit. GET /v1/encounter_precheck answers what
+ * POST /v1/encounters would; when it wouldn't take it, the reasons come back as
+ * the error POST would give (a 422 with the same codes), so the intake shows
+ * them instead of a modality.
+ */
 export async function readModality(client: LithosClient, patientId: string, carePlanId: string): Promise<Modality> {
-  const answer = await client.get<EncounterRequirements>(
-    `/v1/encounter_requirements?${query({ patient_id: patientId, care_plan_id: carePlanId })}`,
+  const answer = await client.get<EncounterPrecheck>(
+    `/v1/encounter_precheck?${query({ patient_id: patientId, care_plan_id: carePlanId })}`,
   );
+  if (!answer.passed || !answer.requirements) {
+    throw new LithosApiError(422, answer.reasons.map((r) => ({ code: r.code, message: r.message })));
+  }
   return answer.requirements.modality.value;
 }
 

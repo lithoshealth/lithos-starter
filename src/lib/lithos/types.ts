@@ -44,7 +44,7 @@ export type Encounter = Schemas["Encounter"];
 export type EncounterListItem = Encounter;
 export type EncounterStatus = Encounter["status"];
 export type Modality = NonNullable<Encounter["modality"]>;
-export type EncounterRequirements = Schemas["EncounterRequirements"];
+export type EncounterPrecheck = Schemas["EncounterPrecheck"];
 
 // ---------------------------------------------------------------- prescriptions, orders, labs
 

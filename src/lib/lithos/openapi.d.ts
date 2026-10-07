@@ -36,7 +36,7 @@ export interface paths {
         };
         /**
          * List times this visit can be moved to
-         * @description The starts this booking may be moved to, between `from` and `to`, chosen the same way as on `GET /v1/appointment_slots`. The visit you are moving is still `scheduled` while the patient chooses, so it is left out of this grid — its own time, and the turnaround after it, count as free. Everything else still counts: other visits, and slots other patients are holding. If your organization keeps continuity of care and the patient already has a clinician, only that clinician's times are offered, and none when they have none free. If that clinician can no longer see the patient — they have left, or are not licensed in the state the patient now lives in — the patient's `assigned_clinician` is `null` and this grid offers every clinician who can see them, as it would for a patient with no clinician. Reserve a start with `POST /v1/slot_reservations`; the `slot_token` remembers which visit it was issued to move, so the hold can only be spent on `POST /v1/appointments/{appointment_id}/reschedule` for this booking.
+         * @description The times this visit can move to, between `from` and `to`, in the same shape as `GET /v1/appointment_slots`. The visit's own time is included, with `current: true`. If the patient keeps a clinician, only that clinician's times are offered. If that clinician can no longer see the patient, the patient's `assigned_clinician` is `null` and every clinician who can see them is offered. Hold one with `POST /v1/slot_reservations`. That hold can only be used to move this visit, with `POST /v1/appointments/{appointment_id}/reschedule`.
          */
         get: operations["listAppointmentRescheduleSlots"];
         put?: never;
@@ -56,7 +56,7 @@ export interface paths {
         };
         /**
          * List appointment slots
-         * @description The times this patient may be offered for a live video visit, between `from` and `to`. Each start appears once, soonest first, with a `slot_token` to reserve it with. Starts come every 15 minutes from the top of the hour in the clinician's time zone, plus the minute their hours begin and the free starts right before and after time that is booked, held, or outside their hours. Nothing in the body names a clinician. `from` to `to` may cover at most 14 days; a wider range is rejected with `422 slot.range_too_wide`. Inside that, the organization's minimum notice and booking horizon clip the range further. When nothing is bookable, `slots` is empty and `reason` says whether another range would help.
+         * @description The times you can offer this patient for a live video visit, between `from` and `to`, soonest first. Hold one with its `slot_token` and `POST /v1/slot_reservations`; the hold names the clinician. `from` to `to` may cover at most 14 days; a wider range is rejected with `422 slot.range_too_wide`. Your organization's minimum notice and booking horizon limit how soon and how far ahead times appear. When nothing is bookable, `slots` is empty and `reason` says whether another range would help.
          */
         get: operations["listAppointmentSlots"];
         put?: never;
@@ -79,7 +79,7 @@ export interface paths {
         };
         /**
          * Retrieve an appointment
-         * @description Returns a single appointment. Read `patient_join` before you send the patient to the visit — it is derived from the current time, so a response you cached will tell you the wrong thing.
+         * @description Returns one appointment. Read it again before you show the Join visit button, because `patient_join` depends on the current time.
          */
         get: operations["getAppointment"];
         put?: never;
@@ -102,13 +102,13 @@ export interface paths {
         };
         /**
          * List an encounter's appointments
-         * @description The encounter's visit history, newest first. Every booking is here: no-shows, cancellations, and each replaced booking from a reschedule. The live one, if there is one, is the entry with `status: scheduled`.
+         * @description Every booking for the encounter, newest first, including cancellations, no-shows and bookings a reschedule replaced. The current booking, if there is one, is `scheduled` or `in_progress`.
          */
         get: operations["listEncounterAppointments"];
         put?: never;
         /**
          * Book an appointment
-         * @description Books the slot you hold as the encounter's visit again after a no-show or a cancellation. The first visit is booked by creating the encounter with the hold's `reservation_token` instead; this call also books a `sync` encounter created before that was required, which has none yet. The hold is consumed and the encounter's `needs_appointment` turns `false`. The room is set up right after: `patient_join` reads `provisioning` until `appointment.scheduled` fires, but `patient_join.url` is already set in this response. Send an `Idempotency-Key`; a retry with the same key and body returns the first answer and books nothing twice.
+         * @description Books a new visit for the encounter after a cancellation or no-show, with a time you hold. The first visit is booked when you create the encounter. The response is the new appointment, and the encounter's `needs_appointment` becomes `false`. Its `patient_join.url` is already set, so you can send it to the patient. The room is ready when `appointment.scheduled` arrives.
          */
         post: operations["createEncounterAppointment"];
         delete?: never;
@@ -131,7 +131,7 @@ export interface paths {
         put?: never;
         /**
          * Reschedule an appointment
-         * @description Moves the visit to a slot you already hold. Hold the new slot first with `POST /v1/slot_reservations`, then send its `reservation_token` here. This is one call, not a cancel and a rebooking: the encounter never owes a visit in between, `needs_appointment` stays `false`, and if anything fails the original visit is still scheduled and your hold is unspent. The response is the NEW appointment; the one it replaced is `canceled` with `reason: rescheduled` and points here through `rescheduled_to_id`. Take the hold from `GET /v1/appointments/{appointment_id}/reschedule_slots`: it leaves this visit out of the grid, and keeps the move with the clinician the patient is already with when your organization keeps continuity of care. The room is set up right after, and `appointment.rescheduled` fires when it is ready — `appointment.canceled` does not fire on this path. `patient_join.url` is set in this response, and it is the link of the visit being moved. A visit within your organization's cancellation notice — 4 hours by default — cannot be moved: this answers `409 appointment.cancellation_window_closed`, measured against the booking you are moving rather than the slot you are moving it to.
+         * @description Moves the visit to a time you hold from `GET /v1/appointments/{appointment_id}/reschedule_slots`. The response is the new appointment. The old one becomes `canceled` with `reason: rescheduled`, and `needs_appointment` stays `false`. If the move is refused, the original visit stays booked and the hold stays unused. The new appointment keeps the join link of the visit it replaces, in `patient_join.url`. `appointment.rescheduled` arrives when the new room is ready, and no `appointment.canceled` is sent for the old visit. Within your organization's cancellation notice, this returns `409 appointment.cancellation_window_closed`.
          */
         post: operations["rescheduleAppointment"];
         delete?: never;
@@ -154,7 +154,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel an appointment
-         * @description Calls the visit off. The appointment becomes `canceled` with `canceled_by: partner` and the `reason` you send. While the encounter is open, its `needs_appointment` turns `true` — offer slots again and book with `POST /v1/encounters/{encounter_id}/appointments`. The encounter itself is not changed. To move the visit rather than call it off, use `reschedule`: it keeps the visit and fires a different event. Both need warning: once the visit is within your organization's cancellation notice — 4 hours by default — this answers `409 appointment.cancellation_window_closed` and the message names the instant the window shut. A clinician can still call their own visit off at any time, so the booking may end `canceled` with `canceled_by: clinician`.
+         * @description Cancels the visit. The appointment becomes `canceled` with `canceled_by: partner` and your `reason`. The encounter stays open and `needs_appointment` becomes `true`, so book again with `POST /v1/encounters/{encounter_id}/appointments`. To change the time instead, reschedule. Within your organization's cancellation notice, this returns `409 appointment.cancellation_window_closed`. A clinician can also cancel a visit, which then reads `canceled_by: clinician`.
          */
         post: operations["cancelAppointment"];
         delete?: never;
@@ -361,35 +361,29 @@ export interface paths {
         };
         /**
          * Precheck an encounter
-         * @description Ask before the patient starts intake what `POST /v1/encounters` would say about an encounter for this patient on this care plan, and what the encounter would need. Lithos reads the patient's state and the care plan's `category` and `status` when you call, so ask again after the address or the care plan's status changes.
+         * @description Call this endpoint before the patient starts intake to check whether Lithos would
+         *     accept an encounter for this patient and care plan, and what the encounter would
+         *     require. Lithos uses the patient's state and the care plan's `category` and
+         *     `status` at the time of the call. Precheck again if the patient's address or
+         *     the care plan's status changes.
          *
-         *     An encounter Lithos would refuse is a `200` with `passed: false`, not an error. Each entry in `reasons` has the `code` that `POST /v1/encounters` refuses with. Only checks that need no intake are made here, so the create can still fail validation. This is not insurance eligibility, and not a clinical judgment: the reviewing clinician decides whether the patient qualifies.
+         *     A precheck that does not pass still returns `200`, with `passed: false`.
+         *     Each entry in `reasons` has the same `code` that `POST /v1/encounters`
+         *     would return for that refusal. Precheck only runs checks that do not need
+         *     intake, so encounter creation can still fail validation. It does not check
+         *     insurance eligibility or make a clinical judgment; the reviewing clinician
+         *     decides whether the patient qualifies.
          *
-         *     `requirements.modality.value` is `sync` when the patient needs a live video visit. Hold a time, then create the encounter with the hold's `reservation_token`: the [Sync Visits](#tag/sync-visits-guide) guide walks the flow. `async` means no visit. For bookable times, use `GET /v1/appointment_slots`.
+         *     Read `requirements.modality.value` to choose the next step:
+         *
+         *     - `sync`: The patient needs a live video visit. Hold a time, then create the
+         *       encounter with the hold's `reservation_token`. See the
+         *       [Sync Visits](#tag/sync-visits-guide) guide for the full flow.
+         *     - `async`: No visit is needed.
+         *
+         *     Use `GET /v1/appointment_slots` to find bookable times.
          */
         get: operations["getEncounterPrecheck"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/encounter_requirements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Read encounter requirements
-         * @description Ask before you create an encounter to find out if the patient needs a visit. Lithos uses the patient's state and the care plan's `category` and `status`. A plan in `pending_review` is ready for its initial encounter; an `active` plan is ready for follow-ups. Lithos reads the patient's state when you call, so ask again after the address changes.
-         *
-         *     `sync` means the patient needs a live video visit. Hold a time, then create the encounter with the hold's `reservation_token`, which books the visit in the same call: the [Sync Visits](#tag/sync-visits-guide) guide walks the flow. `async` means no visit. The encounter you create carries the same `modality`.
-         */
-        get: operations["getEncounterRequirements"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1198,7 +1192,7 @@ export interface paths {
         put?: never;
         /**
          * Hold a slot
-         * @description Holds the slot behind a `slot_token` while the patient finishes intake and payment. The hold lasts until `expires_at`; before then, send `reservation_token` with `POST /v1/encounters` to book the first visit, or to the booking or reschedule call for a later one, or release it. Holding a slot creates no appointment. If every clinician who could take the slot is booked, held, or too close to another visit to leave the turnaround their organization asks for, the response is `409 slot.taken` — fetch the slots again and offer another. A `slot_token` from `GET /v1/appointments/{appointment_id}/reschedule_slots` carries the visit it was issued to move, so there is nothing extra to send and the hold can only be spent on that move.
+         * @description Holds the time behind a `slot_token` until `expires_at`, and names the clinician. Use the `reservation_token` to create the encounter, book again, or reschedule, or release the hold. If the time was taken, this returns `409 slot.taken`; fetch times again. A hold made from `reschedule_slots` can only be used to move that visit.
          */
         post: operations["createSlotReservation"];
         delete?: never;
@@ -1221,7 +1215,7 @@ export interface paths {
         put?: never;
         /**
          * Release a held slot
-         * @description Gives the slot back so another patient can take it. Safe to repeat: a hold that is already released, expired, or consumed is returned as it is.
+         * @description Gives the time back so another patient can take it. Safe to repeat: a hold that is already released, expired or used is returned unchanged.
          */
         post: operations["releaseSlotReservation"];
         delete?: never;
@@ -2114,9 +2108,10 @@ export interface webhooks {
         /**
          * appointment.completed
          * @description Fires when the visit happened. Either the clinician marked it completed,
-         *     or the visit's window closed after both sides had been in the room and
-         *     the call was over. A dropped connection does not complete a visit: while
-         *     the window is open, the patient can join again.
+         *     or Lithos completed it after both sides had been in the room: once the
+         *     booking's scheduled `ends_at` had passed and the call was over, or at the
+         *     latest an hour after `ends_at`. A dropped connection before then does not
+         *     complete a visit, and the patient can join again.
          *
          *     Fires once per appointment, whichever of those got there first. Nothing
          *     is asked of you: the encounter's `needs_appointment` is `false` and the
@@ -2475,10 +2470,16 @@ export interface components {
              */
             strength: string;
             /**
-             * @description Catalog default number of units dispensed (per fill).
+             * @description Catalog default amount dispensed per fill, counted in `quantity_unit`. May be fractional (e.g. `2.5` Milliliter).
              * @example 1
              */
             default_quantity: number;
+            /**
+             * @description What one unit of the quantity is (pen, vial, milliliter, tablet…). One of the NCPDP SCRIPT quantity units of measure that US e-prescribing uses.
+             * @example Pen
+             * @enum {string}
+             */
+            quantity_unit: "Each" | "Milliliter" | "Gram" | "Applicator" | "Blister" | "Caplet" | "Capsule" | "Film" | "Gum" | "Implant" | "Insert" | "Kit" | "Lancet" | "Lozenge" | "Packet" | "Pad" | "Patch" | "Pen Needle" | "Ring" | "Sponge" | "Stick" | "Strip" | "Suppository" | "Swab" | "Tablet" | "Troche" | "Wafer" | "Carton" | "Pen" | "Syringe" | "Vial" | "Auto-injector" | "Tube" | "Bottle" | "Inhaler" | "Aerosol" | "Can" | "Spray" | "Drop";
             /**
              * @description Catalog default supply window in days.
              * @example 28
@@ -2585,10 +2586,16 @@ export interface components {
              */
             instructions: string;
             /**
-             * @description Number of units dispensed.
+             * @description Amount dispensed, counted in `quantity_unit`. May be fractional (e.g. `2.5` Milliliter).
              * @example 1
              */
             quantity: number;
+            /**
+             * @description What one unit of the quantity is (pen, vial, milliliter, tablet…). One of the NCPDP SCRIPT quantity units of measure that US e-prescribing uses.
+             * @example Pen
+             * @enum {string}
+             */
+            quantity_unit: "Each" | "Milliliter" | "Gram" | "Applicator" | "Blister" | "Caplet" | "Capsule" | "Film" | "Gum" | "Implant" | "Insert" | "Kit" | "Lancet" | "Lozenge" | "Packet" | "Pad" | "Patch" | "Pen Needle" | "Ring" | "Sponge" | "Stick" | "Strip" | "Suppository" | "Swab" | "Tablet" | "Troche" | "Wafer" | "Carton" | "Pen" | "Syringe" | "Vial" | "Auto-injector" | "Tube" | "Bottle" | "Inhaler" | "Aerosol" | "Can" | "Spray" | "Drop";
             /**
              * @description Supply window in days.
              * @example 28
@@ -2806,19 +2813,6 @@ export interface components {
             /** @description The care-team message to relay to the patient, set when the clinician completes the encounter. `null` until the encounter is completed. */
             patient_message: components["schemas"]["PatientMessage"] | null;
         };
-        /** @description What must be satisfied for an encounter on this patient and care plan. */
-        EncounterRequirements: {
-            requirements: {
-                modality: {
-                    /**
-                     * @description How the encounter must be conducted. `sync` requires a live video visit. The encounter carries this value once created.
-                     * @example async
-                     * @enum {string}
-                     */
-                    value: "async" | "sync";
-                };
-            };
-        };
         /** @description What `POST /v1/encounters` would say about an encounter for this patient on this care plan, and what the encounter would need. Only checks that need no intake are made here. This is not insurance eligibility, and not a clinical judgment: the reviewing clinician decides whether the patient qualifies. */
         EncounterPrecheck: {
             /**
@@ -2829,7 +2823,7 @@ export interface components {
             /** @description Why `POST /v1/encounters` would refuse the encounter. Empty when `passed` is `true`. Each `code` is the code `POST /v1/encounters` refuses with. It is a list so more reasons can be added. The answer is for a create without a `reservation_token`: with a slot hold, the held clinician takes the visit even if they stopped taking new encounters while the hold stood. */
             reasons: {
                 /**
-                 * @description `care_plan.not_encounterable`: the care plan is neither `pending_review` nor `active`, so it cannot take a new encounter. Ask again once its status changes: an `in_review` plan takes follow-ups once it is `active` (the `care_plan.active` webhook). An `ineligible` or `canceled` plan never will. `encounter.initial_already_exists`: the care plan already has its initial encounter. Use that one, or cancel it while `pending_review` and ask again. `encounter.no_licensed_availability`: no Lithos clinician licensed in the patient's state can take the encounter right now, or, when it needs a live visit, none of them is taking visits. Ask again later.
+                 * @description `care_plan.not_encounterable`: the care plan is neither `pending_review` nor `active`, so it cannot take a new encounter. An `in_review` plan takes follow-ups once it is `active` (the `care_plan.active` webhook). An `ineligible` or `canceled` plan never will. `encounter.initial_already_exists`: the care plan already has its initial encounter. `encounter.no_licensed_availability`: no Lithos clinician licensed in the patient's state can take the encounter right now, or, when it needs a live visit, none of them is taking visits.
                  * @example encounter.no_licensed_availability
                  * @enum {string}
                  */
@@ -3744,20 +3738,20 @@ export interface components {
         /** @description Everything you need to drive a "Join visit" button. Re-read it before you open `url` — the window is checked again when the patient arrives. */
         AppointmentPatientJoin: {
             /**
-             * @description What the patient can do right now. `provisioning` — the room is being set up, so no window is quoted yet. `too_early` — the window has not opened. `joinable` — the patient may open `url` and wait for the clinician; this stays true past `closes_at` for a patient who joined in time, and while the visit is `in_progress`. `closed` — the patient can no longer join: `closes_at` passed before they arrived, the booking ended, or the appointment has a result or was canceled.
+             * @description What the patient can do right now. `provisioning` — the room is being set up, so no window is quoted yet. `room_unavailable` — the room could not be set up: no window is quoted, and 10 minutes after booking it is still missing. Lithos is alerted and keeps trying, and the status moves on by itself once the room exists, so keep re-reading. Tell the patient there is a problem with the visit room rather than asking them to wait, and reschedule if it has not cleared by `starts_at`. `too_early` — the window has not opened. `joinable` — the patient may open `url` and wait for the clinician; this stays true past `closes_at` for a patient who arrived in time, and while the visit is `in_progress`. A patient arrived in time when they were waiting to be let in at `starts_at`, started waiting before `closes_at`, or were let in before it. One who stopped waiting before `starts_at` and did not come back did not. `closed` — the patient can no longer join: `closes_at` passed before they arrived, the booking ended, or the appointment has a result or was canceled.
              * @example too_early
              * @enum {string}
              */
-            status: "provisioning" | "too_early" | "joinable" | "closed";
+            status: "provisioning" | "room_unavailable" | "too_early" | "joinable" | "closed";
             /**
              * Format: date-time
-             * @description When the patient may open `url`. This is `starts_at` minus your organization's join lead, which is 10 minutes unless Lithos has set a different one for you. `null` while `status` is `provisioning`.
+             * @description When the patient may open `url`. This is `starts_at` minus your organization's join lead, which is 10 minutes unless Lithos has set a different one for you. `null` while `status` is `provisioning` or `room_unavailable`.
              * @example 2026-09-10T14:50:00Z
              */
             opens_at: string | null;
             /**
              * Format: date-time
-             * @description The last moment the patient can start joining: your organization's grace period past `starts_at` (10 minutes unless Lithos has set a different one for you), however long the booking runs. A patient who has not joined by then gets `closed` and is recorded as a no-show. Once the patient has joined, and for a visit that has started (`in_progress`), it is the end of the booking, and the visit stays `joinable` past it until the clinician marks it done. `null` while `status` is `provisioning`.
+             * @description The last moment the patient can start joining: your organization's grace period past `starts_at` (10 minutes unless Lithos has set a different one for you), however long the booking runs. A patient who has not arrived by then gets `closed` and is recorded as a no-show (see `status` for what arriving in time means). Once the patient has arrived in time, it is the end of the booking. For a visit that has started (`in_progress`), it is the latest the call can run before the room closes for good. Lithos may complete the visit earlier, from `ends_at` on, once nobody is still in the room, and the clinician can mark it done at any time. Once the visit has a result or was canceled, it is the same answer: the grace period for a patient who never arrived, the end of the booking for one who did. `null` while `status` is `provisioning` or `room_unavailable`.
              * @example 2026-09-10T15:10:00Z
              */
             closes_at: string | null;
@@ -3807,6 +3801,17 @@ export interface components {
              * @example 265d778f-e42c-454b-b073-9af00606dd70
              */
             room_external_id: string | null;
+            /**
+             * @description Whether the clinician is in the room now, so the page can tell a waiting patient the clinician is there and will let them in. Read from who Whereby reports in the room. `false` when the clinician is not in it, or when Lithos cannot tell. Quoted only while `status` is `joinable`; `null` on every other status.
+             * @example false
+             */
+            clinician_present: boolean | null;
+            /**
+             * Format: date-time
+             * @description When the patient knocked on the room, while they are still waiting to be let in (ISO-8601 UTC), so the page's wait timer survives a reload. `null` once the clinician lets them in or they cancel the knock, and before they knock. Quoted only while `status` is `joinable`; `null` on every other status.
+             * @example null
+             */
+            waiting_since: string | null;
         };
         /** @description One live video visit on an encounter. Every booking is its own appointment: rebooking after a no-show, and rescheduling, both add a row rather than changing this one, so the encounter's history reads as what actually happened. */
         Appointment: {
@@ -3901,21 +3906,23 @@ export interface components {
             cancelable: boolean;
             /**
              * @description What is happening to the visit right now, derived on every read from who
-             *     Whereby reports in the room. `not_started` — nobody has
-             *     arrived and `starts_at` has not passed. `due` — nobody has arrived and it
-             *     has. `waiting_for_clinician` — the patient is in the room alone.
+             *     is in the video room. `not_started` — nobody has
+             *     arrived and `starts_at` has not passed. `due` — `starts_at` has passed,
+             *     nobody is in the room, and the patient has not arrived. `waiting_for_clinician` — the patient is in the room alone.
              *     `waiting_for_patient` — the clinician is in the room alone. `under_way` —
              *     both are in the room. `ended` — both sides joined and the room reported
              *     the session ending, and the visit has no result yet. `presumed_ended` —
-             *     somebody was in the room, nothing ever reported the call ending, and
+             *     the patient was in the room (or the clinician started the visit by
+             *     hand), nothing ever reported the call ending, and
              *     either everybody has left or the booking is far enough past its close
              *     that no call could still be running (a full booking's length, and at
              *     least 30 minutes, after the join window shuts). A visit reads this
              *     only once it was due; a room emptied before `starts_at` is still
              *     `not_started`. `settled` — `status` is terminal, so nothing is
-             *     happening; read `status` for what happened. A booking nobody ever
-             *     joined reads neither ended value; it stays `due` until a no-show
-             *     settles it.
+             *     happening; read `status` for what happened. A booking the patient never
+             *     joined reads neither ended value, even when the clinician waited in the
+             *     room for them: it is `waiting_for_patient` while the clinician is there
+             *     and `due` once they leave, until a no-show settles it.
              *
              *     `ended` and `presumed_ended` are two different pieces of evidence, not
              *     two words for one. The first is the room telling us the call finished.
@@ -4025,6 +4032,12 @@ export interface components {
             duration_minutes: number;
             /** @description The clinician taking the visit, so the page can tell the patient who they are about to meet. The same name and photo the `Appointment` carries. */
             clinician: components["schemas"]["ClinicianSummary"];
+            /**
+             * Format: date-time
+             * @description When the visit was last handed to a different clinician (ISO-8601 UTC), so the page can tell the patient who they will now meet. `clinician` is already the new one. `null` on a visit that was never handed over.
+             * @example null
+             */
+            clinician_changed_at: string | null;
             patient: components["schemas"]["AppointmentJoinPatient"];
             patient_join: components["schemas"]["AppointmentPatientJoinWithRoom"];
             /** @description How the visit came to be closed as the patient's no-show, so the join page can say what happened. Set when `status` is `patient_no_show`; `null` otherwise. */
@@ -4717,7 +4730,7 @@ export interface components {
              * @example 2026-04-30T15:30:00Z
              */
             created_at: string;
-            /** @description ID of the affected resource. The prefix matches the event family (`enc_` for `encounter.*`, `cpl_` for `care_plan.*`, `ord_` for `order.*`, `inq_` for `inquiry.*`, `lbr_` for `lab_requisition.*`). Fetch the resource via its `GET` endpoint to act on the event. */
+            /** @description ID of the affected resource. The prefix matches the event family (`enc_` for `encounter.*`, `cpl_` for `care_plan.*`, `ord_` for `order.*`, `inq_` for `inquiry.*`, `lbr_` for `lab_requisition.*`, `appt_` for `appointment.*`). Fetch the resource via its `GET` endpoint to act on the event. */
             resource_id: string;
         };
         EncounterCreatedEvent: components["schemas"]["WebhookEvent"] & {
@@ -5207,13 +5220,16 @@ export interface operations {
                      *           "closes_at": "2026-05-04T15:10:00Z",
                      *           "url": "https://join.example.com/j/jt_test",
                      *           "room_url": "https://lithoshealth.whereby.com/visit-abc",
-                     *           "room_external_id": "265d778f-e42c-454b-b073-9af00606dd70"
+                     *           "room_external_id": "265d778f-e42c-454b-b073-9af00606dd70",
+                     *           "clinician_present": false,
+                     *           "waiting_since": null
                      *         },
                      *         "clinician": {
                      *           "first_name": "Maya",
                      *           "last_name": "Patel",
                      *           "profile_picture_url": null
                      *         },
+                     *         "clinician_changed_at": null,
                      *         "patient": {
                      *           "display_name": "Avery Chen",
                      *           "time_zone": "America/Los_Angeles"
@@ -5592,13 +5608,13 @@ export interface operations {
     listAppointmentSlots: {
         parameters: {
             query: {
-                /** @description The patient the visit is for. Licensure is matched on the state of their active address. */
+                /** @description The patient the visit is for. Times come from clinicians licensed in the patient's state. */
                 patient_id: string;
                 /** @description The care plan the visit advances. Must belong to the patient. */
                 care_plan_id: string;
-                /** @description Inclusive start of the range to search. An RFC 3339 timestamp carrying an offset, e.g. `2026-03-09T14:00:00Z`. Any offset is accepted; a value without one is rejected. */
+                /** @description Start of the range, included. A timestamp with an offset, such as `2026-03-09T14:00:00Z`. */
                 from: string;
-                /** @description Exclusive end of the range to search, in the same form as `from`. Must be a later instant than `from`, compared across offsets rather than as written, and at most 14 days past it. To show more, ask again from where the last range ended. */
+                /** @description End of the range, not included, in the same form as `from`. At most 14 days after `from`. To show more, ask again from where the last range ended. */
                 to: string;
             };
             header?: never;
@@ -5780,7 +5796,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Create a key for each booking attempt (a UUID works), up to 255 characters. Retry with the same key and body to get the first response. Reusing the key with a different body is refused. You can retry for 30 days after the first request. After that, Lithos treats the retry as a new request and refuses it because the hold has already been used. */
+                /** @description Create a key for each booking attempt (a UUID works), up to 255 characters. If a call times out or returns a server error, send it again with the same key and body. If the first call went through, you get its response back. The same key with a different body returns `409 idempotency_key.reused`. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -5862,7 +5878,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Create a key for each reschedule attempt (a UUID works), up to 255 characters. Retry with the same key and body to get the first response. Reusing the key with a different body is refused. You can retry for 30 days after the first request. After that, Lithos treats the retry as a new request and refuses it because the hold has already been used. */
+                /** @description Create a key for each reschedule attempt (a UUID works), up to 255 characters. If a call times out or returns a server error, send it again with the same key and body. If the first call went through, you get its response back. The same key with a different body returns `409 idempotency_key.reused`. */
                 "Idempotency-Key": string;
             };
             path: {
@@ -6223,6 +6239,7 @@ export interface operations {
                      *               "id": "dose_test_00000000000000000000000001",
                      *               "strength": "0.25mg",
                      *               "default_quantity": 1,
+                     *               "quantity_unit": "Pen",
                      *               "default_days_supply": 28,
                      *               "default_instructions": "Inject 0.25mg subcutaneously once weekly.",
                      *               "description": "Wegovy titration week 1-4 (starter)."
@@ -6231,6 +6248,7 @@ export interface operations {
                      *               "id": "dose_test_00000000000000000000000002",
                      *               "strength": "0.5mg",
                      *               "default_quantity": 1,
+                     *               "quantity_unit": "Pen",
                      *               "default_days_supply": 28,
                      *               "default_instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *               "description": "Wegovy titration week 5-8."
@@ -6294,6 +6312,7 @@ export interface operations {
                      *           "id": "dose_test_00000000000000000000000001",
                      *           "strength": "0.25mg",
                      *           "default_quantity": 1,
+                     *           "quantity_unit": "Pen",
                      *           "default_days_supply": 28,
                      *           "default_instructions": "Inject 0.25mg subcutaneously once weekly.",
                      *           "description": "Wegovy titration week 1-4 (starter)."
@@ -6302,6 +6321,7 @@ export interface operations {
                      *           "id": "dose_test_00000000000000000000000002",
                      *           "strength": "0.5mg",
                      *           "default_quantity": 1,
+                     *           "quantity_unit": "Pen",
                      *           "default_days_supply": 28,
                      *           "default_instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *           "description": "Wegovy titration week 5-8."
@@ -6633,50 +6653,6 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             /** @description The patient or care plan is not in your organization, or the care plan belongs to another patient (`resource.not_found`). Or a parameter is missing or malformed (`validation.failed`) */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getEncounterRequirements: {
-        parameters: {
-            query: {
-                /** @description The patient the encounter is for. */
-                patient_id: string;
-                /** @description The care plan the encounter advances. Must belong to the patient. */
-                care_plan_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Requirements */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "requirements": {
-                     *         "modality": {
-                     *           "value": "async"
-                     *         }
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["EncounterRequirements"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description The patient or care plan is not in your organization, or the care plan belongs to another patient (`resource.not_found`). The care plan cannot take a new encounter because it is neither `pending_review` nor `active` (`care_plan.not_encounterable`). Or a parameter is missing or malformed (`validation.failed`) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -7823,6 +7799,7 @@ export interface operations {
                      *               "strength": "0.5mg",
                      *               "instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *               "quantity": 1,
+                     *               "quantity_unit": "Pen",
                      *               "days_supply": 28,
                      *               "active": true,
                      *               "notes": null,
@@ -7921,6 +7898,7 @@ export interface operations {
                      *           "strength": "0.5mg",
                      *           "instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *           "quantity": 1,
+                     *           "quantity_unit": "Pen",
                      *           "days_supply": 28,
                      *           "active": true,
                      *           "notes": null,
@@ -7975,12 +7953,12 @@ export interface operations {
                      *       "data": [
                      *         {
                      *           "id": "pat_test_00000000000000000000000001",
-                     *           "external_id": "partner_ref_59",
+                     *           "external_id": "partner_ref_58",
                      *           "first_name": "Avery",
                      *           "last_name": "Chen",
                      *           "sex": "female",
-                     *           "email": "patient_59@example.com",
-                     *           "phone": "+14155550159",
+                     *           "email": "patient_58@example.com",
+                     *           "phone": "+14155550258",
                      *           "enrolled_in_government_insurance": false,
                      *           "height_cm": null,
                      *           "time_zone": "America/Los_Angeles",
@@ -8000,12 +7978,12 @@ export interface operations {
                      *         },
                      *         {
                      *           "id": "pat_test_00000000000000000000000002",
-                     *           "external_id": "partner_ref_58",
+                     *           "external_id": "partner_ref_57",
                      *           "first_name": "Avery",
                      *           "last_name": "Chen",
                      *           "sex": "female",
-                     *           "email": "patient_58@example.com",
-                     *           "phone": "+14155550158",
+                     *           "email": "patient_57@example.com",
+                     *           "phone": "+14155550257",
                      *           "enrolled_in_government_insurance": false,
                      *           "height_cm": null,
                      *           "time_zone": "America/Los_Angeles",
@@ -8139,12 +8117,12 @@ export interface operations {
                     /**
                      * @example {
                      *       "id": "pat_test_00000000000000000000000001",
-                     *       "external_id": "partner_ref_60",
+                     *       "external_id": "partner_ref_59",
                      *       "first_name": "Avery",
                      *       "last_name": "Chen",
                      *       "sex": "female",
-                     *       "email": "patient_60@example.com",
-                     *       "phone": "+14155550160",
+                     *       "email": "patient_59@example.com",
+                     *       "phone": "+14155550259",
                      *       "enrolled_in_government_insurance": false,
                      *       "height_cm": null,
                      *       "time_zone": "America/Los_Angeles",
@@ -8199,7 +8177,7 @@ export interface operations {
                      *       "first_name": "Avery",
                      *       "last_name": "Chen",
                      *       "sex": "female",
-                     *       "email": "patient_61@example.com",
+                     *       "email": "patient_60@example.com",
                      *       "phone": "+14155550199",
                      *       "enrolled_in_government_insurance": false,
                      *       "height_cm": null,
@@ -8276,6 +8254,7 @@ export interface operations {
                      *           "strength": "0.5mg",
                      *           "instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *           "quantity": 1,
+                     *           "quantity_unit": "Pen",
                      *           "days_supply": 28,
                      *           "active": true,
                      *           "notes": null,
@@ -8342,6 +8321,7 @@ export interface operations {
                      *       "strength": "0.5mg",
                      *       "instructions": "Inject 0.5mg subcutaneously once weekly.",
                      *       "quantity": 1,
+                     *       "quantity_unit": "Pen",
                      *       "days_supply": 28,
                      *       "active": true,
                      *       "notes": null,
@@ -9139,7 +9119,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
-            /** @description Every clinician for this slot is booked, held, or too close to another visit, or the visit this `slot_token` was issued to move is no longer scheduled */
+            /** @description The time was taken (`slot.taken`), or the visit this `slot_token` was issued to move is no longer scheduled */
             409: {
                 headers: {
                     [name: string]: unknown;

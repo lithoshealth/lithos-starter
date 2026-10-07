@@ -12,6 +12,6 @@ is written by hand, so when the spec changes, regenerate and the compiler shows
 every place the change reaches. CI fails if the generated file and this spec
 disagree.
 
-Copied from `lithoshealth/lithos` at `50882be0` (2026-10-01),
+Copied from `lithoshealth/lithos` at `7649f24a` (2026-10-07),
 `api/swagger/v1/swagger.yaml`. To update it, copy that file over this one, run
 `npm run api:types`, and fix what the compiler finds.
