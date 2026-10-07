@@ -71,7 +71,8 @@ form for that. Once they've connected, help with whatever they ask.
 - **The database:** Postgres. With no `DATABASE_URL`, `npm run dev` runs it
   embedded (PGlite, `src/lib/embedded-db.ts`, data in `.lithos-db/`, started by
   `src/instrumentation.ts`), so it's always there locally; a deployed app sets
-  `DATABASE_URL`. Scripts find the running app's database through
+  `DATABASE_URL`. With a `DATABASE_URL` in development, the same start applies
+  `db/schema.sql` to it (`src/lib/apply-schema.ts`), so keep the schema idempotent. Scripts find the running app's database through
   `db/running.mjs` — never open `.lithos-db/` from a second process.
 - **The event store:** Postgres when `DATABASE_URL` is set (locally, always),
   Upstash Redis when deployed without it. The deployed app refuses to fall back

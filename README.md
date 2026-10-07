@@ -103,7 +103,8 @@ inside Node — keeping its data in `.lithos-db/` (never committed, never in the
 downloaded zip) and seeding sample members on the first start. The scripts
 (`npm run db:seed`, `npm run replay`, …) use it while the app is running. A
 deployed app needs a hosted Postgres: set `DATABASE_URL`. `./scripts/db-up.sh`
-still sets up a Homebrew or Docker Postgres if you'd rather run your own.
+still sets up a Homebrew or Docker Postgres if you'd rather run your own; with
+`DATABASE_URL` set, `npm run dev` brings it up to `db/schema.sql` on every start.
 
 Worth reading once you've done the walkthrough:
 
