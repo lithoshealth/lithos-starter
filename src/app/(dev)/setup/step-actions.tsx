@@ -200,6 +200,10 @@ export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
           </label>
         ))}
       </fieldset>
+      <p className="muted">
+        This is just to get started: the app runs one program at a time, and you can switch here whenever you like.
+        Offering something different, or more than one? Add protocols, or request new ones, from your Lithos console.
+      </p>
       <div>
         <button type="submit" className="btn btn-primary" disabled={pending || !preselected}>
           {pending ? "Saving…" : "Use this program"}
