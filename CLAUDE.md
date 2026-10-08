@@ -3,7 +3,7 @@
 A partner app built on the Lithos partner API. It wears a demo brand (Eucardia
 Health, a fictional cardiometabolic membership). The brand — name, tagline,
 colour, logo — lives in `starter.config.json` and is edited live from the "Make
-it yours" panel on `/setup`; logos go in `public/brand/`. Nothing secret belongs
+it yours" panel (the first-run pop-up, and `/setup`, the Developer page); logos go in `public/brand/`. Nothing secret belongs
 in that file. The chosen **program** (`lipid_management` or `weight_management`)
 is saved there too and drives the patient-facing copy (`src/lib/programs/content.ts`)
 and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). The
@@ -16,14 +16,15 @@ The first run is the product demo, so leave the discovering to the person:
 
 1. Clone (or unzip, if it was sent after a demo — `START-HERE.md` is then in the
    folder), `npm install`, `npm run dev`.
-2. Open **http://localhost:3001** — the home page, not `/setup` — and hand over.
-   Tell them the app runs unconnected, that they can look around and submit a
-   form, and that **Open the setup walkthrough** in the bar at the top of every
-   page connects it to Lithos when they're ready. Then stop.
+2. `npm run dev` opens **http://localhost:3001**, the home page, with a pop-up
+   to connect to Lithos. Hand over there. Tell them the pop-up takes the client
+   ID and secret from their Lithos console, then lets them choose a program and
+   make the app theirs, and that the bar at the top then shows their sandbox
+   checklist and what to do next. Then stop.
 
-Don't open `/setup`, walk the intake, or tour the app on their behalf unless
-they ask. Never enter their client ID or secret — step 1 of `/setup` has a
-form for that. Once they've connected, help with whatever they ask.
+Don't walk the intake, play the clinician or tour the app on their behalf unless
+they ask. Never enter their client ID or secret: the pop-up has a form for that.
+Once they've connected, help with whatever they ask.
 
 ## Boundaries — don't engineer around these
 
@@ -50,11 +51,12 @@ form for that. Once they've connected, help with whatever they ask.
   this is reference code people read.
 - Integration code lives in `src/lib/`: `lithos/` (token cache, client, error
   envelope, types), `webhooks/` (signature verification, handler, attempt log),
-  `events/` (event store), `setup/` (the walkthrough).
+  `events/` (event store), `setup/` (the Developer page and connecting), and
+  `dev-progress.ts` (the sandbox checklist in the top bar).
 - **Two route groups, two kinds of chrome.** `src/app/(site)/` is the patient-facing
-  app; `src/app/(dev)/` is the developer walkthrough. The root layout is only the
+  app; `src/app/(dev)/` is the Developer page. The root layout is only the
   document shell. Route groups don't change URLs.
-- **The setup walkthrough derives every step from a live API call.** Never mark a
+- **The Developer page and the top bar's checklist derive every check from a live API call.** Never mark a
   step done from local state alone — that's what makes it trustworthy.
 - **Every create is idempotent.** Patients, care plans, encounters, conversations,
   messages and webhook endpoints are sent with an `Idempotency-Key` from the
@@ -82,7 +84,7 @@ form for that. Once they've connected, help with whatever they ask.
 
 | Route | Audience | Purpose |
 |---|---|---|
-| `/setup` | developer | the walkthrough — credentials to a verified webhook |
+| `/setup` | developer | the Developer page: connection, program, brand, webhooks |
 | `/` | patient | marketing landing (membership first, care as the escalation) |
 | `/start` | patient | direct intake → patient, care plan, encounter |
 | `/care/[encounterId]` | patient | plain-language care status |

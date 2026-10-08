@@ -6,18 +6,13 @@ import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import { CLIENT_ID_MASK, maskCredential, type SetupActionState } from "@/lib/setup/action-state";
 import type { ApiError } from "@/lib/lithos/types";
-import { carePlanRequest, encounterRequest, patientRequest, webhookEndpointRequest } from "@/lib/setup/requests";
-import { clearJourneyIds, readJourneyIds as readIds, writeJourneyIds as writeIds } from "@/lib/setup/journey-cookie";
-import { formularyHas, isSandbox, readProgramTreatment } from "@/lib/setup/steps";
-import { programFor, type ProgramKey } from "@/lib/setup/programs";
-import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@/lib/sandbox-review";
+import { webhookEndpointRequest } from "@/lib/setup/requests";
+import { formularyHas, isSandbox } from "@/lib/setup/steps";
+import { programFor } from "@/lib/setup/programs";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { rememberIssued } from "@/lib/setup/issued-cookie";
-import { signInAs } from "@/lib/portal/session";
-import { isDbConfigured } from "@/lib/db";
-import { findMemberByLithosPatientId, findOrCreateMemberForCare, linkMemberToLithos } from "@/lib/members";
-import { attemptFrom, stepKeys, type Attempt } from "@/lib/lithos/idempotency";
+import { attemptFrom, stepKeys } from "@/lib/lithos/idempotency";
 import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
@@ -30,40 +25,6 @@ function failure(error: unknown, hint?: string): SetupActionState {
 function refuseOutsideSandbox(): SetupActionState | null {
   if (isSandbox(process.env.LITHOS_API_BASE_URL)) return null;
   return { status: "error", errors: [{ code: "setup.not_sandbox", message: "The walkthrough only writes to the Lithos sandbox." }] };
-}
-
-/** A new sample patient requesting care: the three calls step 3 and the intake make. */
-async function requestCare(program: ProgramKey, treatmentId: string, attempt: Attempt, lastName?: string): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
-  const client = getLithosClient();
-  const key = stepKeys(attempt);
-  const patientId = await createSamplePatient(attempt, lastName);
-  const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program), key("care-plan"))).id;
-  const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId), key("encounter"))).id;
-  return { patientId, carePlanId, encounterId };
-}
-
-/** A sample patient whose every field comes from the attempt, so sending it twice sends the same body. */
-function samplePatient(attempt: Attempt, lastName?: string) {
-  const at = attempt.at.toISOString();
-  return { ...patientRequest(String(attempt.at.getTime()), lastName), telehealth_consented_at: at, identity_verified_at: at };
-}
-
-/**
- * The walkthrough's patient, made the way the app makes anyone: in your own
- * records first (lib/members.ts), with their member id as Lithos's external_id,
- * linked once Lithos answers — so the walkthrough's patients are members like
- * everyone else. Sent twice, it's the same member (the email comes from the
- * attempt) and the same patient (replayed, or the saved link).
- */
-async function createSamplePatient(attempt: Attempt, lastName?: string): Promise<string> {
-  const body = samplePatient(attempt, lastName);
-  const member = isDbConfigured() ? await findOrCreateMemberForCare(body) : null;
-  if (member?.lithos_patient_id) return member.lithos_patient_id;
-  const created = await getLithosClient().post<{ id: string }>(
-    "/v1/patients", member ? { ...body, external_id: member.id } : body, stepKeys(attempt)("patient"),
-  );
-  if (member) await linkMemberToLithos(member.id, created.id);
-  return created.id;
 }
 
 const SANDBOX_URLS = {
@@ -223,70 +184,6 @@ export async function clearProgramAction(): Promise<void> {
 }
 
 /**
- * Step 3's shortcut: onboard a sample patient without filling in the intake —
- * the same three calls the intake makes (patient, care plan, encounter), with
- * sample answers. Picks up where a half-finished run stopped (a patient with
- * no care requested yet) rather than creating another.
- */
-export async function onboardSamplePatientAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
-  const refused = refuseOutsideSandbox();
-  if (refused) return refused;
-
-  const ids = await readIds();
-  const program = programFor(ids.program);
-  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 1 first." }] };
-
-  const client = getLithosClient();
-  const attempt = attemptFrom(formData);
-  const key = stepKeys(attempt);
-  try {
-    const treatment = await readProgramTreatment(program.key);
-    if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
-
-    let { patientId, carePlanId } = ids;
-    if (!patientId || ids.encounterId) {
-      patientId = await createSamplePatient(attempt);
-      carePlanId = undefined;
-      await writeIds({ patientId });
-    }
-    carePlanId ??= (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program.key), key("care-plan"))).id;
-    await writeIds({ patientId, carePlanId });
-
-    const encounter = await client.post<{ id: string }>("/v1/encounters", encounterRequest(program.key, patientId, carePlanId, treatment.id), key("encounter"));
-    await writeIds({ patientId, carePlanId, encounterId: encounter.id });
-  } catch (error) {
-    return failure(error);
-  }
-  revalidatePath("/setup");
-  return { status: "ok" };
-}
-
-/**
- * In production a licensed clinician does this, in the Lithos ops portal. The
- * sandbox lets a partner play that part, so the whole loop closes without
- * waiting on a person — which is what makes an unattended walkthrough possible.
- */
-export async function driveReviewAction(): Promise<SetupActionState> {
-  const refused = refuseOutsideSandbox();
-  if (refused) return refused;
-
-  const { encounterId } = await readIds();
-  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Create an encounter first." }] };
-
-  try {
-    // Shared with the app's care page, so the walkthrough and the site sign off the same way.
-    await signOffAsClinician(getLithosClient(), encounterId);
-  } catch (error) {
-    const invalidCompletion = error instanceof LithosApiError && error.errors.some((e) => e.code === "sandbox.completion_invalid");
-    return failure(error, invalidCompletion
-      ? "An empty completion only works when every requested line names a treatment. A \"clinician's choice\" line needs explicit dosage_ids."
-      : undefined);
-  }
-  revalidatePath("/setup");
-  return { status: "ok" };
-}
-
-/**
  * Step 4: ask Lithos to send a `webhook.test` event to the registered
  * endpoint, so the app can prove it receives and verifies deliveries without
  * waiting for something to happen to a patient.
@@ -300,21 +197,6 @@ export async function sendTestEventAction(): Promise<SetupActionState> {
     const endpoint = list.data.find((e) => e.status === "active");
     if (!endpoint) return { status: "error", errors: [{ code: "setup.no_endpoint", message: "Register your webhook endpoint first." }] };
     await client.post(`/v1/webhook_endpoints/${endpoint.id}/test`, {});
-  } catch (error) {
-    return failure(error);
-  }
-  revalidatePath("/setup");
-  return { status: "ok" };
-}
-
-/** Step 3, "Decline": the plan becomes ineligible (`criteria_not_met`). */
-export async function declineReviewAction(): Promise<SetupActionState> {
-  const refused = refuseOutsideSandbox();
-  if (refused) return refused;
-  const { encounterId } = await readIds();
-  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Create a patient in step 2 first." }] };
-  try {
-    await declineAsClinician(getLithosClient(), encounterId);
   } catch (error) {
     return failure(error);
   }
@@ -387,28 +269,3 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
   }
 }
 
-/**
- * The finish line's "See it as your patient": sign the patient app in as the
- * walkthrough's own patient and open it — the demo sign-in, without picking
- * them out of a list of identical sample names.
- */
-export async function seeAsPatientAction(): Promise<void> {
-  const { patientId } = await readIds();
-  if (patientId) {
-    // As the member they are in your records, when they're there.
-    const member = isDbConfigured() ? await findMemberByLithosPatientId(patientId) : null;
-    await signInAs(member ? { memberId: member.id } : { patientId });
-  }
-  redirect("/portal");
-}
-
-export async function resetSetupAction(): Promise<void> {
-  // "Run again with new patient" forgets the patient and encounter, not the program.
-  const { program } = await readIds();
-  await clearJourneyIds();
-  if (program) await writeIds({ program });
-  revalidatePath("/setup");
-  // Land on step 3, where the new run starts. A redirect to the anchor works
-  // with or without JavaScript — the browser scrolls to it either way.
-  redirect("/setup#step-patient");
-}

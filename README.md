@@ -5,7 +5,8 @@ reach your first encounter in about fifteen minutes.
 
 It wears a demo brand, **Eucardia Health**: a fictional cardiometabolic
 membership that adds prescribing through Lithos. Nothing in the integration
-depends on the brand. The **Make it yours** panel at the top of `/setup` changes the
+depends on the brand. The **Make it yours** panel (in the first-run pop-up, and on
+`/setup`, the Developer page) changes the
 name, tagline, colour and logo live, saving them to `starter.config.json` (and the
 logo to `public/brand/`), so they're committed with your code. The longer marketing
 copy on the patient-facing pages is yours to replace.
@@ -16,18 +17,12 @@ copy on the patient-facing pages is yours to replace.
 
 ## Quick start
 
-You need Node 20+. Sandbox credentials — a **client ID** (it starts with
-`client_`) and a **client secret** — you can get from the app itself: step 1 of
-the walkthrough creates a sandbox organization from your email and company name
-and saves its credentials for you. Already have a pair from Lithos? Paste it
-instead.
-
-**Use a separate sandbox organization for this starter** — not the one you'll build
-your own integration on. An organization has one webhook endpoint and one shared
-set of patients: run both apps on the same credentials and only one of them
-receives webhooks, and the starter's sample patients mix into the organization
-you build on. Getting credentials in step 1 always creates a new organization,
-so each app can have its own.
+You need Node 20+, and sandbox credentials: a **client ID** (it starts with
+`client_`) and a **client secret**. If this starter is your app, use the pair from
+your Lithos console, so its sandbox checklist ticks as the app makes the calls.
+Just trying it next to your own app? The first-run pop-up can make a new sandbox
+organization instead: an organization has one webhook endpoint and one shared set
+of patients, so two apps shouldn't share one.
 
 ```sh
 git clone https://github.com/lithoshealth/lithos-starter.git
@@ -36,27 +31,28 @@ npm install
 npm run dev
 ```
 
-It opens **http://localhost:3001** in your browser (set `BROWSER=none` to skip that). Look around the app first — it runs
-unconnected, and a form you submit will tell you what's missing rather than
-break. When you're ready, click **Open the setup walkthrough** in the bar at the top of any page:
-step 1 gets you sandbox credentials (or takes the ones you have), checks them
-with Lithos, and saves them to `.env.local` (gitignored). Prefer the terminal?
-`npm run setup` takes a pasted pair before you start the server.
+It opens **http://localhost:3001** in your browser (set `BROWSER=none` to skip that),
+with a pop-up to connect: paste your client ID and secret (checked with Lithos, then
+saved to `.env.local`, which git ignores), choose the program you offer, and make the
+app yours. "Look around first" closes it; the bar at the top brings it back. Prefer
+the terminal? `npm run setup` takes a pasted pair before you start the server.
 
-## The setup walkthrough
+## Trying the journey
 
-`/setup` takes you from credentials to a clinician's decision in four steps, with a fifth, optional:
+There's no walkthrough to follow: the app is the walkthrough. The bar at the top of
+every page shows your Lithos console's sandbox checklist, live, and what to do next:
 
-1. Connect to Lithos — get sandbox credentials or paste yours, checked by minting a token and reading your formulary
-2. Choose what you offer — lipid management or weight loss. It switches the whole site: home page copy, the care-review intake, and the protocol a clinician reviews against (saved to `starter.config.json`)
-3. Onboard your first patient — choose quiz or chat, then fill in the intake yourself, right in the page. Sending it creates the patient, a care plan and an encounter (or use the sample-patient shortcut)
-4. Play the clinician — an illustrative review of the intake, then approve, decline, or ask the patient a question (sandbox helpers)
-5. *Optional:* stay in step with your patients' care — webhooks. Lithos posts an event whenever something happens; the app shows a feed of what it heard and a care-team inbox for the clinician's questions, where you relay the patient's reply. Setting it up needs a public HTTPS address for the app (a tunnel or a deployment)
+1. **Request care as a patient** at `/start`: the real intake (a quiz or a chat).
+   Sending it creates the patient, a care plan and an encounter.
+2. **Play the clinician** on the patient's care page: approve, decline, or ask the
+   patient a question. Sandbox only; in production a Lithos clinician decides.
+3. *Optional:* **play the pharmacy** in the patient app (**Sign in** in the header),
+   where demo controls move the order to delivered.
+4. **Receive a webhook**: set up on `/setup`, the Developer page, with a test event
+   to check it.
 
-Every step is checked against the live API — nothing is ticked by hand, so if you
-do a step your own way (curl, your own code), it still turns green. Each one shows
-the exact request it sends, what Lithos returned, and the file that made the call.
-When something's wrong, it tells you what and how to fix it.
+Each check is read from the live API, so doing a step your own way (curl, your own
+code) ticks it too.
 
 **Webhooks need a public HTTPS URL** — Lithos can't deliver to localhost. Either
 deploy the app, or run a tunnel and register its URL:
@@ -69,12 +65,12 @@ The tunnel is only for Lithos to reach you — keep browsing on `localhost`.
 
 Deploying to Vercel? Turn **Deployment Protection** off for production. It's on
 by default for new projects, and it answers Lithos's deliveries with a `401` that
-looks exactly like a signature failure. `/setup` will tell you if this is what's
+looks exactly like a signature failure. The Developer page (`/setup`) will tell you if this is what's
 happening.
 
 ## API reference
 
-The walkthrough covers the path to a first prescription. The full API — every
+The app covers the path to a first prescription. The full API — every
 endpoint, field, error code and webhook event — is documented at
 **https://docs.lithoshealth.com**.
 
@@ -86,7 +82,8 @@ endpoint, field, error code and webhook event — is documented at
 | `src/lib/webhooks/` | Signature verification (HMAC-SHA256 over `"<t>.<raw body>"`) and the delivery handler |
 | `src/lib/notifications/` | Telling the patient when a webhook is theirs to know — the care team wrote, the order shipped, a visit moved. Content-free by design (email isn't a secure channel): it says something is waiting and links into the app. Goes to the outbox on `/events` until you set `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`; another channel is one more `Notifier` |
 | `src/app/api/webhooks/lithos/` | The webhook receiver |
-| `src/lib/setup/` | The walkthrough: step checks and the exact request bodies it sends |
+| `src/lib/setup/` | The Developer page's checks (connection, program, webhooks), and connecting from the app |
+| `src/lib/dev-progress.ts` | The sandbox checklist in the top bar, read live from the API |
 | `src/lib/journey.ts`, `src/app/start/` | A direct intake form: patient → care plan → encounter in one submission |
 | `src/lib/escalate.ts`, `src/lib/escalation.ts` | Escalating an existing member into care — **illustrative rules, see below** |
 | `src/lib/portal/`, `src/app/(portal)/` | The patient's app (**Sign in** in the header): Home (the prescription, its pharmacy and delivery, the plan), Messages (a chat with the care team) and Support, read live from Lithos. Lithos has no patient logins — your app owns them — so a demo sign-in stands in: it picks someone from your own records, and their Lithos patient is the link on that record. Everyone who asks for care — through the care review, the walkthrough, or as a member — is one row in your records and one Lithos patient, whichever door they came in by. The plan's coaching steps and the support answers are your program's content (`journey.ts`, `support.ts`), illustrative. On a local sandbox copy, demo controls play the clinician, the pharmacy and the care team |
@@ -106,7 +103,7 @@ deployed app needs a hosted Postgres: set `DATABASE_URL`. `./scripts/db-up.sh`
 still sets up a Homebrew or Docker Postgres if you'd rather run your own; with
 `DATABASE_URL` set, `npm run dev` brings it up to `db/schema.sql` on every start.
 
-Worth reading once you've done the walkthrough:
+Worth reading once you've tried the journey:
 
 - **`external_id` is your reconciliation key.** Send your own member id when you
   create a patient; Lithos stores it immutably, and a reused one returns the
@@ -149,7 +146,7 @@ What's yours to build before real patients:
 ## Environment
 
 See `.env.example`. `npm run setup` fills in the four `LITHOS_` values the
-walkthrough needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from step 5 (it's saved for you in development); everything else is for
+app needs (or edit `.env.local` by hand); `LITHOS_WEBHOOK_SECRET` comes from registering your webhook endpoint on the Developer page (it's saved for you in development); everything else is for
 the membership side or for deploying.
 
 ```sh

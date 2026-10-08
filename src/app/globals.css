@@ -246,6 +246,10 @@ summary { cursor: pointer; font-weight: 700; }
 /* ---------- developer chrome ---------- */
 .dev-bar { padding: 0.45rem 1rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: #fff; background: var(--ink); }
 .dev-bar a { color: #9fe0d6; }
+/* The sandbox checklist, live, in the dev bar. */
+.dev-progress { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem 0.8rem; }
+.dev-check { opacity: 0.7; font-weight: 500; }
+.dev-check-done { opacity: 1; color: #9fe0d6; }
 .dev-header { border-bottom: 1px solid var(--line); background: var(--panel); }
 .dev-brand { font-weight: 750; letter-spacing: 0.01em; }
 
@@ -710,3 +714,10 @@ a.card-row:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--li
 /* /events: what patients were told. */
 .outbox { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
 .outbox li { display: grid; gap: 0.15rem; padding: 0.75rem 0.9rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }
+
+/* The first-run pop-up: connect, then make it yours. */
+.onboard-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: start center; padding: 4vh 1rem; overflow-y: auto; background: rgb(15 23 20 / 0.45); }
+.onboard-dialog { width: min(44rem, 100%); max-height: none; }
+.onboard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.onboard-head h2 { margin: 0; font-size: 1.5rem; }
+html[data-embedded] .onboard-overlay { display: none; }

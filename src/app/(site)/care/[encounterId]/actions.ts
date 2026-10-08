@@ -6,7 +6,7 @@ import { getLithosClient } from "@/lib/lithos/client";
 import { lithosConnection, notConnectedError } from "@/lib/lithos/connection";
 import { LithosApiError } from "@/lib/lithos/errors";
 import type { Encounter } from "@/lib/lithos/types";
-import { signOffAsClinician } from "@/lib/sandbox-review";
+import { askPatientAsClinician, declineAsClinician, signOffAsClinician } from "@/lib/sandbox-review";
 import type { ClinicianState } from "@/lib/sandbox-review-state";
 import { bookVisit, cancelVisit, holdSlot, releaseHold, rescheduleVisit } from "@/lib/sync-visits";
 import type { ActionError, HoldState, VisitActionState } from "@/lib/visit-state";
@@ -82,12 +82,27 @@ export async function cancelVisitAction(_prev: VisitActionState, formData: FormD
   redirect(`${carePath(encounterId)}#visit`);
 }
 
-/** Sandbox only: sign the visitor's own encounter off, so the app's loop closes like the walkthrough's. */
+/**
+ * Sandbox only: play the clinician on the visitor's own encounter, so the
+ * app's journey closes. Approve (the default), decline, or ask the patient a
+ * question first — the three things a clinician can do.
+ */
 export async function playClinicianAction(_prev: ClinicianState, formData: FormData): Promise<ClinicianState> {
   const encounterId = String(formData.get("encounter_id") ?? "");
+  const decision = String(formData.get("decision") ?? "approve");
   if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };
   try {
-    const { chose } = await signOffAsClinician(getLithosClient(), encounterId);
+    const client = getLithosClient();
+    let chose: string | undefined;
+    if (decision === "decline") {
+      await declineAsClinician(client, encounterId);
+    } else if (decision === "ask") {
+      const question = String(formData.get("question") ?? "").trim().slice(0, 10_000);
+      if (!question) return { status: "error", errors: [{ code: "sandbox.empty_question", message: "Write the clinician's question first." }] };
+      await askPatientAsClinician(client, encounterId, question);
+    } else {
+      ({ chose } = await signOffAsClinician(client, encounterId));
+    }
     revalidatePath(`/care/${encounterId}`);
     return { status: "ok", chose };
   } catch (error) {

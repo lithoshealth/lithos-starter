@@ -18,12 +18,10 @@ import { readWebhookAttempts } from "../webhooks/attempts";
 import { getLithosClient } from "../lithos/client";
 import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
-import { PROGRAMS, programFor, type ProgramKey, type ProgramOption } from "./programs";
-import { reviewIntake, type IntakeReview } from "../intake/review";
+import { PROGRAMS, type ProgramKey, type ProgramOption } from "./programs";
 import { isSandboxBaseUrl as isSandbox } from "@/lib/lithos/sandbox";
 
-export type StepKey =
-  | "connect" | "program" | "patient" | "review" | "updates";
+export type StepKey = "connect" | "program" | "updates";
 
 /**
  * "Connect" is one step with three checks. Adding credentials is the only thing
@@ -82,33 +80,11 @@ export type StepState = {
   /** The updates step only: whether the webhook setup is complete, and where it stands. */
   setupDone?: boolean;
   endpointSummary?: string;
-  /** The updates step only: the question it asked, and whether the app has heard about it yet. */
-  question?: { asked: boolean; heardAt?: string; thread?: QuestionThread };
-  /** The review step only: what a clinician works from, and what was decided. */
-  review?: ReviewCard;
   /** The Connect step only: the credentials are missing, so the page can offer the form. */
   needsCredentials?: boolean;
   /** The program step only: every program, and what this organization's formulary has for it. */
   programs?: ProgramOption[];
   chosenProgram?: ProgramKey;
-};
-
-/**
- * An illustrative clinician review, built only from what the partner sent and
- * the API returns — not Lithos's clinician screen. It shows what the decision
- * is made from; the decision itself goes through the sandbox helpers.
- */
-export type ReviewCard = IntakeReview & {
-  program: string;
-  patient: { name: string; age?: number; sex?: string; state?: string };
-  /** What the intake asked for: named treatments, or the clinician's choice. */
-  requested: string[];
-  /** How many answers the intake sent — the one number the chart shows. */
-  intakeAnswers: number;
-  /** A decision is final once the encounter completes. */
-  outcome?: { kind: "approved" | "declined"; detail: string };
-  /** The question thread, while the clinician is waiting on the patient. */
-  thread?: QuestionThread;
 };
 
 /** A clinician's question to the patient (an inquiry), as the partner sees it. */
@@ -320,102 +296,7 @@ async function checkOrganization(): Promise<InternalCheck> {
   }
 }
 
-// ---------------------------------------------------------------- 4–6. patient, encounter, review
-
-/**
- * Onboarding a patient is one step, because it's one action: a patient's
- * intake is their request for care. Sending it makes three calls — the
- * patient, a care plan, and the encounter carrying the intake — and the step
- * is done when all three exist. Its exchanges show them in that order.
- */
-async function checkPatient(ids: JourneyIds, read: { encounter?: EncounterRead; exchange?: Exchange }): Promise<StepState> {
-  if (!ids.patientId) return { key: "patient", status: "ready", summary: "No patient yet." };
-  const path = `/v1/patients/${ids.patientId}`;
-  let patient: { id: string; first_name: string; last_name: string };
-  try {
-    patient = await getLithosClient().get<{ id: string; first_name: string; last_name: string }>(path);
-  } catch (error) {
-    return { key: "patient", status: "ready", summary: "The patient this walkthrough made can't be read — start again.", exchange: exchangeFromError("GET", path, error) };
-  }
-  const patientExchange: Exchange = { method: "GET", path, status: 200, response: patient };
-  const name = `${patient.first_name} ${patient.last_name}`;
-  if (!read.encounter) {
-    // A patient with no care requested yet — the sample shortcut failed half-way, say.
-    return {
-      key: "patient", status: "ready", summary: `${name} is created, but their care hasn't been requested yet.`,
-      exchange: patientExchange, moreExchanges: read.exchange ? [read.exchange] : [],
-    };
-  }
-  const carePlan = await readCarePlan(read.encounter.care_plan_id);
-  return {
-    key: "patient", status: "done",
-    summary: `${name} — care requested, encounter ${read.encounter.status.replace("_", " ")}`,
-    exchange: patientExchange, moreExchanges: [carePlan, ...(read.exchange ? [read.exchange] : [])],
-  };
-}
-
-type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; care_plan: { status: string }; requested_treatments: unknown[]; patient_message: unknown };
-
-async function readEncounter(ids: JourneyIds): Promise<{ encounter?: EncounterRead; exchange?: Exchange }> {
-  if (!ids.encounterId) return {};
-  const path = `/v1/encounters/${ids.encounterId}`;
-  try {
-    const encounter = await getLithosClient().get<EncounterRead>(path);
-    return { encounter, exchange: { method: "GET", path, status: 200, response: encounter } };
-  } catch (error) {
-    return { exchange: exchangeFromError("GET", path, error) };
-  }
-}
-
-async function readCarePlan(carePlanId: string): Promise<Exchange> {
-  const path = `/v1/care_plans/${carePlanId}`;
-  try {
-    return { method: "GET", path, status: 200, response: await getLithosClient().get(path) };
-  } catch (error) {
-    return exchangeFromError("GET", path, error);
-  }
-}
-
-type PatientRead = { first_name?: string; last_name?: string; date_of_birth?: string; sex?: string; address?: { state?: string } };
-type EncounterFull = Omit<EncounterRead, "requested_treatments"> & {
-  intake_form?: { data?: Record<string, unknown> };
-  requested_treatments: Array<{ catalog_treatment_id: string | null }>;
-};
-
-function ageFrom(dateOfBirth: string | undefined): number | undefined {
-  if (!dateOfBirth) return undefined;
-  const born = new Date(`${dateOfBirth}T00:00:00Z`);
-  const now = new Date();
-  let age = now.getUTCFullYear() - born.getUTCFullYear();
-  if (now.getUTCMonth() < born.getUTCMonth() || (now.getUTCMonth() === born.getUTCMonth() && now.getUTCDate() < born.getUTCDate())) age -= 1;
-  return Number.isFinite(age) ? age : undefined;
-}
-
-function reviewCard(encounter: EncounterFull, patient: PatientRead | undefined, program: ProgramKey, catalog: CatalogTreatment[]): ReviewCard {
-  const requested = encounter.requested_treatments.map((line) =>
-    line.catalog_treatment_id
-      ? catalog.find((t) => t.id === line.catalog_treatment_id)?.name ?? "A treatment from your formulary"
-      : "Clinician's choice, from your formulary",
-  );
-  const status = encounter.care_plan?.status;
-  const outcome: ReviewCard["outcome"] =
-    encounter.status === "completed" && status === "ineligible" ? { kind: "declined", detail: "The care plan is ineligible (criteria not met). The patient is told, and you get the reason code." }
-    : encounter.status === "completed" ? { kind: "approved", detail: `The care plan is ${status ?? "active"}: a prescription is written and the order goes to the pharmacy.` }
-    : undefined;
-  return {
-    ...reviewIntake(program, encounter.intake_form?.data ?? {}),
-    program: programFor(program)?.label ?? program,
-    patient: {
-      name: [patient?.first_name, patient?.last_name].filter(Boolean).join(" ") || "Your patient",
-      age: ageFrom(patient?.date_of_birth),
-      sex: patient?.sex,
-      state: patient?.address?.state,
-    },
-    requested,
-    intakeAnswers: Object.keys(encounter.intake_form?.data ?? {}).length,
-    outcome,
-  };
-}
+// ---------------------------------------------------------------- question threads
 
 type InquiryRead = {
   id: string; patient_id: string; status: string; awaiting: "patient" | "staff" | null;
@@ -436,52 +317,7 @@ export function threadFrom(inquiry: InquiryRead): QuestionThread {
   };
 }
 
-/** The open question thread about an encounter, if the clinician has asked one. */
-async function readThread(patientId: string, encounterId: string): Promise<QuestionThread | undefined> {
-  try {
-    const list = await getLithosClient().get<{ data: InquiryRead[] }>(`/v1/patients/${patientId}/inquiries`);
-    const inquiry = list.data.find((i) => i.status === "open" && i.references?.some((r) => r.id === encounterId));
-    if (!inquiry) return undefined;
-    // The list may carry a summary; the thread's messages come from the inquiry itself.
-    return threadFrom(await getLithosClient().get<InquiryRead>(`/v1/inquiries/${inquiry.id}`));
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Play the clinician. The step shows what a clinician works from (the review
- * card) and offers the three decisions they have. Done only when a decision is
- * final — approved or declined. Asking the patient a question pauses it: the
- * step waits, shows the question, and once the patient has replied (step 5's
- * inbox) it's the clinician's turn again.
- */
-async function checkReview(
-  read: { encounter?: EncounterRead; exchange?: Exchange },
-  context: { patient?: PatientRead; program: ProgramKey; catalog: CatalogTreatment[] },
-): Promise<StepState> {
-  if (!read.encounter) return { key: "review", status: "locked", summary: "Needs your first patient's care request." };
-  const full = (read.exchange?.response ?? read.encounter) as EncounterFull;
-  const review = reviewCard(full, context.patient, context.program, context.catalog);
-  if (read.encounter.status === "escalated") {
-    review.thread = await readThread(read.encounter.patient_id, read.encounter.id);
-    const replied = review.thread?.awaiting === "staff" && review.thread.reply;
-    return {
-      key: "review", status: "ready", review, exchange: read.exchange,
-      summary: replied ? "Your patient replied — back to the clinician." : "Question sent — waiting for your patient's reply.",
-    };
-  }
-  if (review.outcome) {
-    const summary = {
-      approved: `Approved — care plan ${full.care_plan?.status ?? "active"}, prescription written.`,
-      declined: "Declined — care plan ineligible, reason: criteria not met.",
-    }[review.outcome.kind];
-    return { key: "review", status: "done", summary, exchange: read.exchange, review };
-  }
-  return { key: "review", status: "ready", summary: `Encounter is ${read.encounter.status.replace("_", " ")}, waiting for a clinician.`, review };
-}
-
-// ---------------------------------------------------------------- 5. updates (webhooks)
+// ---------------------------------------------------------------- webhooks
 
 /** A part of the updates step: the endpoint check, or the deliveries check. */
 type Check = Omit<StepState, "key">;
@@ -817,11 +653,21 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
  * valid isn't — the options come from your live formulary, so a program your
  * organization isn't provisioned for can't be picked.
  */
-function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
-  const programs: ProgramOption[] = PROGRAMS.map((program) => {
+/** Every program, with what this organization's formulary has for it — for the connect pop-up's picker. */
+export async function readProgramOptions(): Promise<ProgramOption[]> {
+  const catalog = await getLithosClient().get<{ data: CatalogTreatment[] }>("/v1/catalog_treatments?limit=100");
+  return programOptions(catalog.data);
+}
+
+function programOptions(catalog: CatalogTreatment[]): ProgramOption[] {
+  return PROGRAMS.map((program) => {
     const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(program.key)).map((t) => t.name);
     return { ...program, treatments, inFormulary: treatments.length > 0, selectable: program.supported && treatments.length > 0 };
   });
+}
+
+function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
+  const programs = programOptions(catalog);
 
   if (!programs.some((p) => p.selectable)) {
     return {
@@ -859,33 +705,14 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
 
 export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const steps: StepState[] = [];
-  const lockedFrom = (keys: StepKey[], reason: string) =>
-    keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
-
   const { step: connect, catalog } = await checkConnect();
   steps.push(connect);
   if (connect.status !== "done") {
-    lockedFrom(["program", "patient", "review", "updates"], "Waiting on the connection.");
+    steps.push({ key: "program", status: "locked", summary: "Waiting on the connection." });
+    steps.push({ key: "updates", status: "locked", summary: "Waiting on the connection." });
     return steps;
   }
-
-  const program = checkProgram(ids, catalog);
-  steps.push(program);
-  if (program.status !== "done") {
-    lockedFrom(["patient", "review", "updates"], "Waiting on your program.");
-    return steps;
-  }
-
-  const encounterRead = await readEncounter(ids);
-  const patientStep = await checkPatient(ids, encounterRead);
-  steps.push(patientStep);
-  steps.push(await checkReview(encounterRead, {
-    patient: patientStep.exchange?.response as PatientRead | undefined,
-    program: ids.program ?? "lipid_management",
-    catalog,
-  }));
-
+  steps.push(checkProgram(ids, catalog));
   steps.push(await checkUpdates(ids));
-
   return steps;
 }

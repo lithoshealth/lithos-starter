@@ -1,10 +1,9 @@
 "use client";
 
 import { useActionState, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type IssuedCredentials, type SetupActionState } from "@/lib/setup/action-state";
-import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction, resetSetupAction } from "./actions";
+import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction } from "./actions";
 import type { ProgramOption } from "@/lib/setup/programs";
 import { IdempotencyField } from "../../idempotency-field";
 
@@ -329,29 +328,5 @@ export function NewSecretForm({ currentId, url }: { currentId: string; url: stri
       <p className="muted">Registers the same address again: Lithos issues a new secret, and the old one stops working.</p>
       <ActionError state={state} />
     </form>
-  );
-}
-
-/**
- * "Run again with a new patient": forget the walkthrough's patient and
- * encounter (not the program), then land on step 3, where the new run starts.
- * A plain form posting a server action — it works before the page's
- * JavaScript loads, like every other step; the action redirects to the
- * step's anchor, so the browser scrolls there itself.
- */
-export function RunAgainButton({ variant = "ghost" }: { variant?: "ghost" | "primary" }) {
-  return (
-    <form action={resetSetupAction}>
-      <RunAgainSubmit variant={variant} />
-    </form>
-  );
-}
-
-function RunAgainSubmit({ variant }: { variant: "ghost" | "primary" }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className={`btn btn-${variant}`} disabled={pending}>
-      {pending ? "Starting over…" : "Run again with a new patient"}
-    </button>
   );
 }

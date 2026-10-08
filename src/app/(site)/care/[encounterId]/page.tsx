@@ -11,6 +11,8 @@ import { isSandboxBaseUrl } from "@/lib/sandbox-review";
 import { ClinicianPanel } from "./clinician-panel";
 import { VisitSection } from "./visit-section";
 import { programFor } from "@/lib/setup/programs";
+import { contentFor } from "@/lib/programs/content";
+import type { ProgramKey } from "@/lib/setup/programs";
 
 export const metadata: Metadata = { title: "Your care plan" };
 export const dynamic = "force-dynamic";
@@ -136,8 +138,12 @@ export default async function CarePage({
         from={typeof query.from === "string" ? query.from : undefined}
       />
 
-      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && canSignOff && (encounter.status === "pending_review" || encounter.status === "in_review") && (
-        <ClinicianPanel encounterId={encounter.id} />
+      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && canSignOff && ["pending_review", "in_review", "escalated"].includes(encounter.status) && (
+        <ClinicianPanel
+          encounterId={encounter.id}
+          waitingOnPatient={encounter.status === "escalated"}
+          defaultQuestion={programFor(carePlan.category) ? contentFor(carePlan.category as ProgramKey).clinicianQuestion : "Is there anything else I should know before I decide?"}
+        />
       )}
 
       <p><Link href={`/care/${encodeURIComponent(encounter.id)}`} className="btn btn-ghost">Refresh status</Link> <Link href="/" className="btn btn-ghost">Back to home</Link></p>
