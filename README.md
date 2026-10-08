@@ -157,3 +157,8 @@ npm run lint
 npm run typecheck
 npm test
 ```
+
+## License
+
+MIT, see [`LICENSE`](LICENSE). Your use of the Lithos sandbox and API is
+governed separately by the [Lithos Platform Terms](https://app-sandbox.lithoshealth.com/legal/platform-terms).
