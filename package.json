@@ -11,7 +11,7 @@
     "setup": "node scripts/setup.mjs",
     "credentials": "node scripts/credentials.mjs",
     "demo": "node scripts/demo.mjs",
-    "dev": "next dev -p 3001",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

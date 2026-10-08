@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Then open **http://localhost:3001** and look around the app first — it runs
+It opens **http://localhost:3001** in your browser (set `BROWSER=none` to skip that). Look around the app first — it runs
 unconnected, and a form you submit will tell you what's missing rather than
 break. When you're ready, click **Open the setup walkthrough** in the bar at the top of any page:
 step 1 gets you sandbox credentials (or takes the ones you have), checks them
