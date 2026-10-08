@@ -10,16 +10,20 @@ import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
  * from the real one would teach the wrong thing. Pure: safe to import anywhere.
  */
 
-/** A sample patient. Names, email and phone satisfy the synthetic-data guards. */
-export function patientRequest(stamp: string) {
+/**
+ * A sample patient. Names, email and phone satisfy the synthetic-data guards.
+ * `lastName` tells the walkthrough's patients apart in a patient list: step 3's
+ * is "Walkthrough", step 5's is "Question".
+ */
+export function patientRequest(stamp: string, lastName = "Walkthrough") {
   return {
     external_id: `setup_${stamp}`,
     first_name: "Sample",
-    last_name: "Walkthrough",
+    last_name: lastName,
     date_of_birth: "1978-05-14",
     sex: "female" as const,
     address: { line1: "410 Sample Street", line2: null, city: "Brooklyn", state: "NY", postal_code: "11201" },
-    email: `sample.walkthrough+${stamp}@example.com`,
+    email: `sample.${lastName.toLowerCase()}+${stamp}@example.com`,
     phone: "+12125550142",
     enrolled_in_government_insurance: false,
     telehealth_consented_at: "<now>",

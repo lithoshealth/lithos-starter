@@ -22,6 +22,9 @@ export function AskQuestionForm({ question, again, disabled }: { question: strin
         id={again ? "question-again" : "question"} name="question" className="chat-bubble chat-bubble-clinician"
         rows={3} defaultValue={question} required maxLength={10_000} disabled={disabled || pending}
       />
+      <p className="muted">
+        This goes to a second sample patient, Sample Question, so the one from steps 3 and 4 keeps its decision.
+      </p>
       <div>
         <button type="submit" className={again ? "btn btn-ghost" : "btn btn-primary"} disabled={disabled || pending}>
           {pending ? "Asking…" : again ? "Ask another patient" : "Ask the patient"}

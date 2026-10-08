@@ -33,19 +33,19 @@ function refuseOutsideSandbox(): SetupActionState | null {
 }
 
 /** A new sample patient requesting care: the three calls step 3 and the intake make. */
-async function requestCare(program: ProgramKey, treatmentId: string, attempt: Attempt): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
+async function requestCare(program: ProgramKey, treatmentId: string, attempt: Attempt, lastName?: string): Promise<{ patientId: string; carePlanId: string; encounterId: string }> {
   const client = getLithosClient();
   const key = stepKeys(attempt);
-  const patientId = await createSamplePatient(attempt);
+  const patientId = await createSamplePatient(attempt, lastName);
   const carePlanId = (await client.post<{ id: string }>("/v1/care_plans", carePlanRequest(patientId, program), key("care-plan"))).id;
   const encounterId = (await client.post<{ id: string }>("/v1/encounters", encounterRequest(program, patientId, carePlanId, treatmentId), key("encounter"))).id;
   return { patientId, carePlanId, encounterId };
 }
 
 /** A sample patient whose every field comes from the attempt, so sending it twice sends the same body. */
-function samplePatient(attempt: Attempt) {
+function samplePatient(attempt: Attempt, lastName?: string) {
   const at = attempt.at.toISOString();
-  return { ...patientRequest(String(attempt.at.getTime())), telehealth_consented_at: at, identity_verified_at: at };
+  return { ...patientRequest(String(attempt.at.getTime()), lastName), telehealth_consented_at: at, identity_verified_at: at };
 }
 
 /**
@@ -55,8 +55,8 @@ function samplePatient(attempt: Attempt) {
  * everyone else. Sent twice, it's the same member (the email comes from the
  * attempt) and the same patient (replayed, or the saved link).
  */
-async function createSamplePatient(attempt: Attempt): Promise<string> {
-  const body = samplePatient(attempt);
+async function createSamplePatient(attempt: Attempt, lastName?: string): Promise<string> {
+  const body = samplePatient(attempt, lastName);
   const member = isDbConfigured() ? await findOrCreateMemberForCare(body) : null;
   if (member?.lithos_patient_id) return member.lithos_patient_id;
   const created = await getLithosClient().post<{ id: string }>(
@@ -328,7 +328,7 @@ export async function askNewPatientAction(_prev: SetupActionState, formData: For
   try {
     const treatment = await readProgramTreatment(program.key);
     if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
-    const journey = await requestCare(program.key, treatment.id, attemptFrom(formData));
+    const journey = await requestCare(program.key, treatment.id, attemptFrom(formData), "Question");
     await writeIds({ ...ids, questionPatientId: journey.patientId, questionEncounterId: journey.encounterId });
     await askPatientAsClinician(client, journey.encounterId, question);
   } catch (error) {
