@@ -177,7 +177,7 @@ function checkCredentials(): InternalCheck {
         ? {
             title: "Connect this app to your Lithos sandbox",
             fix: "Get sandbox credentials below with your email and company name — a new sandbox organization is created for this app — or paste a client ID and secret you already have. Either way they're checked with Lithos before anything is saved, and written to .env.local, which git ignores.",
-            then: "Use a sandbox organization that's just for this starter, not the one you'll build your own app on — an organization has one webhook endpoint and one shared set of patients. Getting credentials here always makes a new one.",
+            then: "If this starter is your app, use the credentials from your Lithos console: its sandbox checklist then ticks as this app makes the calls. If you're building your own app on that sandbox and only want to see this one working, get new credentials here instead: an organization has one webhook endpoint and one shared set of patients.",
           }
         : {
             title: "Connect this app to your Lithos sandbox",
@@ -508,6 +508,7 @@ const EVENT_LABELS: Record<string, string> = {
   "inquiry.message_added": "A new message in the question thread",
   "inquiry.resolved": "The clinician read the reply and resolved the question",
   "inquiry.closed": "The question thread was closed",
+  "webhook.test": "A test event",
 };
 
 /**
@@ -552,59 +553,40 @@ async function readUpdates(ids: JourneyIds): Promise<{ feed: FeedItem[]; inbox: 
 }
 
 /**
- * Optional. How the partner's app stays in step with care: Lithos posts an
- * event the moment something happens, and the app acts on it — here, a feed of
- * what happened to the patient and an inbox for the clinician's questions.
- *
- * The setup (a public address, the signing secret) is the developer's part and
- * is folded inside. Done once an event about this patient has been received
- * and verified.
+ * How the partner's app stays in step with care: Lithos posts an event the
+ * moment something happens, and the app re-reads what it names. Done once an
+ * event about this walkthrough's patient, or a test event, has been received
+ * here and its signature verified — the same thing the Lithos console's
+ * sandbox checklist asks for.
  */
 async function checkUpdates(ids: JourneyIds): Promise<StepState> {
-  if (!ids.encounterId) {
-    return { key: "updates", status: "locked", optional: true, summary: "Needs your first patient's care request." };
-  }
   const endpointRead = await readEndpoint();
   // One proof check, shared by the endpoint and delivery checks.
   const reach = endpointRead.endpoint
     ? await reachesThisApp(endpointRead.endpoint.url.replace(/\/api\/webhooks\/lithos$/, ""))
     : null;
   const endpoint = checkEndpoint(endpointRead, reach);
-  const { feed, inbox, heardAt, thread } = await readUpdates(ids);
+  const { feed } = await readUpdates(ids);
   const base = {
-    key: "updates" as const, optional: true, feed, inbox,
+    key: "updates" as const, feed,
     endpoint: endpoint.endpoint, setupDone: endpoint.status === "done", endpointSummary: endpoint.summary,
-    question: { asked: Boolean(ids.questionEncounterId), heardAt, thread },
   };
 
-  // Done when the app has heard the clinician's question — the point of the step.
-  if (heardAt) {
-    return {
-      ...base, status: "done", exchange: endpoint.exchange,
-      summary: thread?.awaiting === "patient"
-        ? "Your app heard the clinician's question — your patient's turn to answer."
-        : "Your patient answered — the clinician has it.",
-    };
-  }
   if (endpoint.status !== "done") {
     return {
       ...base, status: endpoint.status === "blocked" ? "blocked" : "ready",
-      summary: endpoint.status === "blocked" ? endpoint.summary : "Not set up yet — your app hears nothing until it is.",
+      summary: endpoint.status === "blocked" ? endpoint.summary : "Not set up yet: your app hears nothing until it is.",
       diagnosis: endpoint.diagnosis, exchange: endpoint.exchange,
     };
   }
-  if (!base.question.asked) {
-    return { ...base, status: "ready", summary: "Listening. Ask a patient a question and watch it arrive.", exchange: endpoint.exchange };
+  const received = await checkReceived(ids, endpointRead.endpoint, reach?.ok === true);
+  if (received.status === "done") {
+    return { ...base, status: "done", summary: received.summary, exchange: received.exchange };
   }
-  // Asked, not heard yet: Lithos's delivery log says whether it's on its way or failing.
-  const received = await checkReceived(
-    { patientId: ids.questionPatientId, encounterId: ids.questionEncounterId },
-    endpointRead.endpoint, reach?.ok === true,
-  );
   return {
     ...base, status: received.status === "blocked" ? "blocked" : "ready",
-    summary: received.status === "blocked" ? received.summary : "Question asked — waiting for Lithos to tell your app.",
-    diagnosis: received.diagnosis, exchange: received.exchange,
+    summary: received.status === "blocked" ? received.summary : "Listening. Send a test event, or approve a patient in step 3: Lithos tells your app either way.",
+    diagnosis: received.diagnosis, exchange: received.exchange ?? endpoint.exchange,
   };
 }
 
@@ -651,16 +633,15 @@ function checkEndpoint(read: { endpoint?: WebhookEndpoint; exchange: Exchange },
 
 /**
  * Done only when an event about *this walkthrough's* patient, care plan or
- * encounter has been verified here. Counting "any event in the store" was the
- * first version, and it lied: a store holding old or replayed events reported
- * success before this walkthrough had caused a single delivery.
+ * encounter, or a test event to this endpoint, has been verified here.
+ * Counting "any event in the store" was the first version, and it lied: a
+ * store holding old or replayed events reported success before this
+ * walkthrough had caused a single delivery.
  */
 async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefined, pointsHere: boolean): Promise<Check> {
   if (!endpoint) return { status: "locked", summary: "Needs a registered endpoint first." };
-  if (!ids.encounterId) {
-    return { status: "locked", summary: "Deliveries follow real events — create the encounter first." };
-  }
-  const ours = new Set([ids.patientId, ids.carePlanId, ids.encounterId].filter(Boolean) as string[]);
+  // A test event's resource is the endpoint itself.
+  const ours = new Set([ids.patientId, ids.carePlanId, ids.encounterId, endpoint.id].filter(Boolean) as string[]);
 
   let received: Awaited<ReturnType<ReturnType<typeof getEventStore>["list"]>> = [];
   try {
@@ -672,7 +653,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
   if (received.length > 0) {
     return {
       status: "done",
-      summary: `${received.length} event${received.length === 1 ? "" : "s"} about your encounter delivered, signature verified, stored.`,
+      summary: `${received.length} event${received.length === 1 ? "" : "s"} delivered, signature verified, stored.`,
       // The reveal for the last step: what Lithos actually sent. Thin on
       // purpose — a type and a resource id, not the new state.
       exchange: {
@@ -701,7 +682,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
     return {
       // No box here: step 5 has already proved the endpoint reaches this app,
       // and the guide below says what's actually missing — an event since then.
-      status: "ready", summary: "Lithos hasn't delivered anything about your encounter yet.", exchange,
+      status: "ready", summary: "Lithos hasn't delivered anything to this app yet.", exchange,
     };
   }
 
@@ -709,7 +690,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
   if (deliveries.some((d) => d.status === "succeeded") && !pointsHere) {
     return {
       status: "ready",
-      summary: `Lithos delivered ${deliveries.length} event${deliveries.length === 1 ? "" : "s"} about your encounter — to ${endpoint.url}.`,
+      summary: `Lithos delivered ${deliveries.length} event${deliveries.length === 1 ? "" : "s"}, to ${endpoint.url}.`,
       exchange,
       diagnosis: {
         title: "Delivered, but to another copy of this app",
@@ -721,7 +702,7 @@ async function checkReceived(ids: JourneyIds, endpoint: WebhookEndpoint | undefi
   const failing = deliveries.find((d) => d.status !== "succeeded" && d.last_response_code !== null);
   return {
     status: failing ? "blocked" : "ready",
-    summary: `Lithos has attempted ${deliveries.length} deliver${deliveries.length === 1 ? "y" : "ies"} about your encounter; this app has verified none.`,
+    summary: `Lithos has attempted ${deliveries.length} deliver${deliveries.length === 1 ? "y" : "ies"}; this app has verified none.`,
     exchange,
     diagnosis: diagnoseDelivery(failing, readWebhookAttempts()),
   };
@@ -736,7 +717,7 @@ function diagnoseDelivery(failing: WebhookDelivery | undefined, attempts: Return
   if (!failing) {
     return {
       title: "Nothing has been delivered yet",
-      fix: "Deliveries follow real events — create the encounter and drive the review above, and each step fires one. Webhooks need a public HTTPS URL: localhost can't receive them. Deploy this app, or run a tunnel (e.g. `cloudflared tunnel --url http://localhost:3001`) and register that URL.",
+      fix: "Send a test event, or approve a patient in step 3: each fires one. Webhooks need a public HTTPS URL: localhost can't receive them. Deploy this app, or run a tunnel (e.g. `cloudflared tunnel --url http://localhost:3001`) and register that URL.",
     };
   }
   const code = failing.last_response_code;
@@ -879,7 +860,7 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
 export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {
   const steps: StepState[] = [];
   const lockedFrom = (keys: StepKey[], reason: string) =>
-    keys.forEach((key) => steps.push({ key, status: "locked", summary: reason, optional: key === "updates" || undefined }));
+    keys.forEach((key) => steps.push({ key, status: "locked", summary: reason }));
 
   const { step: connect, catalog } = await checkConnect();
   steps.push(connect);

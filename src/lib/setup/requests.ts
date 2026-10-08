@@ -12,8 +12,7 @@ import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 
 /**
  * A sample patient. Names, email and phone satisfy the synthetic-data guards.
- * `lastName` tells the walkthrough's patients apart in a patient list: step 3's
- * is "Walkthrough", step 5's is "Question".
+ * `lastName` tells patients apart in a patient list; the walkthrough's is "Walkthrough".
  */
 export function patientRequest(stamp: string, lastName = "Walkthrough") {
   return {
@@ -87,5 +86,5 @@ export const STEP_SOURCES = {
   program: "src/lib/setup/programs.ts",
   patient: "src/lib/journey.ts (the intake) · src/lib/setup/requests.ts → patientRequest, carePlanRequest, encounterRequest (the shortcut)",
   review: "src/lib/sandbox-review.ts → signOffAsClinician",
-  updates: "src/app/api/webhooks/lithos/route.ts (receive + verify) · src/lib/setup/steps.ts → readUpdates (re-read, feed, inbox) · src/app/(dev)/setup/actions.ts → registerWebhookAction, askNewPatientAction, replyToQuestionAction",
+  updates: "src/app/api/webhooks/lithos/route.ts (receive + verify) · src/lib/setup/steps.ts → checkUpdates (verified deliveries) · src/app/(dev)/setup/actions.ts → registerWebhookAction, sendTestEventAction",
 } as const;

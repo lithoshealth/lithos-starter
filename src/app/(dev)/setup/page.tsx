@@ -9,11 +9,8 @@ import { readJourneyIds } from "@/lib/setup/journey-cookie";
 import { readIssued } from "@/lib/setup/issued-cookie";
 import { appFolder, readHandoff } from "@/lib/setup/handoff";
 import { evaluateSetup, type Exchange, type JourneyIds, type StepKey, type StepState } from "@/lib/setup/steps";
-import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction, seeAsPatientAction } from "./actions";
+import { clearProgramAction, declineReviewAction, driveReviewAction, onboardSamplePatientAction, seeAsPatientAction, sendTestEventAction } from "./actions";
 import { ReviewCard } from "./review-card";
-import { InboxThread } from "./inbox-thread";
-import { WebhookDemo } from "./webhook-demo";
-import { contentFor } from "@/lib/programs/content";
 import Link from "next/link";
 import { KeepItButtons } from "./email-app";
 import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, RunAgainButton, StepAction, WebhookForm } from "./step-actions";
@@ -24,6 +21,8 @@ export const dynamic = "force-dynamic";
 
 /** Lithos's API reference — the same link Lithos sends with sandbox credentials. */
 const API_DOCS_URL = "https://docs.lithoshealth.com";
+/** The Lithos console: where the partner learned the steps, and where its sandbox checklist ticks as this app makes them. */
+const CONSOLE_URL = process.env.LITHOS_CONSOLE_URL || "https://app-sandbox.lithoshealth.com/launch";
 
 // Written so the page reads the same whatever the app is called — the starter
 // may be rebranded per prospect, so nothing here says "Eucardia".
@@ -31,31 +30,33 @@ const API_DOCS_URL = "https://docs.lithoshealth.com";
 const WINS: Record<StepKey, string> = {
   connect: "Connected to Lithos",
   program: "A program to offer",
-  patient: "A patient onboarded",
+  patient: "A patient created",
   review: "A clinician’s decision",
-  updates: "Updates from Lithos",
+  updates: "Webhooks received",
 };
 
+// Short on purpose: the Lithos console's "Discover the steps" explains the
+// journey. This page is for doing it with this app's own code.
 const STEPS: Record<StepKey, { title: string; what: string }> = {
   connect: {
     title: "Connect to Lithos",
-    what: "Get your own sandbox organization with your email and company name — or paste the client ID and secret you were sent. Either way they stay on your server; the browser never sees them. The app then proves they work three ways: the values are there, Lithos trades them for an access token, and that token reads your organization's formulary — the treatments you're allowed to prescribe.",
+    what: "Paste the client ID and secret from your Lithos console, or get a new sandbox here. They stay on your server; the browser never sees them. Then choose which of your programs this app offers: it decides your site's copy and the intake your patients answer.",
   },
   program: {
     title: "Choose what you offer",
-    what: "Lithos organizes care into programs, each with its own protocol, intake and treatments. The one you pick decides what your site says, what your patients are asked, and the protocol a clinician reviews them against — pick one and your home page changes with it. The options come from your live formulary: what your organization can prescribe.",
+    what: "",
   },
   patient: {
-    title: "Onboard your first patient",
-    what: "Choose how your patients answer your intake — a quiz or a chat — then fill it in yourself, as your first patient. The form below is the real one your patients will see. Sending it makes three calls to Lithos: it creates the patient, opens a care plan for your program, and requests care with an encounter carrying their answers. In a hurry? Use a sample patient instead.",
+    title: "Create a patient",
+    what: "Fill in your app's intake yourself, as a patient would. Sending it creates the patient, a care plan and an encounter: the request a clinician reviews.",
   },
   review: {
-    title: "Play the clinician",
-    what: "A licensed Lithos clinician reviews every request: your patient's intake, their history, medications and labs, against your program's protocol and the rules of their state. Then they approve and prescribe, decline, or ask the patient a question first (that's step 5). In production this happens in Lithos's portal. The sandbox lets you stand in for them, so you can see what happens next.",
+    title: "Get a clinician’s decision",
+    what: "In production a Lithos clinician reviews the encounter. In the sandbox, you decide for them, and your app reads the outcome back.",
   },
   updates: {
-    title: "Stay in step with your patients' care",
-    what: "Care keeps happening after your patient leaves your site. Say the clinician needs to ask them a question: Lithos can't reach your patient — only your app can. So Lithos tells your app, with a webhook, and your app brings the patient back. Webhooks travel over the internet, so your app needs a public address: a tunnel or a deploy, set up below.",
+    title: "Receive a webhook",
+    what: "Lithos tells your app when something changes, with a signed webhook your app verifies before re-reading the resource. Webhooks need a public HTTPS address: a deploy or a tunnel.",
   },
 };
 
@@ -88,10 +89,7 @@ function requestPreview(key: StepKey, ids: JourneyIds): { method: string; path: 
     case "updates":
       return [
         { method: "POST", path: "/v1/webhook_endpoints", body: webhookEndpointRequest("https://<your app>/api/webhooks/lithos") },
-        // Sandbox only: plays the clinician asking. In production a clinician does this in Lithos's portal.
-        { method: "POST", path: "/v1/sandbox/encounters/<encounter id>/escalate", body: { escalation_reason: "patient_information_required", message_for_patient: "<the clinician's question>" } },
-        // What your app sends when your patient answers.
-        { method: "POST", path: "/v1/inquiries/<inquiry id>/messages", body: { body: "<your patient's reply>" } },
+        { method: "POST", path: "/v1/webhook_endpoints/<endpoint id>/test", body: {} },
       ];
     default:
       return null;
@@ -117,19 +115,27 @@ export default async function SetupPage() {
   const handoff = await readHandoff();
   const config = await readConfig();
   const brand = config.brand;
-  const content = contentFor(config.program ?? DEFAULT_PROGRAM);
 
   const host = (await headers()).get("host");
   const isLocal = !host || /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
-  const steps = await evaluateSetup(ids);
+  const evaluated = await evaluateSetup(ids);
+  // Choosing a program is part of step 1 here: shown inside it, not as a step of its own.
+  const programStep = evaluated.find((s) => s.key === "program");
+  const steps = evaluated
+    .filter((s) => s.key !== "program")
+    .map((s) =>
+      s.key === "connect" && s.status === "done" && programStep && programStep.status !== "done"
+        ? { ...s, status: programStep.status, summary: "Connected. Now choose the program this app offers." }
+        : s,
+    );
   // Progress counts the steps a first encounter needs; the optional one is extra.
   const required = steps.filter((s) => !s.optional);
   const done = required.filter((s) => s.status === "done").length;
   const current = required.find((s) => s.status === "ready" || s.status === "blocked");
   const connected = steps[0]?.status === "done";
-  // Steps 1–4 done: a patient went from your site to a clinician's decision.
+  // All four done: every call the console's sandbox checklist looks for.
   const finished = done === required.length;
-  // The endpoint, when it reaches this app — step 5 can re-register it for a new secret.
+  // The endpoint, when it reaches this app — step 4 can re-register it for a new secret.
   const endpointHere = steps.find((s) => s.key === "updates")?.endpoint;
   const endpointHereOk = endpointHere?.pointsHere ? endpointHere : undefined;
 
@@ -138,10 +144,11 @@ export default async function SetupPage() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">Lithos sandbox · setup</p>
-          <h1>From clone to your first encounter.</h1>
+          <h1>Connect this app to Lithos.</h1>
           <p className="lede">
-            Four steps from connecting to a clinician&rsquo;s decision, and a fifth, optional, for keeping your app in
-            step — each checked against the live Lithos API, so nothing here is ticked by hand. About five minutes.
+            Four steps, the ones your Lithos console&rsquo;s sandbox checklist looks for: connect, create a patient, get a
+            clinician&rsquo;s decision, receive a webhook. Each is checked against the live API, and{" "}
+            <a href={CONSOLE_URL} target="_blank" rel="noopener">your console</a> ticks as this app makes the calls.
           </p>
         </div>
       </div>
@@ -153,7 +160,7 @@ export default async function SetupPage() {
       </div>
       <p className="muted">
         {done === required.length
-          ? `All ${required.length} steps done — ${brand.name} took a patient from intake to a clinician's decision. Step 5, optional, keeps your app in step with what happens next.`
+          ? `All ${required.length} steps done: ${brand.name} makes every call your sandbox checklist needs.`
           : `${done} of ${required.length} done${current ? ` — next: ${STEPS[current.key].title.toLowerCase()}.` : "."}`}
       </p>
 
@@ -211,22 +218,18 @@ export default async function SetupPage() {
               {/* After a signup the dev server reloads the page; the masked credentials come back from a cookie. */}
               {step.key === "connect" && step.status === "done" && issued && <Connected issued={issued} />}
 
-              {step.programs && step.status !== "locked" && step.status !== "done" && (
-                <ProgramPicker programs={step.programs} />
+              {step.key === "connect" && programStep?.programs && programStep.status !== "done" && programStep.status !== "locked" && (
+                <ProgramPicker programs={programStep.programs} />
               )}
-              {step.programs && step.status === "done" && step.chosenProgram && (
-                <>
+              {step.key === "connect" && programStep?.programs && programStep.status === "done" && programStep.chosenProgram && (
+                <div className="form-actions">
                   <p className="notes">
-                    You&rsquo;re offering <strong>{step.programs.find((p) => p.key === step.chosenProgram)?.label}</strong>.
+                    Offering <strong>{programStep.programs.find((p) => p.key === programStep.chosenProgram)?.label}</strong>.
                   </p>
                   <form action={clearProgramAction}>
                     <button type="submit" className="btn btn-ghost">Change program</button>
                   </form>
-                  <LivePreview
-                    key={step.chosenProgram} path="/"
-                    caption={`Your home page, now offering ${step.programs.find((p) => p.key === step.chosenProgram)?.label.toLowerCase()}.`}
-                  />
-                </>
+                </div>
               )}
 
               {step.key === "patient" && step.status !== "locked" && (
@@ -264,71 +267,59 @@ export default async function SetupPage() {
                   </div>
                 </div>
               )}
-              {step.key === "updates" && step.status !== "locked" && (() => {
-                const q = step.question;
-                const others = (step.inbox ?? []).filter((t) => t.id !== q?.thread?.id);
-                return (
-                  <>
-                    <WebhookDemo
-                      question={q} canAsk={Boolean(step.setupDone && process.env.LITHOS_WEBHOOK_SECRET)} blocked={step.status === "blocked"}
-                      brandName={brand.name} clinicianQuestion={content.clinicianQuestion} patientReply={content.patientReply}
-                    />
+              {step.key === "updates" && step.status !== "locked" && (
+                <>
+                  {step.setupDone && process.env.LITHOS_WEBHOOK_SECRET && (
+                    <StepAction step="updates" action={sendTestEventAction} label="Send a test event" pendingLabel="Asking Lithos to send one…" variant={step.status === "done" ? "ghost" : "primary"} />
+                  )}
 
-                    {others.length > 0 && (
-                      <section className="updates-inbox" aria-label="Other questions waiting">
-                        <h3>Other questions waiting</h3>
-                        {others.map((thread) => <InboxThread key={thread.id} thread={thread} sampleReply={content.patientReply} />)}
-                      </section>
-                    )}
-
-                    {(step.feed?.length ?? 0) > 0 && (
-                      <details className="setup-detail">
-                        <summary>Everything your app heard ({step.feed!.length})</summary>
-                        <ol className="updates-feed">
-                          {step.feed!.map((item, i) => (
-                            <li key={`${item.at}-${i}`}>
-                              <time dateTime={item.at}>{new Date(item.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}</time>
-                              <span>{item.label}</span>
-                              <code>{item.type}</code>
-                            </li>
-                          ))}
-                        </ol>
-                      </details>
-                    )}
-
-                    {/* The developer's part: a public address for this app, and the signing secret. Folded unless it's what's in the way. */}
-                    <details id="webhook-setup" className="setup-detail" open={step.status === "blocked"}>
-                      <summary>{step.setupDone ? "Set up — " : "Set it up — "}for your developer</summary>
-                      <p className="muted">{step.endpointSummary}</p>
-                      {step.diagnosis && (
-                        <div className={step.status === "blocked" ? "error-box" : "demo-note"}>
-                          <h2>{step.diagnosis.title}</h2>
-                          <p>{step.diagnosis.fix}</p>
-                          {step.diagnosis.command && <pre className="setup-command">{step.diagnosis.command}</pre>}
-                          {step.diagnosis.then && <p>{step.diagnosis.then}</p>}
-                        </div>
-                      )}
-                      {!step.endpoint && (
-                        <>
-                          <EndpointGuide />
-                          <WebhookForm defaultUrl={isLocal ? "" : `https://${host}`} />
-                        </>
-                      )}
-                      {step.endpoint && !step.endpoint.pointsHere && (
-                        <RepointForm currentId={step.endpoint.id} currentUrl={step.endpoint.url} defaultUrl={isLocal ? "" : `https://${host}`}>
-                          <EndpointGuide />
-                        </RepointForm>
-                      )}
-                      {step.setupDone && !process.env.LITHOS_WEBHOOK_SECRET && (
-                        <>
-                          <DeliveryGuide />
-                          {endpointHereOk && <NewSecretForm currentId={endpointHereOk.id} url={endpointHereOk.url} />}
-                        </>
-                      )}
+                  {(step.feed?.length ?? 0) > 0 && (
+                    <details className="setup-detail">
+                      <summary>Everything your app heard about your patient ({step.feed!.length})</summary>
+                      <ol className="updates-feed">
+                        {step.feed!.map((item, i) => (
+                          <li key={`${item.at}-${i}`}>
+                            <time dateTime={item.at}>{new Date(item.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}</time>
+                            <span>{item.label}</span>
+                            <code>{item.type}</code>
+                          </li>
+                        ))}
+                      </ol>
                     </details>
-                  </>
-                );
-              })()}
+                  )}
+
+                  {/* A public address for this app, and the signing secret. Open until it's set up. */}
+                  <details id="webhook-setup" className="setup-detail" open={!step.setupDone || step.status === "blocked"}>
+                    <summary>{step.setupDone ? "Your endpoint" : "Set up your endpoint"}</summary>
+                    <p className="muted">{step.endpointSummary}</p>
+                    {step.diagnosis && (
+                      <div className={step.status === "blocked" ? "error-box" : "demo-note"}>
+                        <h2>{step.diagnosis.title}</h2>
+                        <p>{step.diagnosis.fix}</p>
+                        {step.diagnosis.command && <pre className="setup-command">{step.diagnosis.command}</pre>}
+                        {step.diagnosis.then && <p>{step.diagnosis.then}</p>}
+                      </div>
+                    )}
+                    {!step.endpoint && (
+                      <>
+                        <EndpointGuide />
+                        <WebhookForm defaultUrl={isLocal ? "" : `https://${host}`} />
+                      </>
+                    )}
+                    {step.endpoint && !step.endpoint.pointsHere && (
+                      <RepointForm currentId={step.endpoint.id} currentUrl={step.endpoint.url} defaultUrl={isLocal ? "" : `https://${host}`}>
+                        <EndpointGuide />
+                      </RepointForm>
+                    )}
+                    {step.setupDone && !process.env.LITHOS_WEBHOOK_SECRET && (
+                      <>
+                        <DeliveryGuide />
+                        {endpointHereOk && <NewSecretForm currentId={endpointHereOk.id} url={endpointHereOk.url} />}
+                      </>
+                    )}
+                  </details>
+                </>
+              )}
 
               {/* Folded by default: the step's plain-language result is what most
                   people need. The real request and response are one click away. */}
@@ -387,6 +378,11 @@ export default async function SetupPage() {
           <h2>What&rsquo;s next</h2>
         )}
         <div className="setup-next-cards">
+          <div className="setup-next-card">
+            <h3>Your Lithos console</h3>
+            <p className="muted">Your sandbox checklist ticks as this app makes the calls. Then apply to go live there.</p>
+            <div className="setup-next-stack"><a className="btn btn-ghost" href={CONSOLE_URL} target="_blank" rel="noopener">Open your console&nbsp;↗</a></div>
+          </div>
           <div className="setup-next-card">
             {/* Once a patient has a decision, the app has two sides: the site a visitor finds, and the patient's own app. */}
             {finished && ids.patientId ? (

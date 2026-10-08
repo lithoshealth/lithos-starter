@@ -52,7 +52,7 @@ export function Connected({ treatments, issued }: { treatments?: number; issued?
         {issued ? " — the full secret only lives there: Lithos shows it once, and this page never does." : "."}{" "}
         {treatments !== undefined && <>Lithos accepted them and returned {treatments} treatment{treatments === 1 ? "" : "s"} in your formulary.</>}
       </p>
-      <p><a className="btn btn-primary" href="/setup#step-program">{issued ? "Continue to step 2" : "Reload"}</a></p>
+      <p><a className="btn btn-primary" href="/setup#step-connect">{issued ? "Choose your program" : "Reload"}</a></p>
     </div>
   );
 }
@@ -220,7 +220,7 @@ function TryItButton() {
   return (
     <button type="button" className="btn btn-primary" onClick={() => {
       router.refresh();
-      document.getElementById("webhook-demo")?.scrollIntoView({ block: "start" });
+      document.getElementById("step-updates")?.scrollIntoView({ block: "start" });
     }}>Try it: ask the patient a question ↑</button>
   );
 }
@@ -248,7 +248,7 @@ function SecretOnce({ url, signingSecret, saved }: { url: string; signingSecret:
         it, and reloading loses it. Set it in your host&rsquo;s environment settings, then redeploy:
       </p>
       <pre className="setup-json">{`LITHOS_WEBHOOK_SECRET=${signingSecret}`}</pre>
-      <p className="muted">Lost it? Step 5 can get you a new one — it registers the address again.</p>
+      <p className="muted">Lost it? Step 4 can get you a new one — it registers the address again.</p>
     </div>
   );
 }

@@ -59,7 +59,7 @@ async function SignIn() {
       ) : (
         <div className="card-soft">
           <p><strong>No one here yet.</strong></p>
-          <p className="muted">Onboard one in step 3 of the <Link href="/setup">setup walkthrough</Link>, or through <Link href="/start">the care review</Link>.</p>
+          <p className="muted">Create one in step 2 of the <Link href="/setup">setup walkthrough</Link>, or through <Link href="/start">the care review</Link>.</p>
         </div>
       )}
     </PortalShell>

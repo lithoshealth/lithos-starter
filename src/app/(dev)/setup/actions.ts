@@ -234,7 +234,7 @@ export async function onboardSamplePatientAction(_prev: SetupActionState, formDa
 
   const ids = await readIds();
   const program = programFor(ids.program);
-  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
+  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 1 first." }] };
 
   const client = getLithosClient();
   const attempt = attemptFrom(formData);
@@ -286,14 +286,20 @@ export async function driveReviewAction(): Promise<SetupActionState> {
   return { status: "ok" };
 }
 
-/** Step 4, "Decline": the plan becomes ineligible (`criteria_not_met`). */
-export async function declineReviewAction(): Promise<SetupActionState> {
+/**
+ * Step 4: ask Lithos to send a `webhook.test` event to the registered
+ * endpoint, so the app can prove it receives and verifies deliveries without
+ * waiting for something to happen to a patient.
+ */
+export async function sendTestEventAction(): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
-  const { encounterId } = await readIds();
-  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Onboard a patient in step 3 first." }] };
+  const client = getLithosClient();
   try {
-    await declineAsClinician(getLithosClient(), encounterId);
+    const list = await client.get<{ data: Array<{ id: string; status: string }> }>("/v1/webhook_endpoints");
+    const endpoint = list.data.find((e) => e.status === "active");
+    if (!endpoint) return { status: "error", errors: [{ code: "setup.no_endpoint", message: "Register your webhook endpoint first." }] };
+    await client.post(`/v1/webhook_endpoints/${endpoint.id}/test`, {});
   } catch (error) {
     return failure(error);
   }
@@ -301,36 +307,14 @@ export async function declineReviewAction(): Promise<SetupActionState> {
   return { status: "ok" };
 }
 
-/** The longest question the escalate call accepts. */
-const QUESTION_MAX = 10_000;
-
-/**
- * Step 5, "Ask a patient a question": a new sample patient requests care, and
- * the clinician — played here, as in step 4 — asks them a question before
- * deciding. Lithos turns that into an inquiry and tells the app by webhook;
- * step 5 then shows what the app does with it. Its own patient, so the one
- * from steps 3–4 keeps whatever was decided about it.
- */
-export async function askNewPatientAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
+/** Step 3, "Decline": the plan becomes ineligible (`criteria_not_met`). */
+export async function declineReviewAction(): Promise<SetupActionState> {
   const refused = refuseOutsideSandbox();
   if (refused) return refused;
-  const question = String(formData.get("question") ?? "").trim();
-  if (!question) return { status: "error", errors: [{ code: "setup.empty_question", message: "Write the clinician's question first." }] };
-  if (question.length > QUESTION_MAX) return { status: "error", errors: [{ code: "setup.question_too_long", message: `Keep the question under ${QUESTION_MAX.toLocaleString()} characters.` }] };
-
-  const ids = await readIds();
-  const program = programFor(ids.program);
-  if (!program?.supported) return { status: "error", errors: [{ code: "setup.no_program", message: "Choose a program in step 2 first." }] };
-
-  const client = getLithosClient();
-  const attempt = attemptFrom(formData);
-  const key = stepKeys(attempt);
+  const { encounterId } = await readIds();
+  if (!encounterId) return { status: "error", errors: [{ code: "setup.no_encounter", message: "Create a patient in step 2 first." }] };
   try {
-    const treatment = await readProgramTreatment(program.key);
-    if (!treatment) return { status: "error", errors: [{ code: "setup.no_treatment", message: `Your formulary has no ${program.label.toLowerCase()} treatment to request.` }] };
-    const journey = await requestCare(program.key, treatment.id, attemptFrom(formData), "Question");
-    await writeIds({ ...ids, questionPatientId: journey.patientId, questionEncounterId: journey.encounterId });
-    await askPatientAsClinician(client, journey.encounterId, question);
+    await declineAsClinician(getLithosClient(), encounterId);
   } catch (error) {
     return failure(error);
   }
@@ -399,7 +383,7 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {
-    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 5.");
+    return failure(error, "If the old endpoint was disabled but the new one failed, your organization now has no active endpoint — register one in step 4.");
   }
 }
 
@@ -427,25 +411,4 @@ export async function resetSetupAction(): Promise<void> {
   // Land on step 3, where the new run starts. A redirect to the anchor works
   // with or without JavaScript — the browser scrolls to it either way.
   redirect("/setup#step-patient");
-}
-
-/**
- * Step 5's inbox: relay the patient's answer to the clinician's question —
- * `POST /v1/inquiries/{id}/messages`, the call a partner makes when a patient
- * replies in their app. The thread then waits on the clinician (step 4).
- */
-export async function replyToQuestionAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
-  const refused = refuseOutsideSandbox();
-  if (refused) return refused;
-  const inquiryId = String(formData.get("inquiry_id") ?? "");
-  const body = String(formData.get("body") ?? "").trim();
-  if (!/^inq_/.test(inquiryId)) return { status: "error", errors: [{ code: "setup.no_inquiry", message: "No question to reply to." }] };
-  if (!body) return { status: "error", errors: [{ code: "setup.empty_reply", message: "Write your patient's reply first." }] };
-  try {
-    await getLithosClient().post(`/v1/inquiries/${inquiryId}/messages`, { body }, stepKeys(attemptFrom(formData))("message"));
-  } catch (error) {
-    return failure(error);
-  }
-  revalidatePath("/setup");
-  return { status: "ok" };
 }
