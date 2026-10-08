@@ -124,6 +124,10 @@ input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--p
 .quiz { display: grid; gap: 1.25rem; }
 .quiz-progress { height: 0.35rem; border-radius: 999px; background: var(--line); overflow: hidden; }
 .quiz-progress > span { display: block; height: 100%; background: var(--primary); border-radius: inherit; transition: width 0.25s ease; }
+/* The screens and the buttons under them, wrapped so they can hide while a
+   visit time is picked; spaced like the quiz itself. */
+.quiz-body { display: grid; gap: 1.25rem; min-width: 0; }
+.quiz-body[hidden] { display: none; }
 .quiz-screen { display: grid; gap: 1.1rem; min-width: 0; }
 .quiz-screen[hidden] { display: none; }
 .quiz-question { display: grid; gap: 0.4rem; }

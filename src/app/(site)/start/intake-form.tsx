@@ -438,7 +438,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       {(failed || choosingVisit) && state.carePlanId && <input type="hidden" name="resume_care_plan_id" value={state.carePlanId} />}
 
       {/* Hidden, not unmounted, while a time is picked: the form still sends every answer. */}
-      <div hidden={choosingVisit}>
+      <div hidden={choosingVisit} className="quiz-body">
 
       {chat && (
         // The conversation so far: each answered question, then the one being asked.
