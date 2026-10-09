@@ -656,8 +656,17 @@ export async function readProgramOptions(): Promise<ProgramOption[]> {
 
 /** The programs a patient can ask for here: the ones in the formulary. */
 export async function readOfferedPrograms(): Promise<ProgramOption[]> {
-  return (await readProgramOptions()).filter((p) => p.selectable);
+  // Every patient-facing page asks (src/lib/app-meta.ts), so the answer is kept
+  // for half a minute per connection; a protocol added in the console shows
+  // up within that.
+  const connection = process.env.LITHOS_CLIENT_ID ?? "";
+  if (offered && offered.connection === connection && Date.now() - offered.at < 30_000) return offered.programs;
+  const programs = (await readProgramOptions()).filter((p) => p.selectable);
+  offered = { connection, at: Date.now(), programs };
+  return programs;
 }
+
+let offered: { connection: string; at: number; programs: ProgramOption[] } | null = null;
 
 /**
  * The two written-out programs, then every other category in the formulary —

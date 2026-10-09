@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   const brand = await getBrand();
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`} data-scroll-behavior="smooth">
       {/* The brand colour from starter.config.json, over the stylesheet's defaults. */}
       <head>
         {brandFontHref(brand) && (
