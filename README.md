@@ -6,7 +6,7 @@ reach your first encounter in about fifteen minutes.
 It wears a demo brand, **Eucardia Health**: a fictional cardiometabolic
 membership that adds prescribing through Lithos. Nothing in the integration
 depends on the brand. The **Make it yours** panel (in the first-run pop-up, and on
-`/setup`, the Developer page) changes the
+`/setup/settings`) changes the
 name, tagline, colour and logo live, saving them to `starter.config.json` (and the
 logo to `public/brand/`), so they're committed with your code. The longer marketing
 copy on the patient-facing pages is yours to replace.
@@ -55,7 +55,7 @@ every page shows your Lithos console's sandbox checklist, live, and what to do n
    patient a question. Sandbox only; in production a Lithos clinician decides.
 3. *Optional:* **play the pharmacy** in the patient app (**Sign in** in the header),
    where demo controls move the order to delivered.
-4. **Receive a webhook**: set up on `/setup`, the Developer page, with a test event
+4. **Receive a webhook**: set up on `/setup/webhooks`, with a test event
    to check it.
 
 Each check is read from the live API, so doing a step your own way (curl, your own
@@ -72,7 +72,7 @@ The tunnel is only for Lithos to reach you — keep browsing on `localhost`.
 
 Deploying to Vercel? Turn **Deployment Protection** off for production. It's on
 by default for new projects, and it answers Lithos's deliveries with a `401` that
-looks exactly like a signature failure. The Developer page (`/setup`) will tell you if this is what's
+looks exactly like a signature failure. The Webhooks page (`/setup/webhooks`) will tell you if this is what's
 happening.
 
 ## API reference

@@ -20,7 +20,7 @@ export function NotConnected({ action, outcome }: { action: string; outcome: str
         sandbox credentials, and the walkthrough checks each step against the live API.
       </p>
       <p>
-        <Link href="/setup" className="btn btn-primary">Connect it to Lithos →</Link>
+        <Link href="/setup/settings#step-connect" className="btn btn-primary">Connect it to Lithos →</Link>
       </p>
     </section>
   );

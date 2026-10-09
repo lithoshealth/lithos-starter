@@ -81,7 +81,7 @@ async function checkAndSave(
     }
   }
 
-  if (refresh) revalidatePath("/setup");
+  if (refresh) revalidatePath("/setup", "layout");
   return { status: "connected", treatments: checked.treatments };
 }
 
@@ -166,7 +166,7 @@ export async function sendTestEventAction(): Promise<SetupActionState> {
   } catch (error) {
     return failure(error);
   }
-  revalidatePath("/setup");
+  revalidatePath("/setup", "layout");
   return { status: "ok" };
 }
 
@@ -189,7 +189,7 @@ export async function registerWebhookAction(_prev: SetupActionState, formData: F
     const created = await getLithosClient().post<{ id: string; url: string; signing_secret: string }>(
       "/v1/webhook_endpoints", webhookEndpointRequest(url), stepKeys(attemptFrom(formData))("webhook-endpoint"),
     );
-    revalidatePath("/setup");
+    revalidatePath("/setup", "layout");
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {
@@ -227,7 +227,7 @@ export async function repointWebhookAction(_prev: SetupActionState, formData: Fo
   try {
     await client.post(`/v1/webhook_endpoints/${currentId}/disable`, {});
     const created = await client.post<{ id: string; url: string; signing_secret: string }>("/v1/webhook_endpoints", webhookEndpointRequest(url), stepKeys(attemptFrom(formData))("webhook-endpoint"));
-    revalidatePath("/setup");
+    revalidatePath("/setup", "layout");
     const saved = await saveToEnvLocal("LITHOS_WEBHOOK_SECRET", created.signing_secret);
     return { status: "secret", endpointId: created.id, url: created.url, signingSecret: created.signing_secret, saved };
   } catch (error) {

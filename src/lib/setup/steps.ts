@@ -685,6 +685,11 @@ function programOptions(catalog: CatalogTreatment[]): ProgramOption[] {
   });
 }
 
+/** "a", "a and b", "a, b and c". */
+function listed(items: string[]): string {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : items[0] ?? "";
+}
+
 function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
   const programs = programOptions(catalog);
 
@@ -706,7 +711,7 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
   const treatments = catalog.filter((t) => t.status !== "inactive" && offered.some((p) => t.categories?.includes(p.key)));
   return {
     key: "program", status: "done", programs, chosenProgram: lead.key,
-    summary: `Your app offers ${offered.map((p) => p.label.toLowerCase()).join(" and ")} — the protocols your organization chose.`,
+    summary: `Your app offers ${listed(offered.map((p) => p.label.toLowerCase()))} — the protocols your organization chose.`,
     exchange: {
       method: "GET", path: "/v1/catalog_treatments", status: 200,
       note: "Trimmed to the fields that matter here. Each treatment's categories are the programs it belongs to — the endpoint itself has no program filter.",

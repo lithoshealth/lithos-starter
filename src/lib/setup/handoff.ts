@@ -98,21 +98,19 @@ npm install
 npm run dev
 \`\`\`
 
-Then open http://localhost:3001/setup.
+It opens http://localhost:3001 in your browser.
 
 ## Connect it
 
-In step 1, click **Get sandbox credentials**. That gives you your own Lithos
-sandbox organization, and saves its credentials to \`.env.local\` on your
-machine — they never leave it except to talk to Lithos. Your brand, program and
-intake are already set; run a sample patient through steps 3 and 4 to see a
-clinician's decision come back.
+A pop-up asks to connect the app to Lithos. Click **Get sandbox credentials**:
+that gives you your own Lithos sandbox organization, and saves its credentials
+to \`.env.local\` on your machine — they never leave it except to talk to Lithos.
+If we sent you credentials in 1Password, paste them there instead.
 
-If we sent you credentials in 1Password, paste them into step 1 instead: you'll
-be back where we left off, with the same sample patient and decision.
-
-Step 5 (webhooks) asks for a public address for your app — a tunnel or a
-deploy. It's optional.
+Your brand and intake are already set, and the app offers the programs your
+organization has. The bar at the top then shows your sandbox checklist and what
+to do next: request care as a patient, play the clinician, then set up webhooks
+(they need a public address for your app — a tunnel or a deploy).
 
 The full guide is in README.md.
 `;

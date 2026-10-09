@@ -16,7 +16,7 @@ export function KeepItButtons({ to, brandName, folder, docsUrl }: { to?: string;
     "To run it (your developer will need Node 20 or later):",
     `1. Unzip it and open a terminal in the ${folder} folder.`,
     "2. Run: npm install && npm run dev",
-    '3. Open http://localhost:3001/setup and click "Get sandbox credentials" in step 1. That creates your own Lithos sandbox organization.',
+    '3. It opens http://localhost:3001. In the pop-up, click "Get sandbox credentials". That creates your own Lithos sandbox organization.',
     "",
     "Working with a coding agent like Claude Code or Cursor? Unzip it, open the agent in that folder and ask it to get the app running. AGENTS.md in the folder tells it how.",
     "",

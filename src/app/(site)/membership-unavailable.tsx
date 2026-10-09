@@ -22,7 +22,7 @@ export function MembershipUnavailable() {
       </p>
       <p>
         <Link href="/" className="btn btn-ghost">Back to the app</Link>{" "}
-        <Link href="/setup" className="btn btn-primary">Open the setup walkthrough</Link>
+        <Link href="/setup" className="btn btn-primary">Open the Developer pages</Link>
       </p>
     </section>
   );

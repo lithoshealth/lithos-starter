@@ -55,7 +55,7 @@ export async function readDevProgress(): Promise<DevProgress | CredentialsReject
             ? { label: "Play the clinician", href: `/care/${encodeURIComponent(open.id)}` }
             : { label: "Request care as a patient", href: "/start" }
           : !webhook
-            ? { label: "Set up webhooks", href: "/setup#webhooks" }
+            ? { label: "Set up webhooks", href: "/setup/webhooks" }
             : { label: "All four done: open your Lithos console", href: CONSOLE_URL, external: true };
 
     return {

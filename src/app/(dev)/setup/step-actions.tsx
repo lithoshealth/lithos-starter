@@ -30,7 +30,7 @@ export function ActionError({ state }: { state: SetupActionState }) {
  * page. With JavaScript, the page updates in place and this isn't used.
  */
 function stepAnchor(step: string): string {
-  return `/setup#step-${step}`;
+  return step === "updates" ? "/setup/webhooks#webhooks" : `/setup/settings#step-${step}`;
 }
 
 /** What step 1 shows once either form has connected the app — and, after a signup, what was just created. */
@@ -50,7 +50,7 @@ export function Connected({ treatments, issued }: { treatments?: number; issued?
         {issued ? " — the full secret only lives there: Lithos shows it once, and this page never does." : "."}{" "}
         {treatments !== undefined && <>Lithos accepted them and returned {treatments} treatment{treatments === 1 ? "" : "s"} in your formulary.</>}
       </p>
-      <p><a className="btn btn-primary" href="/setup#step-connect">{issued ? "Choose your program" : "Reload"}</a></p>
+      <p><a className="btn btn-primary" href={issued ? "/setup" : "/setup/settings#step-connect"}>{issued ? "Continue" : "Reload"}</a></p>
     </div>
   );
 }

@@ -36,13 +36,13 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       */}
       {dev && health?.state === "failing" && (
         <div className="dev-bar dev-bar-warning" role="alert">
-          Webhooks failing. {describeFailure(health)} <Link href="/setup">Fix it in setup →</Link>
+          Webhooks failing. {describeFailure(health)} <Link href="/setup/webhooks">Fix it →</Link>
         </div>
       )}
       {dev && progress && "rejected" in progress && (
         <div className="dev-bar dev-bar-warning" role="alert">
           Lithos rejected this app&rsquo;s credentials: the sandbox they belong to may have been archived.{" "}
-          <Link href="/setup#step-connect">Reconnect →</Link>
+          <Link href="/setup/settings#step-connect">Reconnect →</Link>
         </div>
       )}
       {dev && health?.state !== "failing" && !(progress && "rejected" in progress) && (

@@ -38,7 +38,7 @@ export function JoinForm({ initialPlan }: { initialPlan: "essential" | "complete
           <p>
             This copy of the app doesn&rsquo;t have that database. Run <code>./scripts/db-up.sh</code> locally, or set{" "}
             <code>DATABASE_URL</code> where it&rsquo;s deployed. If you haven&rsquo;t connected the app to Lithos yet either,
-            start there — the <Link href="/setup">setup walkthrough</Link> needs no database at all.
+            start there — the <Link href="/start">care review</Link> needs no database at all.
           </p>
         </section>
       )}

@@ -23,7 +23,7 @@ export default async function EventsPage() {
       {health.state === "failing" && (
         <div className="error-box">
           <h2>Lithos can&rsquo;t deliver to your endpoint</h2>
-          <p>{describeFailure(health)} Deliveries that fail are retried, then dropped — and Lithos doesn&rsquo;t tell anyone. <Link href="/setup">Check your endpoint in setup →</Link></p>
+          <p>{describeFailure(health)} Deliveries that fail are retried, then dropped — and Lithos doesn&rsquo;t tell anyone. <Link href="/setup/webhooks">Check your endpoint →</Link></p>
         </div>
       )}
       <PatientNotifications />

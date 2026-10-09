@@ -3,7 +3,7 @@
 A partner app built on the Lithos partner API. It wears a demo brand (Eucardia
 Health, a fictional cardiometabolic membership). The brand — name, tagline,
 colour, logo — lives in `starter.config.json` and is edited live from the "Make
-it yours" panel (the first-run pop-up, and `/setup`, the Developer page); logos go in `public/brand/`. Nothing secret belongs
+it yours" panel (the first-run pop-up, and `/setup/settings`); logos go in `public/brand/`. Nothing secret belongs
 in that file. The app offers every **program** (Lithos care-plan category) in the
 organization's formulary — no picker; with more than one, `/start` asks the
 patient which. With one program the site is that program's; with several, the
@@ -93,7 +93,9 @@ Once they've connected, help with whatever they ask.
 
 | Route | Audience | Purpose |
 |---|---|---|
-| `/setup` | developer | the Developer page: connection, program, brand, webhooks |
+| `/setup` | developer | the Developer home: sandbox checklist, links to the patient app, the site, the ops pages, download and docs |
+| `/setup/webhooks` | developer | webhook setup: public address, registering, signing secret, test event |
+| `/setup/settings` | developer | connection (and reconnecting), programs from the formulary, brand, intake style |
 | `/` | patient | marketing landing (membership first, care as the escalation) |
 | `/start` | patient | direct intake → patient, care plan, encounter |
 | `/care/[encounterId]` | patient | plain-language care status |
