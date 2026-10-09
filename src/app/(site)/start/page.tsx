@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSite } from "@/lib/app-meta";
-import { lithosConnection } from "@/lib/lithos/connection";
 import { contentFor } from "@/lib/programs/content";
-import { readOfferedPrograms } from "@/lib/setup/steps";
 import { programFor } from "@/lib/setup/programs";
 import { IntakeForm } from "./intake-form";
 
@@ -18,14 +16,12 @@ export const metadata: Metadata = { title: "Start a care review" };
 export default async function StartPage({ searchParams }: { searchParams: Promise<{ program?: string }> }) {
   const site = await getSite();
   const { brand, intakeStyle } = site;
-  const offered = lithosConnection().connected ? await readOfferedPrograms().catch(() => []) : [];
   const asked = (await searchParams).program;
   let program = site.program;
-  if (offered.length === 1) program = offered[0].key;
-  if (offered.length > 1) {
-    const picked = offered.find((p) => p.key === asked);
-    if (!picked) return <ProgramChoice brandName={brand.name} programs={offered.map((p) => p.key)} />;
-    program = picked.key;
+  if (site.multi) {
+    const picked = site.programs.find((key) => key === asked);
+    if (!picked) return <ProgramChoice brandName={brand.name} programs={site.programs} />;
+    program = picked;
   }
   const content = contentFor(program);
   return (

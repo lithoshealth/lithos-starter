@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
 import { brandCss, brandFontHref, getBrand, getSite } from "@/lib/app-meta";
+import { brandContent } from "@/lib/programs/content";
+import { programFor } from "@/lib/setup/programs";
 import { ScrollToTop } from "./scroll-to-top";
 import "./globals.css";
 
@@ -9,10 +11,10 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { brand, content } = await getSite();
+  const { brand, content, multi, programs } = await getSite();
   return {
-    title: { default: `${brand.name} — ${content.category}`, template: `%s · ${brand.name}` },
-    description: content.description,
+    title: { default: `${brand.name} — ${multi ? "Online care" : content.category}`, template: `%s · ${brand.name}` },
+    description: multi ? brandContent(programs.map((key) => programFor(key)?.label ?? key)).description : content.description,
     robots: { index: false, follow: false },
   };
 }

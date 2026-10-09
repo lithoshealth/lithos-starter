@@ -3,8 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { INITIAL_SETUP_ACTION_STATE, type IssuedCredentials, type SetupActionState } from "@/lib/setup/action-state";
-import { connectAction, getSandboxCredentialsAction, chooseProgramAction, registerWebhookAction, repointWebhookAction } from "./actions";
-import type { ProgramOption } from "@/lib/setup/programs";
+import { connectAction, getSandboxCredentialsAction, registerWebhookAction, repointWebhookAction } from "./actions";
 import { IdempotencyField } from "../../idempotency-field";
 
 export function ActionError({ state }: { state: SetupActionState }) {
@@ -171,31 +170,6 @@ export function StepAction({
  * for it — including the ones it can't pick yet, because seeing what exists is
  * part of the point.
  */
-export function ProgramPicker({ programs, current }: { programs: ProgramOption[]; current?: string }) {
-  const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("program"));
-  return (
-    <form action={run} className="stack">
-      <fieldset className="program-picker">
-        <legend>Which one does your home page lead with?</legend>
-        {programs.map((p) => (
-          <label key={p.key} className="program-option">
-            <input type="radio" name="program" value={p.key} defaultChecked={p.key === (current ?? programs[0]?.key)} />
-            <span className="program-option-body">
-              <span className="program-option-title">{p.label}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <p className="muted">Patients can still ask for any of them on /start. This only decides what the home page talks about.</p>
-      <div>
-        <button type="submit" className="btn btn-ghost" disabled={pending}>
-          {pending ? "Saving…" : "Lead with this one"}
-        </button>
-      </div>
-      <ActionError state={state} />
-    </form>
-  );
-}
 
 /** Re-reads step 5 now that the app can hear Lithos, and brings the demo into view. */
 function TryItButton() {

@@ -6,7 +6,9 @@ colour, logo — lives in `starter.config.json` and is edited live from the "Mak
 it yours" panel (the first-run pop-up, and `/setup`, the Developer page); logos go in `public/brand/`. Nothing secret belongs
 in that file. The app offers every **program** (Lithos care-plan category) in the
 organization's formulary — no picker; with more than one, `/start` asks the
-patient which. The home page leads with one, saved in that file, which drives the patient-facing copy (`src/lib/programs/content.ts`)
+patient which. With one program the site is that program's; with several, the
+home page is the brand's, with a card per program. The program in that file is
+only the fallback before the app is connected. Copy is in (`src/lib/programs/content.ts`)
 and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). Lipid and
 weight management have their real intake; any other category gets an
 **illustrative** one (`src/lib/intake/generic.ts`), labelled as such on `/start`.

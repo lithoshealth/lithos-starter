@@ -1,4 +1,7 @@
+import { cache } from "react";
 import { contentFor } from "./programs/content";
+import { lithosConnection } from "./lithos/connection";
+import { readOfferedPrograms } from "./setup/steps";
 import { DEFAULT_PROGRAM, readConfig, type Brand } from "./starter-config";
 
 /**
@@ -44,9 +47,17 @@ export function brandFontHref(brand: Brand): string | null {
   return brand.font ? `https://fonts.googleapis.com/css2?family=${brand.font.css}&display=swap` : null;
 }
 
-/** Everything a patient-facing page needs to know about this copy: brand, program and the program's copy. */
-export async function getSite() {
+/**
+ * Everything a patient-facing page needs to know about this copy: brand,
+ * programs and copy. `programs` is what the organization's formulary offers,
+ * read live once per request; not connected, it's the program in
+ * starter.config.json, so the site still reads as a whole. With one program
+ * the site is that program's; with several it's the brand's (`multi`).
+ */
+export const getSite = cache(async () => {
   const config = await readConfig();
-  const program = config.program ?? DEFAULT_PROGRAM;
-  return { brand: config.brand, program, intakeStyle: config.intakeStyle, content: contentFor(program) };
-}
+  const offered = lithosConnection().connected ? (await readOfferedPrograms().catch(() => [])).map((p) => p.key) : [];
+  const programs = offered.length > 0 ? offered : [config.program ?? DEFAULT_PROGRAM];
+  const program = config.program && programs.includes(config.program) ? config.program : programs[0];
+  return { brand: config.brand, program, programs, multi: programs.length > 1, intakeStyle: config.intakeStyle, content: contentFor(program) };
+});

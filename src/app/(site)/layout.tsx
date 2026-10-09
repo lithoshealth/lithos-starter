@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { getBrand } from "@/lib/app-meta";
+import { getSite } from "@/lib/app-meta";
 import { lithosConnection } from "@/lib/lithos/connection";
 import { connectedOutsideSandbox } from "@/lib/lithos/sandbox";
 import { describeFailure, webhookHealth } from "@/lib/webhooks/health";
@@ -19,7 +19,7 @@ function BrandMark() {
 
 export default async function SiteLayout({ children }: Readonly<{ children: ReactNode }>) {
   const dev = process.env.NODE_ENV === "development";
-  const brand = await getBrand();
+  const { brand, multi } = await getSite();
   const connected = lithosConnection().connected;
   // Connected somewhere other than the sandbox: the data may be real, so the ops pages are off.
   const outside = connectedOutsideSandbox();
@@ -81,8 +81,9 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
             {brand.tagline && <span className="brand-tagline">{brand.tagline}</span>}
           </Link>
           <nav className="site-nav" aria-label="Primary navigation">
-            <Link href="/#program">The program</Link>
-            <Link href="/#numbers">What we measure</Link>
+            {multi
+              ? <><Link href="/#treat">What we treat</Link><Link href="/#how">How it works</Link></>
+              : <><Link href="/#program">The program</Link><Link href="/#numbers">What we measure</Link></>}
             <Link href="/start">Care review</Link>
             <Link href="/portal" className="btn btn-primary">Sign in</Link>
           </nav>

@@ -255,11 +255,6 @@ export async function readProgramTreatment(program: ProgramKey): Promise<Catalog
   return catalog.data.find((t) => t.status !== "inactive" && t.categories?.includes(program));
 }
 
-/** Whether this organization's formulary has anything for a program — checked live when one is chosen. */
-export async function formularyHas(program: ProgramKey): Promise<boolean> {
-  return Boolean(await readProgramTreatment(program));
-}
-
 async function checkOrganization(): Promise<InternalCheck> {
   const path = "/v1/catalog_treatments";
   try {

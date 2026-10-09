@@ -303,6 +303,39 @@ function generic(label: string): ProgramContent {
   };
 }
 
+/**
+ * The site when the organization offers several programs: the brand's page,
+ * not one program's. Shared copy — how care works, what a review involves —
+ * with each program as a card that starts its own intake. `{name}` is the
+ * company name, as elsewhere.
+ */
+export type BrandContent = Pick<ProgramContent, "description" | "cta" | "emergency"> & {
+  hero: ProgramContent["hero"] & { eyebrow: string };
+  how: ProgramContent["program"];
+  care: ProgramContent["care"];
+};
+
+export function brandContent(labels: string[]): BrandContent {
+  const shared = generic("Care");
+  const list = labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}` : labels[0] ?? "care";
+  return {
+    description: `Online care from licensed clinicians: ${list.toLowerCase()}.`,
+    hero: {
+      ...shared.hero,
+      eyebrow: "Online care from licensed clinicians",
+      headline: "Care that fits around your life.",
+      lede: `{name} offers ${list.toLowerCase()} online: a few minutes of questions, a review by a clinician licensed in your state, and treatment delivered to your door when it’s right for you.`,
+    },
+    how: shared.program,
+    care: {
+      ...shared.care,
+      paragraphs: ["Every request is read by a clinician licensed in your state, who decides with you whether treatment is right — and which. Your care team stays with you after: check-ins, refills and questions, all in the app."],
+    },
+    cta: shared.cta,
+    emergency: shared.emergency,
+  };
+}
+
 const CONTENT: Record<string, ProgramContent> = { lipid_management: LIPID, weight_management: WEIGHT };
 
 export function contentFor(program: ProgramKey): ProgramContent {

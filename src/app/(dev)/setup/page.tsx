@@ -12,7 +12,7 @@ import { evaluateSetup, type Exchange, type StepState } from "@/lib/setup/steps"
 import { CONSOLE_URL, readDevProgress } from "@/lib/dev-progress";
 import { sendTestEventAction } from "./actions";
 import { KeepItButtons } from "./email-app";
-import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
+import { Connected, ConnectForm, NewSecretForm, RepointForm, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
 
 export const metadata: Metadata = { title: "Developer" };
@@ -187,11 +187,9 @@ export default async function DeveloperPage() {
               </ul>
               <p className="muted">
                 To offer something else, add protocols or request new ones from your Lithos console; they show up here
-                and on <a href="/start">/start</a> without a code change.
+                on the home page and on <a href="/start">/start</a> without a code change. With more than one, the
+                home page is your brand&rsquo;s, with a card for each.
               </p>
-              {program.programs.filter((p) => p.selectable).length > 1 && (
-                <ProgramPicker programs={program.programs.filter((p) => p.selectable)} current={program.chosenProgram} />
-              )}
             </>
           )}
           <Exchanges step={program} />

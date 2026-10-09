@@ -6,13 +6,11 @@ import { LithosApiError } from "@/lib/lithos/errors";
 import { CLIENT_ID_MASK, maskCredential, type SetupActionState } from "@/lib/setup/action-state";
 import type { ApiError } from "@/lib/lithos/types";
 import { webhookEndpointRequest } from "@/lib/setup/requests";
-import { formularyHas, isSandbox } from "@/lib/setup/steps";
-import { programFor } from "@/lib/setup/programs";
+import { isSandbox } from "@/lib/setup/steps";
 import { reachesThisApp } from "@/lib/setup/reachability";
 import { saveToEnvLocal } from "@/lib/setup/env-file";
 import { rememberIssued } from "@/lib/setup/issued-cookie";
 import { attemptFrom, stepKeys } from "@/lib/lithos/idempotency";
-import { updateConfig } from "@/lib/starter-config";
 import { verifyCredentials } from "@/lib/setup/connect";
 
 function failure(error: unknown, hint?: string): SetupActionState {
@@ -149,25 +147,6 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
   // Writing .env.local reloads the page in development; step 1 reads this back.
   await rememberIssued(issued);
   return { ...saved, issued };
-}
-
-/** The program the home page leads with. Checked against the live formulary, not just the list. */
-export async function chooseProgramAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
-  const program = programFor(String(formData.get("program") ?? ""));
-  if (!program) return { status: "error", errors: [{ code: "setup.no_program", message: "Pick a program." }] };
-  try {
-    if (!(await formularyHas(program.key))) {
-      return { status: "error", errors: [{ code: "setup.program_not_in_formulary", message: `Your organization isn't provisioned for ${program.label.toLowerCase()}. Ask your Lithos contact to add it.` }] };
-    }
-  } catch (error) {
-    return failure(error);
-  }
-  if (!(await updateConfig({ program: program.key }))) {
-    return { status: "error", errors: [{ code: "setup.config_write_failed", message: "Couldn't save the program to starter.config.json. On a deployed copy, change it in a local copy and redeploy." }] };
-  }
-  // The program changes what every page says, not just this one.
-  revalidatePath("/", "layout");
-  return { status: "ok" };
 }
 
 /**
