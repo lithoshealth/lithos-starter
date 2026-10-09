@@ -14,7 +14,7 @@ const IDLE: BrandActionState = { status: "idle" };
  * "Your company" — the first thing on a demo: name, colour and logo, each
  * saved the moment it changes (no Save button to forget), with the real home
  * page beside them. The other choices that shape the app are made later, in
- * the step where they matter: the program in step 2, the intake in step 3.
+ * the step where they matter: the programs (from the formulary) and the intake style.
  */
 export function BrandPanel({ brand, program, writable }: { brand: Brand; program?: string; writable: boolean }) {
   const router = useRouter();
@@ -95,8 +95,7 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
           <p className="eyebrow">Start here</p>
           <h2 id="brand-heading">Your company</h2>
           <p className="muted">
-            This is your app. Give it your company&rsquo;s name, colour and logo and watch it change. The steps below
-            tailor the rest as you go — what you offer, how patients sign up.
+            This is your app. Give it your company&rsquo;s name, colour and logo and watch it change.
           </p>
         </div>
 
@@ -195,7 +194,7 @@ export function BrandPanel({ brand, program, writable }: { brand: Brand; program
         </p>
       </div>
 
-      {/* Re-rendered after each save here, and when step 2 changes the program the home page describes. */}
+      {/* Re-rendered after each save here, and when the home page's lead program changes. */}
       <LivePreview key={`${renders}-${program}`} path="/" />
     </section>
   );

@@ -422,6 +422,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   return (
     <>
     <form id={FORM_ID} ref={formRef} action={action} onSubmit={onSubmit} noValidate className={chat ? "quiz quiz-chat" : "quiz"}>
+      <input type="hidden" name="program" value={program} />
       {!chat && (
         <div className="quiz-progress" role="progressbar" aria-label="Intake progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={screen + 1}>
           <span style={{ width: `${((screen + 1) / screens.length) * 100}%` }} />

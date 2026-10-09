@@ -649,14 +649,19 @@ async function checkConnect(): Promise<{ step: StepState; catalog: CatalogTreatm
 // ---------------------------------------------------------------- 2. program
 
 /**
- * The one step you choose rather than do. The choice is yours; whether it's
- * valid isn't — the options come from your live formulary, so a program your
- * organization isn't provisioned for can't be picked.
+ * The programs this app offers come from the live formulary: every category
+ * the organization's treatments belong to — the protocols it chose when it
+ * signed up. No list to keep in sync, and nothing to pick.
  */
-/** Every program, with what this organization's formulary has for it — for the connect pop-up's picker. */
+/** Every program, with what this organization's formulary has for it. */
 export async function readProgramOptions(): Promise<ProgramOption[]> {
   const catalog = await getLithosClient().get<{ data: CatalogTreatment[] }>("/v1/catalog_treatments?limit=100");
   return programOptions(catalog.data);
+}
+
+/** The programs a patient can ask for here: the ones in the formulary. */
+export async function readOfferedPrograms(): Promise<ProgramOption[]> {
+  return (await readProgramOptions()).filter((p) => p.selectable);
 }
 
 /**
@@ -689,28 +694,26 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
     };
   }
 
-  const chosen = programs.find((p) => p.key === ids.program && p.selectable);
-  if (chosen) {
-    // The reveal for this step: what the choice means in API terms — the ids
-    // step 3 sends as catalog_treatment_id, and the dose ladders a clinician
-    // prescribes from.
-    const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(chosen.key));
-    return {
-      key: "program", status: "done", programs, chosenProgram: chosen.key,
-      summary: `${chosen.label} — ${chosen.treatments.length} treatment${chosen.treatments.length === 1 ? "" : "s"} in your formulary`,
-      exchange: {
-        method: "GET", path: "/v1/catalog_treatments", status: 200,
-        note: `Filtered here to ${chosen.label.toLowerCase()}, and trimmed to the fields that matter now — the endpoint itself has no program filter.`,
-        response: {
-          data: treatments.map((t) => ({
-            id: t.id, name: t.name, brand_name: t.brand_name, form: t.form,
-            dosages: (t.dosages ?? []).map((d) => ({ id: d.id, strength: d.strength, default_days_supply: d.default_days_supply, description: d.description })),
-          })),
-        },
+  // Nothing to choose: the app offers every program the organization was
+  // provisioned for, and the patient picks one when they start. The lead
+  // program only decides what the home page talks about.
+  const offered = programs.filter((p) => p.selectable);
+  const lead = offered.find((p) => p.key === ids.program) ?? offered[0];
+  const treatments = catalog.filter((t) => t.status !== "inactive" && offered.some((p) => t.categories?.includes(p.key)));
+  return {
+    key: "program", status: "done", programs, chosenProgram: lead.key,
+    summary: `Your app offers ${offered.map((p) => p.label.toLowerCase()).join(" and ")} — the protocols your organization chose.`,
+    exchange: {
+      method: "GET", path: "/v1/catalog_treatments", status: 200,
+      note: "Trimmed to the fields that matter here. Each treatment's categories are the programs it belongs to — the endpoint itself has no program filter.",
+      response: {
+        data: treatments.map((t) => ({
+          id: t.id, name: t.name, brand_name: t.brand_name, form: t.form, categories: t.categories,
+          dosages: (t.dosages ?? []).map((d) => ({ id: d.id, strength: d.strength, default_days_supply: d.default_days_supply, description: d.description })),
+        })),
       },
-    };
-  }
-  return { key: "program", status: "ready", summary: "Not chosen yet.", programs };
+    },
+  };
 }
 
 export async function evaluateSetup(ids: JourneyIds): Promise<StepState[]> {

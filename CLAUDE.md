@@ -4,8 +4,9 @@ A partner app built on the Lithos partner API. It wears a demo brand (Eucardia
 Health, a fictional cardiometabolic membership). The brand — name, tagline,
 colour, logo — lives in `starter.config.json` and is edited live from the "Make
 it yours" panel (the first-run pop-up, and `/setup`, the Developer page); logos go in `public/brand/`. Nothing secret belongs
-in that file. The chosen **program** (a Lithos care-plan category from the formulary)
-is saved there too and drives the patient-facing copy (`src/lib/programs/content.ts`)
+in that file. The app offers every **program** (Lithos care-plan category) in the
+organization's formulary — no picker; with more than one, `/start` asks the
+patient which. The home page leads with one, saved in that file, which drives the patient-facing copy (`src/lib/programs/content.ts`)
 and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). Lipid and
 weight management have their real intake; any other category gets an
 **illustrative** one (`src/lib/intake/generic.ts`), labelled as such on `/start`.
@@ -20,8 +21,8 @@ The first run is the product demo, so leave the discovering to the person:
    folder), `npm install`, `npm run dev`.
 2. `npm run dev` opens **http://localhost:3001**, the home page, with a pop-up
    to connect to Lithos. Hand over there. Tell them the pop-up takes the client
-   ID and secret from their Lithos console, then lets them choose a program and
-   make the app theirs, and that the bar at the top then shows their sandbox
+   ID and secret from their Lithos console, then lets them make the app theirs
+   (the programs come from what they chose in the console), and that the bar at the top then shows their sandbox
    checklist and what to do next. Then stop.
 
 Don't walk the intake, play the clinician or tour the app on their behalf unless

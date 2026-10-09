@@ -33,8 +33,9 @@ npm run dev
 
 It opens **http://localhost:3001** in your browser (set `BROWSER=none` to skip that),
 with a pop-up to connect: paste your client ID and secret (checked with Lithos, then
-saved to `.env.local`, which git ignores), choose the program you offer, and make the
-app yours. "Look around first" closes it; the bar at the top brings it back. Prefer
+saved to `.env.local`, which git ignores) and make the app yours. There's no program to
+pick: the app offers the protocols your organization chose in the Lithos console, and
+with more than one, `/start` asks the patient which they want. "Look around first" closes it; the bar at the top brings it back. Prefer
 the terminal? `npm run setup` takes a pasted pair before you start the server.
 
 To start over — a first run again, for a new sandbox or the next demo — stop the

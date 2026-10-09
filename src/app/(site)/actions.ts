@@ -13,6 +13,7 @@ import { loadVisitOffer } from "@/lib/visit-offer";
 import type { HoldState } from "@/lib/visit-state";
 import { DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
 import { writeJourneyIds } from "@/lib/setup/journey-cookie";
+import { isProgramKey } from "@/lib/setup/programs";
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -20,8 +21,10 @@ function field(formData: FormData, name: string): string {
 }
 
 export async function createJourneyAction(_previous: JourneyState, formData: FormData): Promise<JourneyState> {
-  const { program } = await readConfig();
-  const parsed = parseJourneyForm(formData, program ?? DEFAULT_PROGRAM);
+  // The program the patient picked on /start; Lithos refuses a category the formulary doesn't carry.
+  const picked = formData.get("program");
+  const program = isProgramKey(picked) ? picked : (await readConfig()).program ?? DEFAULT_PROGRAM;
+  const parsed = parseJourneyForm(formData, program);
   if (!parsed.ok) return { status: "failed", stage: "validation", errors: parsed.errors };
 
   // Validate first, then check the connection: the visitor learns their form

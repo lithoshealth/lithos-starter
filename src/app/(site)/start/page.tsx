@@ -1,12 +1,33 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getSite } from "@/lib/app-meta";
+import { lithosConnection } from "@/lib/lithos/connection";
+import { contentFor } from "@/lib/programs/content";
+import { readOfferedPrograms } from "@/lib/setup/steps";
 import { programFor } from "@/lib/setup/programs";
 import { IntakeForm } from "./intake-form";
 
 export const metadata: Metadata = { title: "Start a care review" };
 
-export default async function StartPage() {
-  const { brand, program, intakeStyle, content } = await getSite();
+/**
+ * The care review. The app offers every program in the organization's
+ * formulary; with more than one, the patient picks first (`?program=`), and
+ * the intake is that program's. Not connected, it's the home page's program —
+ * the form still works, and submitting says what's missing.
+ */
+export default async function StartPage({ searchParams }: { searchParams: Promise<{ program?: string }> }) {
+  const site = await getSite();
+  const { brand, intakeStyle } = site;
+  const offered = lithosConnection().connected ? await readOfferedPrograms().catch(() => []) : [];
+  const asked = (await searchParams).program;
+  let program = site.program;
+  if (offered.length === 1) program = offered[0].key;
+  if (offered.length > 1) {
+    const picked = offered.find((p) => p.key === asked);
+    if (!picked) return <ProgramChoice brandName={brand.name} programs={offered.map((p) => p.key)} />;
+    program = picked.key;
+  }
+  const content = contentFor(program);
   return (
     <section className="form-card stack">
       <p className="eyebrow">About 2 minutes</p>
@@ -23,6 +44,24 @@ export default async function StartPage() {
       </p>
       {/* Keyed by program and style, so switching either in /setup starts the intake fresh. */}
       <IntakeForm key={`${program}-${intakeStyle}`} brandName={brand.name} program={program} style={intakeStyle} />
+    </section>
+  );
+}
+
+function ProgramChoice({ brandName, programs }: { brandName: string; programs: string[] }) {
+  return (
+    <section className="form-card stack">
+      <p className="eyebrow">About 2 minutes</p>
+      <h1>What can {brandName} help you with?</h1>
+      <p className="lede">Pick one to start. A clinician licensed in your state reviews every answer and decides on treatment.</p>
+      <div className="quiz-options">
+        {programs.map((key) => (
+          <Link key={key} href={`/start?program=${key}`} className="quiz-option program-choice">
+            <strong>{programFor(key)?.label}</strong>
+            <span className="muted">{contentFor(key).description}</span>
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }

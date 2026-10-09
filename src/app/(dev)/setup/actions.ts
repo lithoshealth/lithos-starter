@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getLithosClient } from "@/lib/lithos/client";
 import { LithosApiError } from "@/lib/lithos/errors";
 import { CLIENT_ID_MASK, maskCredential, type SetupActionState } from "@/lib/setup/action-state";
@@ -152,7 +151,7 @@ export async function getSandboxCredentialsAction(_prev: SetupActionState, formD
   return { ...saved, issued };
 }
 
-/** Step 2: the program this organization will offer. Checked against the live formulary, not just the list. */
+/** The program the home page leads with. Checked against the live formulary, not just the list. */
 export async function chooseProgramAction(_prev: SetupActionState, formData: FormData): Promise<SetupActionState> {
   const program = programFor(String(formData.get("program") ?? ""));
   if (!program) return { status: "error", errors: [{ code: "setup.no_program", message: "Pick a program." }] };
@@ -169,18 +168,6 @@ export async function chooseProgramAction(_prev: SetupActionState, formData: For
   // The program changes what every page says, not just this one.
   revalidatePath("/", "layout");
   return { status: "ok" };
-}
-
-/**
- * "Change program" goes back to the choice itself: step 2 returns to the picker
- * and the steps after it wait again. The patient and encounter are kept — they
- * reappear once a program is chosen again.
- */
-export async function clearProgramAction(): Promise<void> {
-  await updateConfig({ program: null });
-  revalidatePath("/", "layout");
-  // Back to the picker, not the top of the page — with or without JavaScript.
-  redirect("/setup#step-program");
 }
 
 /**

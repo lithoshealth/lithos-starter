@@ -171,41 +171,25 @@ export function StepAction({
  * for it — including the ones it can't pick yet, because seeing what exists is
  * part of the point.
  */
-export function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
+export function ProgramPicker({ programs, current }: { programs: ProgramOption[]; current?: string }) {
   const [state, run, pending] = useActionState(chooseProgramAction, INITIAL_SETUP_ACTION_STATE, stepAnchor("program"));
-  const preselected = programs.find((p) => p.selectable)?.key;
   return (
     <form action={run} className="stack">
       <fieldset className="program-picker">
-        <legend>What program is your organization offering?</legend>
-        {programs.filter((p) => p.selectable).length === 1 && (
-          <p className="muted">
-            Pre-selected: it&rsquo;s the only program in your formulary — Lithos set your organization up for it. Confirm
-            to continue.
-          </p>
-        )}
+        <legend>Which one does your home page lead with?</legend>
         {programs.map((p) => (
-          <label key={p.key} className={`program-option${p.selectable ? "" : " program-option-disabled"}`}>
-            <input type="radio" name="program" value={p.key} disabled={!p.selectable} defaultChecked={p.key === preselected} />
+          <label key={p.key} className="program-option">
+            <input type="radio" name="program" value={p.key} defaultChecked={p.key === (current ?? programs[0]?.key)} />
             <span className="program-option-body">
-              <span className="program-option-title">
-                {p.label}
-                {!p.supported && <span className="pill">Coming soon</span>}
-                {p.supported && !p.inFormulary && <span className="pill">Not in your formulary</span>}
-              </span>
-              <span className="muted">{p.inFormulary ? <>In your formulary: {p.treatments.join(", ")}.</> : <>Your organization isn&rsquo;t provisioned for it.</>}</span>
-              <span className="muted">Its intake asks {p.asks}.</span>
+              <span className="program-option-title">{p.label}</span>
             </span>
           </label>
         ))}
       </fieldset>
-      <p className="muted">
-        This is just to get started: the app runs one program at a time, and you can switch here whenever you like.
-        Offering something different, or more than one? Add protocols, or request new ones, from your Lithos console.
-      </p>
+      <p className="muted">Patients can still ask for any of them on /start. This only decides what the home page talks about.</p>
       <div>
-        <button type="submit" className="btn btn-primary" disabled={pending || !preselected}>
-          {pending ? "Saving…" : "Use this program"}
+        <button type="submit" className="btn btn-ghost" disabled={pending}>
+          {pending ? "Saving…" : "Lead with this one"}
         </button>
       </div>
       <ActionError state={state} />

@@ -10,7 +10,7 @@ import { readIssued } from "@/lib/setup/issued-cookie";
 import { appFolder, readHandoff } from "@/lib/setup/handoff";
 import { evaluateSetup, type Exchange, type StepState } from "@/lib/setup/steps";
 import { CONSOLE_URL, readDevProgress } from "@/lib/dev-progress";
-import { clearProgramAction, sendTestEventAction } from "./actions";
+import { sendTestEventAction } from "./actions";
 import { KeepItButtons } from "./email-app";
 import { Connected, ConnectForm, NewSecretForm, ProgramPicker, RepointForm, StepAction, WebhookForm } from "./step-actions";
 import { DeliveryGuide, EndpointGuide } from "./webhook-guide";
@@ -169,17 +169,30 @@ export default async function DeveloperPage() {
         <article id="step-program" className={`card setup-step setup-step-${program.status}`}>
           <div className="setup-step-head">
             <div className="setup-step-title">
-              <h2>Program</h2>
+              <h2>Programs</h2>
               <p className="muted">{program.summary}</p>
             </div>
             <span className={`badge ${BADGE[program.status].className}`}>{BADGE[program.status].label}</span>
           </div>
           <Diagnosis step={program} />
-          {program.programs && program.status !== "done" && <ProgramPicker programs={program.programs} />}
-          {program.status === "done" && program.chosenProgram && (
-            <form action={clearProgramAction}>
-              <button type="submit" className="btn btn-ghost">Change program</button>
-            </form>
+          {program.status === "done" && program.programs && (
+            <>
+              <ul className="program-list">
+                {program.programs.filter((p) => p.selectable).map((p) => (
+                  <li key={p.key}>
+                    <strong>{p.label}</strong>{p.illustrative && <> <span className="pill">Illustrative intake</span></>}
+                    <span className="muted"> — {p.treatments.join(", ")}. Its intake asks {p.asks}.</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="muted">
+                To offer something else, add protocols or request new ones from your Lithos console; they show up here
+                and on <a href="/start">/start</a> without a code change.
+              </p>
+              {program.programs.filter((p) => p.selectable).length > 1 && (
+                <ProgramPicker programs={program.programs.filter((p) => p.selectable)} current={program.chosenProgram} />
+              )}
+            </>
           )}
           <Exchanges step={program} />
         </article>
