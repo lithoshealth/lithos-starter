@@ -9,6 +9,9 @@ import type { CarePlan, EncounterStatus } from "@/lib/lithos/types";
 import { readJourneyStatus } from "@/lib/journey";
 import { isSandboxBaseUrl } from "@/lib/sandbox-review";
 import { ClinicianPanel } from "./clinician-panel";
+import { ageFrom, ClinicianChart } from "./clinician-chart";
+import { reviewIntake } from "@/lib/intake/review";
+import type { Patient } from "@/lib/lithos/types";
 import { VisitSection } from "./visit-section";
 import { programFor } from "@/lib/setup/programs";
 import { contentFor } from "@/lib/programs/content";
@@ -97,6 +100,9 @@ export default async function CarePage({
   const timeZone = sync ? await readPatientTimeZone(getLithosClient(), encounter.patient_id).catch(() => "UTC") : "UTC";
   // A sync encounter can't be signed off before its visit happened.
   const canSignOff = !sync || (encounter.status === "in_review" && encounter.latest_appointment?.status === "completed");
+  const showClinician = isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && canSignOff && ["pending_review", "in_review", "escalated"].includes(encounter.status);
+  // The sandbox clinician's chart needs who the patient is; only read when it shows.
+  const patient = showClinician ? await getLithosClient().get<Patient>(`/v1/patients/${encodeURIComponent(encounter.patient_id)}`).catch(() => null) : null;
 
   return (
     <section className="status-card panel stack">
@@ -138,11 +144,24 @@ export default async function CarePage({
         from={typeof query.from === "string" ? query.from : undefined}
       />
 
-      {isSandboxBaseUrl(process.env.LITHOS_API_BASE_URL) && canSignOff && ["pending_review", "in_review", "escalated"].includes(encounter.status) && (
+      {showClinician && (
         <ClinicianPanel
           encounterId={encounter.id}
           waitingOnPatient={encounter.status === "escalated"}
           defaultQuestion={programFor(carePlan.category) ? contentFor(carePlan.category as ProgramKey).clinicianQuestion : "Is there anything else I should know before I decide?"}
+          chart={
+            <ClinicianChart
+              program={programFor(carePlan.category)?.label ?? carePlan.category}
+              patient={{
+                name: [patient?.first_name, patient?.last_name].filter(Boolean).join(" ") || "Your patient",
+                age: ageFrom(patient?.date_of_birth),
+                sex: patient?.sex ?? undefined,
+                state: patient?.address?.state ?? undefined,
+              }}
+              intakeAnswers={Object.keys(encounter.intake_form?.data ?? {}).length}
+              flagged={reviewIntake(carePlan.category, encounter.intake_form?.data ?? {}).flags.length}
+            />
+          }
         />
       )}
 

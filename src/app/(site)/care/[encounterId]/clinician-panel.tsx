@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { INITIAL_CLINICIAN_STATE } from "@/lib/sandbox-review-state";
 import { playClinicianAction } from "./actions";
 
@@ -10,33 +10,38 @@ import { playClinicianAction } from "./actions";
  * clinician: approve, decline, or ask the patient a question first. Your app
  * never makes these calls in production; a Lithos clinician decides.
  */
-export function ClinicianPanel({ encounterId, waitingOnPatient, defaultQuestion }: {
+export function ClinicianPanel({ encounterId, waitingOnPatient, defaultQuestion, chart }: {
   encounterId: string;
   waitingOnPatient: boolean;
   defaultQuestion: string;
+  /** The illustrative chart the clinician works through (clinician-chart.tsx). */
+  chart: ReactNode;
 }) {
   const [state, run, pending] = useActionState(playClinicianAction, INITIAL_CLINICIAN_STATE);
   const [asking, setAsking] = useState(false);
   return (
     <div className="sandbox-panel stack">
       <p className="eyebrow">Sandbox only · play the clinician</p>
-      <p>
-        {waitingOnPatient
-          ? "The clinician asked the patient a question. Answer it from the patient app's messages, or carry on as the clinician: that resolves the question."
-          : "In production a licensed Lithos clinician reviews this, in Lithos's own tools. In the sandbox nobody will, so you decide for them and see what the patient sees next."}
-      </p>
-      <form action={run} className="form-actions">
-        <input type="hidden" name="encounter_id" value={encounterId} />
-        <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending}>
-          {pending ? "Working…" : "Approve and prescribe"}
-        </button>
-        <button type="submit" name="decision" value="decline" className="btn btn-ghost" disabled={pending}>Decline</button>
-        {!waitingOnPatient && (
-          <button type="button" className="link-button" onClick={() => setAsking((v) => !v)} disabled={pending}>
-            Ask the patient a question
+      {chart}
+      <div className="review-standin">
+        <p>
+          {waitingOnPatient
+            ? "The clinician asked the patient a question. Answer it from the patient app's messages, or carry on as the clinician: that resolves the question."
+            : "Stand in for the clinician. In production a licensed Lithos clinician decides; in the sandbox nobody will, so you do."}
+        </p>
+        <form action={run} className="review-decisions">
+          <input type="hidden" name="encounter_id" value={encounterId} />
+          <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending}>
+            {pending ? "Working…" : "Simulate approval"}
           </button>
-        )}
-      </form>
+          <button type="submit" name="decision" value="decline" className="btn btn-ghost" disabled={pending}>Simulate denial</button>
+          {!waitingOnPatient && (
+            <button type="button" className="link-button" onClick={() => setAsking((v) => !v)} disabled={pending}>
+              Ask the patient a question
+            </button>
+          )}
+        </form>
+      </div>
       {asking && !waitingOnPatient && (
         <form action={run} className="stack">
           <input type="hidden" name="encounter_id" value={encounterId} />
