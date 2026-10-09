@@ -6,6 +6,7 @@ import { readProgramOptions } from "@/lib/setup/steps";
 import { BrandPanel } from "../(dev)/setup/brand-panel";
 import { ConnectForm, ProgramPicker } from "../(dev)/setup/step-actions";
 import { ONBOARDING_COOKIE } from "./onboarding-cookie";
+import { onboardingDoneValue } from "./onboarding-done";
 import { OnboardingDialog, StartUsingApp } from "./onboarding-dialog";
 
 /**
@@ -33,7 +34,7 @@ export async function Onboarding() {
     );
   }
 
-  if (seen === "done") return null;
+  if (seen === onboardingDoneValue()) return null;
   const programs = config.program ? null : await readProgramOptions().catch(() => null);
   return (
     <OnboardingDialog open={seen !== "later"} title="Make it yours">

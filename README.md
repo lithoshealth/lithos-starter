@@ -37,6 +37,12 @@ saved to `.env.local`, which git ignores), choose the program you offer, and mak
 app yours. "Look around first" closes it; the bar at the top brings it back. Prefer
 the terminal? `npm run setup` takes a pasted pair before you start the server.
 
+To start over — a first run again, for a new sandbox or the next demo — stop the
+server and run `npm run reset`: it disconnects (keeping the old `.env.local` as a
+backup), puts the brand back, clears the program and empties the local database.
+Your sandbox organization at Lithos keeps what it has; connect a new sandbox for a
+checklist that starts empty.
+
 ## Trying the journey
 
 There's no walkthrough to follow: the app is the walkthrough. The bar at the top of

@@ -12,6 +12,7 @@
     "credentials": "node scripts/credentials.mjs",
     "demo": "node scripts/demo.mjs",
     "dev": "node scripts/dev.mjs",
+    "reset": "node scripts/reset.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
