@@ -24,6 +24,13 @@ const STEPS: Record<string, Step[]> = {
     { day: 28, title: "Dose review", detail: "Whether it's time to step up the dose." },
     { day: 84, title: "Three-month review", detail: "Your progress, and the plan for the next three months." },
   ],
+  /** Any other program. */
+  other: [
+    { day: 0, title: "Your plan is approved", detail: "Your clinician signed off on your treatment." },
+    { day: 3, title: "First dose", detail: "Your care team walks you through it.", firstDose: true },
+    { day: 14, title: "Two-week check-in", detail: "How you're feeling, and any side effects." },
+    { day: 90, title: "Three-month review", detail: "How it's going, and the plan from here." },
+  ],
 };
 
 /** `date` is null for a step that waits on something rather than a day — the first dose waits on the delivery. */
@@ -39,7 +46,7 @@ const DAY = 24 * 60 * 60 * 1000;
 export function journey(program: string | undefined, approvedAt: string | null, refillDueAt: string | null, deliveredAt: string | null, now: Date): JourneyItem[] {
   if (!approvedAt) return [];
   const start = new Date(approvedAt).getTime();
-  const items = (STEPS[program ?? ""] ?? STEPS.lipid_management).map((step) => ({
+  const items = (STEPS[program ?? ""] ?? STEPS.other).map((step) => ({
     sortAt: start + step.day * DAY,
     date: step.firstDose ? deliveredAt : new Date(start + step.day * DAY).toISOString(),
     title: step.title,

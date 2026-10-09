@@ -18,7 +18,7 @@ import { readWebhookAttempts } from "../webhooks/attempts";
 import { getLithosClient } from "../lithos/client";
 import { LithosApiError } from "../lithos/errors";
 import type { ApiError } from "../lithos/types";
-import { PROGRAMS, type ProgramKey, type ProgramOption } from "./programs";
+import { PROGRAMS, programFor, type ProgramKey, type ProgramOption } from "./programs";
 import { isSandboxBaseUrl as isSandbox } from "@/lib/lithos/sandbox";
 
 export type StepKey = "connect" | "program" | "updates";
@@ -659,8 +659,18 @@ export async function readProgramOptions(): Promise<ProgramOption[]> {
   return programOptions(catalog.data);
 }
 
+/**
+ * The two written-out programs, then every other category in the formulary —
+ * so a protocol the organization chose shows up here without a code change.
+ */
 function programOptions(catalog: CatalogTreatment[]): ProgramOption[] {
-  return PROGRAMS.map((program) => {
+  const active = catalog.filter((t) => t.status !== "inactive");
+  const others = [...new Set(active.flatMap((t) => t.categories ?? []))]
+    .filter((key) => !PROGRAMS.some((p) => p.key === key))
+    .sort()
+    .map((key) => programFor(key))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  return [...PROGRAMS, ...others].map((program) => {
     const treatments = catalog.filter((t) => t.status !== "inactive" && t.categories?.includes(program.key)).map((t) => t.name);
     return { ...program, treatments, inFormulary: treatments.length > 0, selectable: program.supported && treatments.length > 0 };
   });
@@ -671,10 +681,10 @@ function checkProgram(ids: JourneyIds, catalog: CatalogTreatment[]): StepState {
 
   if (!programs.some((p) => p.selectable)) {
     return {
-      key: "program", status: "blocked", summary: "No program this walkthrough supports is in your formulary.", programs,
+      key: "program", status: "blocked", summary: "No program in your formulary yet.", programs,
       diagnosis: {
-        title: "This walkthrough runs lipid management for now, and your organization isn't provisioned for it",
-        fix: "Weight loss is coming soon. Until then, ask your Lithos contact to add lipid management to your sandbox organization — nothing ships from the sandbox, so there's no reason to hold it back.",
+        title: "Your formulary has no active treatments yet",
+        fix: "The programs come from the protocols your organization chose. Ask your Lithos contact to provision at least one for your sandbox organization — nothing ships from the sandbox, so there's no reason to hold it back.",
       },
     };
   }

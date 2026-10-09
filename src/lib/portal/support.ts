@@ -8,6 +8,7 @@ export type Answer = { topic: string; question: string; answer: string };
 
 export function supportAnswers(brandName: string, program: string | undefined): Answer[] {
   const weight = program === "weight_management";
+  const lipid = program === "lipid_management";
   return [
     {
       topic: "Shipping",
@@ -24,7 +25,9 @@ export function supportAnswers(brandName: string, program: string | undefined): 
       question: "What side effects should I watch for?",
       answer: weight
         ? "Nausea and a smaller appetite are common in the first weeks. Tell your care team about anything that worries you. If it's an emergency, call 911."
-        : "Most people feel nothing at all. Tell your care team about muscle aches, or anything else that worries you. If it's an emergency, call 911.",
+        : lipid
+          ? "Most people feel nothing at all. Tell your care team about muscle aches, or anything else that worries you. If it's an emergency, call 911."
+          : "It depends on your treatment — your clinician's message explains what to expect. Tell your care team about anything that worries you. If it's an emergency, call 911.",
     },
     {
       topic: "Account",

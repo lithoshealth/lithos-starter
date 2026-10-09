@@ -277,7 +277,9 @@ const KG_TO_LB = 2.20462;
  * weight care. Oldest first; one reading per date.
  */
 export function progress(data: PortalData, program: string | undefined): Progress | undefined {
-  const lipid = program !== "weight_management";
+  // Only the two written-out programs have a number the intake reports.
+  if (program !== "lipid_management" && program !== "weight_management") return undefined;
+  const lipid = program === "lipid_management";
   const readings = new Map<string, number>();
   for (const encounter of data.encounters) {
     const intake = encounter.intake_form?.data ?? {};

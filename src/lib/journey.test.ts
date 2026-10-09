@@ -206,3 +206,29 @@ describe("weight-management journey", () => {
     expect(post.mock.calls[1]).toEqual(["/v1/care_plans", { patient_id: "pat_1", category: "weight_management" }, { idempotencyKey: expect.stringMatching(/:care-plan$/) }]);
   });
 });
+
+describe("a program without a written-out intake", () => {
+  function genericForm(overrides: Record<string, string> = {}): FormData {
+    const form = validForm();
+    ["indication", "ldl_c", "ldl_c_date", "familial_hypercholesterolemia"].forEach((name) => form.delete(name));
+    const values: Record<string, string> = { reason_for_visit: "Help with sleep", current_medications: "", allergies: "Penicillin", kidney_or_liver_disease: "on", ...overrides };
+    Object.entries(values).forEach(([key, value]) => form.set(key, value));
+    return form;
+  }
+
+  it("sends the illustrative intake, with defaults for blank answers and every screening answer", () => {
+    const parsed = parseJourneyForm(genericForm(), "wellness");
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+    expect(parsed.value.program).toBe("wellness");
+    expect(parsed.value.intake).toEqual({
+      reason_for_visit: "Help with sleep", current_medications: "None", allergies: "Penicillin",
+      pregnant_or_breastfeeding: false, serious_drug_reaction: false, kidney_or_liver_disease: true, recent_hospital_stay: false,
+    });
+  });
+
+  it("points a missing reason at its field", () => {
+    const parsed = parseJourneyForm(genericForm({ reason_for_visit: " " }), "wellness");
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.errors[0].source?.pointer).toBe("/intake_form/data/reason_for_visit");
+  });
+});

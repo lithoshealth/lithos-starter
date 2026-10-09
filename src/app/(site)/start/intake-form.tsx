@@ -10,6 +10,7 @@ import type { ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_SCREENING } from "@/lib/intake/lipid";
+import { GENERIC_SCREENING } from "@/lib/intake/generic";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -239,7 +240,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: null,
         },
       ]
-    : [
+    : program === "lipid_management" ? [
         {
           fields: ["indication"], autoAdvance: true,
           title: `What brings you to ${brandName}?`,
@@ -277,6 +278,34 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
         {
           fields: LIPID_SCREENING.map(([name]) => name), checklist: LIPID_SCREENING,
+          title: "Do any of these apply to you?",
+          hint: "These help your clinician choose a treatment that’s safe for you. Select all that apply.",
+          body: null,
+        },
+      ]
+    // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
+    : [
+        {
+          fields: ["reason_for_visit"], reply: "{reason_for_visit}",
+          title: `Welcome to ${brandName}. What would you like help with?`,
+          hint: "A few minutes of questions, then a licensed clinician reviews your answers and decides on treatment.",
+          body: (
+            <label className="field wide">In your own words<textarea name="reason_for_visit" rows={3} maxLength={2000} defaultValue="I'd like to talk to a clinician about treatment options." required /></label>
+          ),
+        },
+        {
+          fields: ["current_medications", "allergies"], reply: "Taking: {current_medications}. Allergies: {allergies}",
+          title: "What do you take, and what do you react to?",
+          hint: "Prescriptions, over-the-counter medicines and supplements — so a new treatment is safe alongside them.",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Medicines and supplements you take now<textarea name="current_medications" rows={2} maxLength={2000} defaultValue="None" /></label>
+              <label className="field wide">Allergies<textarea name="allergies" rows={2} maxLength={2000} defaultValue="None known" /></label>
+            </div>
+          ),
+        },
+        {
+          fields: GENERIC_SCREENING.map(([name]) => name), checklist: GENERIC_SCREENING,
           title: "Do any of these apply to you?",
           hint: "These help your clinician choose a treatment that’s safe for you. Select all that apply.",
           body: null,
@@ -346,7 +375,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       const element = form.elements.namedItem(name);
       const inputs = element instanceof RadioNodeList ? [...element] : element ? [element] : [];
       for (const input of inputs) {
-        if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) {
+        if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement || input instanceof HTMLTextAreaElement) {
           if (!input.checkValidity()) {
             if (index !== screen) go(index);
             requestAnimationFrame(() => input.reportValidity());

@@ -11,7 +11,7 @@
  * Lithos — the intake contract is in src/lib/intake/ and src/lib/journey.ts.
  */
 
-import type { ProgramKey } from "../setup/programs";
+import { programFor, type ProgramKey } from "../setup/programs";
 
 type Titled = { name: string; body: string };
 
@@ -213,10 +213,100 @@ const WEIGHT: ProgramContent = {
   plansLeadTo: "start",
 };
 
-const CONTENT: Record<ProgramKey, ProgramContent> = { lipid_management: LIPID, weight_management: WEIGHT };
+/**
+ * Any other program — one this starter has no copy written for yet. Plain,
+ * general copy built around the program's name, so the site still reads as a
+ * whole. Replace it with your own; the intake for these programs is
+ * illustrative too (see src/lib/intake/generic.ts).
+ */
+function generic(label: string): ProgramContent {
+  const topic = label.toLowerCase();
+  return {
+    category: label,
+    description: `${label} care, online: a licensed clinician reviews your answers, decides on treatment, and stays with you after.`,
+    hero: {
+      headline: `${label} care that fits around your life.`,
+      lede: `{name} connects you with a licensed clinician for ${topic}: a few minutes of questions, a review by someone licensed in your state, and treatment delivered to your door when it’s right for you.`,
+      trust: ["Licensed clinicians in your state", "Treatment delivered to your door", "A care team you can message"],
+      includesTitle: "What care includes",
+      includes: [
+        "A short online intake, in your own time",
+        "A review by a clinician licensed in your state",
+        "A treatment decision, and a message explaining it",
+        "Prescriptions shipped to your door",
+        "Follow-up and refills without a new appointment",
+      ],
+    },
+    program: {
+      eyebrow: "How it works",
+      headline: "From a few questions to a plan, without a waiting room.",
+      lede: "Every step is online, and a person is behind every decision.",
+      phases: [
+        { when: "Today", title: "Tell us about you", body: "A few minutes of questions about your health and what you want help with." },
+        { when: "Within a day", title: "A clinician reviews it", body: "A clinician licensed in your state reads every answer, and may message you a question first." },
+        { when: "If it’s right for you", title: "Treatment arrives", body: "Your prescription goes to the pharmacy and ships to your door." },
+        { when: "After", title: "Your care team stays with you", body: "Check-ins, refills and questions, all in the app." },
+      ],
+    },
+    coaching: {
+      eyebrow: "Between visits",
+      headline: "Care doesn’t stop at the prescription.",
+      lede: "Your care team follows up, answers questions and adjusts the plan with you.",
+      focuses: [
+        { name: "Check-ins", body: "A few questions at the right moments, so your clinician knows how it’s going." },
+        { name: "Messages", body: "Ask your care team anything, and hear back from a person." },
+        { name: "Refills", body: "Renewed when it’s time, without starting again." },
+      ],
+    },
+    numbers: {
+      headline: "What your clinician looks at.",
+      lede: "Your history, what you’re taking now, and what you want from care.",
+      items: [
+        { name: "Your history", body: "Conditions, past treatments, and anything you react to." },
+        { name: "Your medicines", body: "What you take now, so a new treatment is safe alongside it." },
+        { name: "Your goals", body: "What you want help with, in your own words." },
+      ],
+    },
+    care: {
+      headline: "A licensed clinician reviews every request.",
+      paragraphs: [
+        `Every ${topic} request is read by a clinician licensed in your state, who decides with you whether treatment is right — and which.`,
+      ],
+      reviewIncludes: [
+        "A short medical intake — history, current medications, anything you react to",
+        "Clinician review against the program’s protocol",
+        "A treatment decision, and a message explaining it",
+        "Refills handled without a new appointment",
+      ],
+    },
+    plans: {
+      headline: "Simple pricing.",
+      items: [
+        { name: "Care", price: "$49", tagline: "A clinician review, and care after it.", featured: true, includes: ["Clinician review of your intake", "Messaging with your care team", "Follow-up and refills"] },
+      ],
+      note: "Illustrative pricing. Medication is billed separately.",
+    },
+    audiences: [
+      `You want help with ${topic} from a licensed clinician, without a waiting room.`,
+      "You’d rather answer questions online than book an appointment.",
+      "You want a care team you can message after your first visit.",
+    ],
+    cta: { headline: "Start with a clinician review.", body: "A few minutes of questions. A clinician licensed in your state reads every one." },
+    emergency: "{name} does not provide emergency care. If you’re having a medical emergency, call 911.",
+    start: {
+      heading: `Let’s get you started with ${topic} care.`,
+      lede: "A few minutes of questions about your health and what you want help with — a clinician licensed in your state reviews every one and decides on treatment.",
+    },
+    clinicianQuestion: "Before I decide: is there anything else about your health or the medicines you take that I should know?",
+    patientReply: "Nothing else — I take a daily multivitamin and that’s it.",
+    plansLeadTo: "start",
+  };
+}
+
+const CONTENT: Record<string, ProgramContent> = { lipid_management: LIPID, weight_management: WEIGHT };
 
 export function contentFor(program: ProgramKey): ProgramContent {
-  return CONTENT[program];
+  return CONTENT[program] ?? generic(programFor(program)?.label ?? "General");
 }
 
 /** Put the company name into a line of copy. */

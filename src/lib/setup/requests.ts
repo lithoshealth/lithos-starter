@@ -1,5 +1,6 @@
 import type { ProgramKey } from "./programs";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
+import { GENERIC_SCREENING } from "../intake/generic";
 
 /**
  * The exact request bodies the walkthrough sends.
@@ -39,7 +40,7 @@ export function carePlanRequest(patientId: string, category: string) {
  * A sample intake for each program that passes its protocol's shape check —
  * the fields are the program's, so the intake changes with the program.
  */
-const SAMPLE_INTAKE: Record<ProgramKey, Record<string, unknown>> = {
+const SAMPLE_INTAKE: Record<string, Record<string, unknown>> = {
   lipid_management: {
     indication: "hypercholesterolemia",
     ldl_c: 162,
@@ -61,6 +62,14 @@ const SAMPLE_INTAKE: Record<ProgramKey, Record<string, unknown>> = {
   },
 };
 
+/** Any other program: the illustrative intake (src/lib/intake/generic.ts). */
+const SAMPLE_GENERIC_INTAKE = {
+  reason_for_visit: "I'd like to talk to a clinician about treatment options.",
+  current_medications: "None",
+  allergies: "None known",
+  ...Object.fromEntries(GENERIC_SCREENING.map(([name]) => [name, false])),
+};
+
 /**
  * The sample intake for the chosen program, requesting one specific treatment
  * from the partner's own formulary. Requesting a named treatment (rather than
@@ -71,7 +80,7 @@ export function encounterRequest(program: ProgramKey, patientId: string, carePla
   return {
     patient_id: patientId,
     care_plan_id: carePlanId,
-    intake_form: { data: SAMPLE_INTAKE[program] },
+    intake_form: { data: SAMPLE_INTAKE[program] ?? SAMPLE_GENERIC_INTAKE },
     requested_treatments: [{ action: "add", catalog_treatment_id: catalogTreatmentId }],
   };
 }

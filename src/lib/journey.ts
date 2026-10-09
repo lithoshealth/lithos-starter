@@ -11,6 +11,7 @@ import type {
 import type { LithosClient } from "./lithos/client";
 import { readModality, type VisitOffer } from "./sync-visits";
 import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
+import { parseGenericIntake, type GenericIntake } from "./intake/generic";
 import type { ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
@@ -37,7 +38,8 @@ export type JourneyInput = {
   patient: Omit<PatientCreate, "external_id" | "telehealth_consented_at" | "identity_verified_at">;
   /** The care plan's category — and the protocol the intake is written for. */
   program: ProgramKey;
-  intake: LipidManagementInitialIntake | WeightManagementInitialIntake;
+  /** The program's real intake, or the illustrative one for a program without a written-out intake. */
+  intake: LipidManagementInitialIntake | WeightManagementInitialIntake | GenericIntake;
   attestationsConfirmed: true;
   resume: { patientId?: string; carePlanId?: string };
   /** The hold the encounter is created with — only for a sync encounter. */
@@ -112,7 +114,9 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   if (formData.get("attestations_confirmed") !== "on") {
     errors.push(pointerError("/attestations", "Confirm both sample attestations before submitting."));
   }
-  const intake = program === "weight_management" ? weightIntake(formData) : lipidIntake(formData);
+  const intake = program === "weight_management" ? weightIntake(formData)
+    : program === "lipid_management" ? lipidIntake(formData)
+    : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
     errors.push(pointerError("/resume_patient_id", "A care plan retry must retain its patient ID."));
@@ -187,6 +191,12 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
 
 function weightIntake(formData: FormData): IntakeResult<WeightManagementInitialIntake> {
   const parsed = parseWeightIntake((name) => field(formData, name), (name) => formData.get(name) === "on");
+  if (parsed.ok) return parsed;
+  return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
+}
+
+function genericIntake(formData: FormData): IntakeResult<GenericIntake> {
+  const parsed = parseGenericIntake((name) => field(formData, name), (name) => formData.get(name) === "on");
   if (parsed.ok) return parsed;
   return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
 }

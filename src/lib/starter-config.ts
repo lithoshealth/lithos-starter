@@ -15,7 +15,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PROGRAMS, type ProgramKey } from "./setup/programs";
+import { isProgramKey, type ProgramKey } from "./setup/programs";
 import { INTAKE_STYLES, type IntakeStyle } from "./intake/styles";
 
 export { INTAKE_STYLES, type IntakeStyle };
@@ -107,7 +107,7 @@ export function normalizeConfig(raw: unknown): StarterConfig {
       font: validFont(brand.font),
       background: typeof brand.background === "string" && HEX.test(brand.background) && isLight(brand.background) ? brand.background.toLowerCase() : undefined,
     },
-    program: PROGRAMS.some((p) => p.key === program) ? (program as ProgramKey) : undefined,
+    program: isProgramKey(program) ? program : undefined,
     intakeStyle: INTAKE_STYLES.some((s) => s.key === intakeStyle) ? (intakeStyle as IntakeStyle) : DEFAULT_CONFIG.intakeStyle,
   };
 }

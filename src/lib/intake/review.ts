@@ -13,6 +13,7 @@
 import type { ProgramKey } from "../setup/programs";
 import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
+import { GENERIC_SCREENING } from "./generic";
 
 export type IntakeReview = {
   facts: Array<{ label: string; value: string }>;
@@ -56,6 +57,18 @@ function weight(data: Data): IntakeReview {
   };
 }
 
+function generic(data: Data): IntakeReview {
+  const text = (name: string) => (typeof data[name] === "string" && data[name] ? String(data[name]) : "—");
+  return {
+    facts: [
+      { label: "Wants help with", value: text("reason_for_visit") },
+      { label: "Takes now", value: text("current_medications") },
+      { label: "Allergies", value: text("allergies") },
+    ],
+    flags: yesTo(data, GENERIC_SCREENING),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
-  return program === "weight_management" ? weight(data) : lipid(data);
+  return program === "weight_management" ? weight(data) : program === "lipid_management" ? lipid(data) : generic(data);
 }
