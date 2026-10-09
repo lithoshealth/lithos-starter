@@ -11,6 +11,11 @@ import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_SCREENING } from "@/lib/intake/lipid";
 import { GENERIC_SCREENING } from "@/lib/intake/generic";
+import {
+  ACNE_AREAS, ACNE_IMPACT, ACNE_LESIONS, ACNE_SCARRING, ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, DURATIONS, FITZPATRICK,
+  HP_AREAS, HP_ATYPICAL_SIGNS, HP_CONCERNS, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SKIN_CANCER, HP_TRIGGERS,
+  ISOTRETINOIN_USE, photosFor, SPOT_PHOTO, TRUNK_PHOTO, type PhotoField,
+} from "@/lib/intake/derm";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -182,6 +187,56 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     </div>
   );
 
+  // One answer from a list: picking it moves on.
+  const pickOne = (name: string, options: readonly (readonly [string, string])[]) => (
+    <div className="quiz-options">
+      {options.map(([value, label], i) => (
+        <Option key={value} name={name} value={value} onPick={autoAdvance} required={i === 0}>{label}</Option>
+      ))}
+    </div>
+  );
+  // Several answers to one field, sent as a list (`affected_areas`, `lesion_types`, …).
+  const pickSome = (name: string, options: readonly (readonly [string, string])[], preset: string[] = []) => (
+    <div className="quiz-options">
+      {options.map(([value, label]) => (
+        <label key={value} className="quiz-option quiz-option-multi">
+          <input type="checkbox" name={name} value={value} defaultChecked={preset.includes(value)} /> <span>{label}</span>
+        </label>
+      ))}
+    </div>
+  );
+  const yesNoScreen = (name: string) => (
+    <div className="quiz-options">
+      <Option name={name} value="true" onPick={autoAdvance} required>Yes</Option>
+      <Option name={name} value="false" onPick={autoAdvance}>No</Option>
+    </div>
+  );
+  const freeText = (
+    <div className="field-grid">
+      <label className="field wide">Medicines and allergies <small>(optional, one per line)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+      <label className="field wide">Skin products you&rsquo;ve tried <small>(optional, one per line: the product, how long, whether it helped)</small><textarea name="prior_products" rows={3} maxLength={4000} defaultValue="Over-the-counter benzoyl peroxide wash, 2 months, helped a little" /></label>
+    </div>
+  );
+  const photoScreen = (photos: PhotoField[], note?: string): Screen => ({
+    fields: photos.map((p) => p.field), reply: `${photos.length} sample photos`,
+    title: "Photos of your skin",
+    hint: "In your app, the patient takes these with their phone. This sandbox sends the sample images below instead — never upload a photo of a real person here.",
+    body: (
+      <div className="stack">
+        <div className="sample-photos">
+          {photos.map((p) => (
+            <figure key={p.field}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- a small static sample */}
+              <img src={`/samples/${p.sample}`} alt="" width={90} height={112} />
+              <figcaption>{p.label}</figcaption>
+            </figure>
+          ))}
+        </div>
+        {note && <p className="muted">{note}</p>}
+      </div>
+    ),
+  });
+
   const programScreens: Screen[] = program === "weight_management"
     ? [
         {
@@ -282,6 +337,55 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           hint: "These help your clinician choose a treatment that’s safe for you. Select all that apply.",
           body: null,
         },
+      ]
+    : program === "acne" ? [
+        {
+          fields: ["affected_areas"],
+          title: `Welcome to ${brandName}. Where is your acne?`,
+          hint: "Select all that apply.",
+          body: pickSome("affected_areas", ACNE_AREAS, ["face"]),
+        },
+        { fields: ["lesion_types"], title: "What kinds of spots do you get?", hint: "Select all that apply.", body: pickSome("lesion_types", ACNE_LESIONS, ["red_bumps"]) },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had acne?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["scarring"], autoAdvance: true, title: "Has it left any scars?", body: pickOne("scarring", ACNE_SCARRING) },
+        { fields: ["daily_life_impact"], autoAdvance: true, title: "How much does it affect your daily life?", body: pickOne("daily_life_impact", ACNE_IMPACT) },
+        { fields: ["isotretinoin_use"], autoAdvance: true, title: "Have you ever taken isotretinoin (Accutane)?", body: pickOne("isotretinoin_use", ISOTRETINOIN_USE) },
+        {
+          fields: ["oral_antibiotic_last_3_months", "oral_antibiotic_courses"], reply: "Antibiotic in the last 3 months: {oral_antibiotic_last_3_months}. Courses so far: {oral_antibiotic_courses}",
+          title: "Antibiotic pills for acne",
+          body: (
+            <div className="field-grid">
+              <label className="field">In the last 3 months?<select name="oral_antibiotic_last_3_months" defaultValue="false" required><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="field">Courses you&rsquo;ve had in total<input name="oral_antibiotic_courses" type="number" min="0" step="1" defaultValue="0" required /></label>
+            </div>
+          ),
+        },
+        { fields: ["benzoyl_peroxide_attested"], autoAdvance: true, title: "Do you use a benzoyl peroxide wash every morning?", hint: "An over-the-counter acne wash, such as PanOxyl.", body: yesNoScreen("benzoyl_peroxide_attested") },
+        { fields: ACNE_SCREENING_SKIN.map(([n]) => n), checklist: ACNE_SCREENING_SKIN, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        { fields: ACNE_SCREENING_HEALTH.map(([n]) => n), checklist: ACNE_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
+        { fields: ["medications_allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
+        photoScreen([...photosFor("acne", {}), TRUNK_PHOTO], "The chest, back or shoulders photo is only sent if you picked one of those."),
+      ]
+    : program === "hyperpigmentation_photoaging" ? [
+        {
+          fields: ["main_concerns"],
+          title: `Welcome to ${brandName}. What would you like to treat?`,
+          hint: "Select all that apply.",
+          body: pickSome("main_concerns", HP_CONCERNS, ["dark_spots"]),
+        },
+        { fields: ["affected_areas"], title: "Where?", hint: "Select all that apply.", body: pickSome("affected_areas", HP_AREAS, ["face"]) },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had it?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["triggers"], title: "What brought it on, or makes it worse?", hint: "Select any that apply, or none.", body: pickSome("triggers", HP_TRIGGERS, ["sun"]) },
+        { fields: ["fitzpatrick_skin_type"], autoAdvance: true, title: "How does your skin react to the sun?", body: pickOne("fitzpatrick_skin_type", FITZPATRICK) },
+        { fields: ["isotretinoin_use"], autoAdvance: true, title: "Have you ever taken isotretinoin (Accutane)?", body: pickOne("isotretinoin_use", ISOTRETINOIN_USE) },
+        { fields: ["daily_sunscreen_use"], autoAdvance: true, title: "Do you wear sunscreen every day?", body: yesNoScreen("daily_sunscreen_use") },
+        { fields: ["sunscreen_attested"], autoAdvance: true, title: "Will you wear SPF 30 or higher every day during treatment?", hint: "Treatment works far better, and is safer, with daily sunscreen.", body: yesNoScreen("sunscreen_attested") },
+        { fields: ["atypical_spot", "atypical_spot_signs"], title: "Do you have a spot that…", hint: "Select any that apply, or none.", body: pickSome("atypical_spot_signs", HP_ATYPICAL_SIGNS) },
+        { fields: ["skin_cancer_history"], autoAdvance: true, title: "Have you ever had skin cancer?", body: pickOne("skin_cancer_history", HP_SKIN_CANCER) },
+        { fields: HP_SCREENING_RECENT.map(([n]) => n), checklist: HP_SCREENING_RECENT, title: "Any of these recently?", hint: "Select all that apply.", body: null },
+        { fields: HP_SCREENING_HEALTH.map(([n]) => n), checklist: HP_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
+        { fields: ["medications_allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
+        photoScreen([...photosFor("acne", {}), SPOT_PHOTO]),
       ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [

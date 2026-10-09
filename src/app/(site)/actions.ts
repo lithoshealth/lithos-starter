@@ -14,6 +14,7 @@ import type { HoldState } from "@/lib/visit-state";
 import { DEFAULT_PROGRAM, readConfig } from "@/lib/starter-config";
 import { writeJourneyIds } from "@/lib/setup/journey-cookie";
 import { isProgramKey } from "@/lib/setup/programs";
+import { attachSamplePhotos } from "@/lib/journey-photos";
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -37,7 +38,7 @@ export async function createJourneyAction(_previous: JourneyState, formData: For
   // came in by, they're one member and one Lithos patient.
   const member = isDbConfigured() ? await findOrCreateMemberForCare(parsed.value.patient) : null;
   if (member?.lithos_patient_id) parsed.value.resume.patientId ??= member.lithos_patient_id;
-  const result = await runJourney(parsed.value, client, { attempt: attemptFrom(formData), externalId: member?.id });
+  const result = await runJourney(parsed.value, client, { attempt: attemptFrom(formData), externalId: member?.id, attachUploads: attachSamplePhotos });
   // Linked as soon as Lithos has the patient — even if a later step failed.
   const patientId = "patientId" in result ? result.patientId : undefined;
   if (member && !member.lithos_patient_id && patientId) await linkMemberToLithos(member.id, patientId);

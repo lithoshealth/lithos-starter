@@ -14,6 +14,7 @@ import type { ProgramKey } from "../setup/programs";
 import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
 import { GENERIC_SCREENING } from "./generic";
+import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT } from "./derm";
 
 export type IntakeReview = {
   facts: Array<{ label: string; value: string }>;
@@ -69,6 +70,23 @@ function generic(data: Data): IntakeReview {
   };
 }
 
+function derm(data: Data, screening: readonly (readonly [string, string])[]): IntakeReview {
+  const list = (name: string) => (Array.isArray(data[name]) ? (data[name] as unknown[]).join(", ") : "—");
+  return {
+    facts: [
+      { label: "Areas", value: list("affected_areas") },
+      { label: "Duration", value: String(data.condition_duration ?? "—").replaceAll("_", " ") },
+    ],
+    flags: yesTo(data, screening),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
-  return program === "weight_management" ? weight(data) : program === "lipid_management" ? lipid(data) : generic(data);
+  switch (program) {
+    case "weight_management": return weight(data);
+    case "lipid_management": return lipid(data);
+    case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
+    case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
+    default: return generic(data);
+  }
 }

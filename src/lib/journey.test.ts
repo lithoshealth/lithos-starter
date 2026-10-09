@@ -232,3 +232,54 @@ describe("a program without a written-out intake", () => {
     if (!parsed.ok) expect(parsed.errors[0].source?.pointer).toBe("/intake_form/data/reason_for_visit");
   });
 });
+
+describe("dermatology journeys", () => {
+  function dermForm(values: Record<string, string | string[]>): FormData {
+    const form = validForm();
+    ["indication", "ldl_c", "ldl_c_date", "familial_hypercholesterolemia"].forEach((name) => form.delete(name));
+    for (const [key, value] of Object.entries(values)) {
+      for (const v of Array.isArray(value) ? value : [value]) form.append(key, v);
+    }
+    return form;
+  }
+
+  it("sends the acne contract's fields, lists as lists, unticked screening as false", () => {
+    const parsed = parseJourneyForm(dermForm({
+      affected_areas: ["face", "back"], lesion_types: ["red_bumps"], condition_duration: "1_to_5_years", scarring: "none",
+      daily_life_impact: "mild", isotretinoin_use: "never", oral_antibiotic_last_3_months: "false", oral_antibiotic_courses: "1",
+      benzoyl_peroxide_attested: "true", pregnancy: "on", medications_allergies: "Penicillin allergy\n",
+    }), "acne");
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+    expect(parsed.value.intake).toMatchObject({
+      affected_areas: ["face", "back"], oral_antibiotic_courses: 1, benzoyl_peroxide_attested: true,
+      pregnancy: true, tetracycline_allergy: false, medications_allergies: ["Penicillin allergy"],
+    });
+  });
+
+  it("derives atypical_spot from the signs ticked", () => {
+    const parsed = parseJourneyForm(dermForm({
+      main_concerns: ["melasma"], affected_areas: ["face"], condition_duration: "over_5_years", fitzpatrick_skin_type: "3",
+      isotretinoin_use: "never", skin_cancer_history: "none", daily_sunscreen_use: "true", sunscreen_attested: "true",
+      atypical_spot_signs: ["raised"],
+    }), "hyperpigmentation_photoaging");
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+    expect(parsed.value.intake).toMatchObject({ fitzpatrick_skin_type: 3, atypical_spot: true, atypical_spot_signs: ["raised"], triggers: [] });
+  });
+
+  it("adds the uploaded photos just before the encounter", async () => {
+    const parsed = parseJourneyForm(dermForm({
+      affected_areas: ["face"], lesion_types: ["red_bumps"], condition_duration: "1_to_5_years", scarring: "none",
+      daily_life_impact: "mild", isotretinoin_use: "never", oral_antibiotic_last_3_months: "false", oral_antibiotic_courses: "0",
+      benzoyl_peroxide_attested: "true",
+    }), "acne");
+    if (!parsed.ok) throw new Error("fixture invalid");
+    parsed.value.resume = { patientId: "pat_1", carePlanId: "cp_1" };
+    const post = vi.fn().mockResolvedValueOnce({ id: "enc_1" });
+    const client = { post, get: vi.fn().mockResolvedValue(ASYNC) } as unknown as LithosClient;
+    const attachUploads = vi.fn(async (_program: string, intake: object) => ({ ...intake, face_front_photo_upload_id: "upl_test_1" }));
+    const result = await runJourney(parsed.value, client, { attachUploads });
+    expect(result.status).toBe("complete");
+    const encounterBody = post.mock.calls.find(([path]) => path === "/v1/encounters")?.[1];
+    expect(encounterBody.intake_form.data.face_front_photo_upload_id).toBe("upl_test_1");
+  });
+});

@@ -12,6 +12,7 @@ import type { LithosClient } from "./lithos/client";
 import { readModality, type VisitOffer } from "./sync-visits";
 import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
 import { parseGenericIntake, type GenericIntake } from "./intake/generic";
+import { DERM_PROGRAMS, parseAcneIntake, parseHyperpigmentationIntake } from "./intake/derm";
 import type { ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
@@ -39,12 +40,15 @@ export type JourneyInput = {
   /** The care plan's category — and the protocol the intake is written for. */
   program: ProgramKey;
   /** The program's real intake, or the illustrative one for a program without a written-out intake. */
-  intake: LipidManagementInitialIntake | WeightManagementInitialIntake | GenericIntake;
+  intake: LipidManagementInitialIntake | WeightManagementInitialIntake | GenericIntake | DermIntake;
   attestationsConfirmed: true;
   resume: { patientId?: string; carePlanId?: string };
   /** The hold the encounter is created with — only for a sync encounter. */
   visit?: { reservationToken: string; idempotencyKey: string };
 };
+
+/** Acne or hyperpigmentation & photoaging (src/lib/intake/derm.ts); its photo fields are added when it's sent. */
+type DermIntake = Record<string, unknown>;
 
 type ParseResult = { ok: true; value: JourneyInput } | { ok: false; errors: ApiError[] };
 
@@ -116,6 +120,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   }
   const intake = program === "weight_management" ? weightIntake(formData)
     : program === "lipid_management" ? lipidIntake(formData)
+    : DERM_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
@@ -195,6 +200,17 @@ function weightIntake(formData: FormData): IntakeResult<WeightManagementInitialI
   return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
 }
 
+function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermIntake> {
+  const read = {
+    text: (name: string) => field(formData, name),
+    all: (name: string) => formData.getAll(name).map(String),
+    checked: (name: string) => formData.get(name) === "on",
+  };
+  const parsed = program === "acne" ? parseAcneIntake(read) : parseHyperpigmentationIntake(read);
+  if (parsed.ok) return parsed;
+  return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
+}
+
 function genericIntake(formData: FormData): IntakeResult<GenericIntake> {
   const parsed = parseGenericIntake((name) => field(formData, name), (name) => formData.get(name) === "on");
   if (parsed.ok) return parsed;
@@ -236,7 +252,15 @@ function failure(stage: JourneyStage, error: unknown, ids: { patientId?: string;
 export async function runJourney(
   input: JourneyInput,
   client: LithosClient,
-  options: { now?: Date; externalId?: string; attempt?: Attempt } = {},
+  options: {
+    now?: Date; externalId?: string; attempt?: Attempt;
+    /**
+     * Adds what the intake uploads — photos — as `*_upload_id` fields, just
+     * before the encounter is sent. Passed in by the server action
+     * (src/lib/journey-photos.ts), because this file also runs in the browser.
+     */
+    attachUploads?: (program: ProgramKey, intake: JourneyInput["intake"], key: (step: string) => { idempotencyKey: string }) => Promise<JourneyInput["intake"]>;
+  } = {},
 ): Promise<JourneyState> {
   let patientId = input.resume.patientId;
   let carePlanId = input.resume.carePlanId;
@@ -293,11 +317,20 @@ export async function runJourney(
   // With a hold, Lithos creates the encounter and books the visit together, or
   // neither. The Idempotency-Key is required with it, and was minted with the
   // hold, so a double submit books once.
+  let intake = input.intake;
+  if (options.attachUploads) {
+    try {
+      intake = await options.attachUploads(input.program, intake, key);
+    } catch (error) {
+      return failure("encounter", error, { patientId, carePlanId });
+    }
+  }
+
   let encounterId: string;
   try {
     const encounter = await client.post<IdResponse>(
       "/v1/encounters",
-      buildEncounterPayload(input, patientId, carePlanId),
+      buildEncounterPayload({ ...input, intake }, patientId, carePlanId),
       input.visit ? { idempotencyKey: input.visit.idempotencyKey } : key("encounter"),
     );
     encounterId = encounter.id;

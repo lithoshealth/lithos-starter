@@ -724,3 +724,6 @@ a.card-row:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--li
 .onboard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .onboard-head h2 { margin: 0; font-size: 1.5rem; }
 html[data-embedded] .onboard-overlay { display: none; }
+.sample-photos { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.sample-photos figure { margin: 0; display: grid; gap: 0.3rem; justify-items: center; font-size: 0.8rem; color: var(--muted); }
+.sample-photos img { border-radius: var(--radius-sm); border: 1px solid var(--line); }

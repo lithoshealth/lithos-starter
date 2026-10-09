@@ -9,8 +9,8 @@
  *
  * `key` is the Lithos care-plan category. The picker offers every category in
  * the organization's formulary (`GET /v1/catalog_treatments`), so the app
- * follows whatever protocols the organization chose. Two have their real
- * intake written out here; any other gets an ILLUSTRATIVE intake — a few
+ * follows whatever protocols the organization chose. The ones below have
+ * their real intake written out here; any other gets an ILLUSTRATIVE intake — a few
  * general questions, labelled as such — so the whole journey still runs. The
  * chosen program is saved to starter.config.json, and the site's copy
  * (src/lib/programs/content.ts) and care-review intake follow it.
@@ -44,6 +44,18 @@ export const PROGRAMS: Program[] = [
     label: "Weight loss",
     supported: true,
     asks: "height and weight, whether they already take a GLP-1, seventeen screening questions and any weight-related conditions",
+  },
+  {
+    key: "acne",
+    label: "Acne",
+    supported: true,
+    asks: "where the acne is and what it looks like, past treatments, a health screen, and three photos of the face (plus the chest or back if affected)",
+  },
+  {
+    key: "hyperpigmentation_photoaging",
+    label: "Hyperpigmentation & Photoaging",
+    supported: true,
+    asks: "what the patient wants treated, skin type and sun habits, spot and skin-cancer checks, a health screen, and four photos",
   },
 ];
 
