@@ -8,7 +8,7 @@ in that file. The app offers every **program** (Lithos care-plan category) in th
 organization's formulary — no picker; with more than one, `/start` asks the
 patient which. With one program the site is that program's; with several, the
 home page is the brand's, with a card per program. The program in that file is
-only the fallback before the app is connected. Copy is in (`src/lib/programs/content.ts`)
+only the fallback before the app is connected. Copy is in `src/lib/programs/content.ts`,
 and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). Lipid and
 weight management have their real intake; any other category gets an
 **illustrative** one (`src/lib/intake/generic.ts`), labelled as such on `/start`.
