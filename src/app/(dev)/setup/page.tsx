@@ -91,7 +91,9 @@ export default async function DeveloperPage() {
   const connect = steps.find((s) => s.key === "connect") as StepState;
   const program = steps.find((s) => s.key === "program");
   const updates = steps.find((s) => s.key === "updates") as StepState;
-  const progress = connect.status === "done" ? await readDevProgress() : null;
+  // Rejected credentials already show in the Connection card's diagnosis.
+  const read = connect.status === "done" ? await readDevProgress() : null;
+  const progress = read && !("rejected" in read) ? read : null;
   // The endpoint, when it reaches this app — re-registering it gets a new secret.
   const endpointHere = updates.endpoint?.pointsHere ? updates.endpoint : undefined;
 

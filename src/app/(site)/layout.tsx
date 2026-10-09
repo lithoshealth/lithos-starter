@@ -39,12 +39,18 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
           Webhooks failing. {describeFailure(health)} <Link href="/setup">Fix it in setup →</Link>
         </div>
       )}
-      {dev && health?.state !== "failing" && (
+      {dev && progress && "rejected" in progress && (
+        <div className="dev-bar dev-bar-warning" role="alert">
+          Lithos rejected this app&rsquo;s credentials: the sandbox they belong to may have been archived.{" "}
+          <Link href="/setup#step-connect">Reconnect →</Link>
+        </div>
+      )}
+      {dev && health?.state !== "failing" && !(progress && "rejected" in progress) && (
         <div className="dev-bar" role="note">
           {outside
             ? <>Connected to Lithos outside the sandbox ({process.env.LITHOS_API_BASE_URL}). The demo sign-in and the ops pages are off.</>
             : connected
-              ? progress
+              ? progress && !("rejected" in progress)
                 ? (
                   <span className="dev-progress">
                     <span>Sandbox checklist:</span>

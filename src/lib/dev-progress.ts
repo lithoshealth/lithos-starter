@@ -25,7 +25,10 @@ type Row = { id: string; patient_id?: string; status?: string; external_id?: str
 const DEMO_PREFIX = "lithos_demo_";
 export const CONSOLE_URL = process.env.LITHOS_CONSOLE_URL || "https://app-sandbox.lithoshealth.com/launch";
 
-export async function readDevProgress(): Promise<DevProgress | null> {
+/** Lithos refused this app's client ID and secret — typically because the sandbox organization they belong to was archived. */
+export type CredentialsRejected = { rejected: true };
+
+export async function readDevProgress(): Promise<DevProgress | CredentialsRejected | null> {
   const client = getLithosClient();
   try {
     const [patients, encounters, decided, endpoints, orders] = await Promise.all([
@@ -65,7 +68,10 @@ export async function readDevProgress(): Promise<DevProgress | null> {
       next,
       pharmacy: decision && openOrder ? { href: "/portal" } : undefined,
     };
-  } catch {
+  } catch (error) {
+    // The token mint answers 400/401 for a client it doesn't know. Say so,
+    // rather than look connected while every page quietly falls back.
+    if (error instanceof Error && /token mint failed with status 40[01]/.test(error.message)) return { rejected: true };
     return null;
   }
 }
