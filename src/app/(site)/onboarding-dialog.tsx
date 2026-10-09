@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-
-export const ONBOARDING_COOKIE = "lithos_onboarding";
+import { useSearchParams } from "next/navigation";
+import { finishOnboardingAction } from "./onboarding-actions";
+import { ONBOARDING_COOKIE } from "./onboarding-cookie";
 
 /**
  * The first-run pop-up's frame. It opens by itself until the app is connected
@@ -35,18 +35,9 @@ export function OnboardingDialog({ open: openByDefault, title, children }: { ope
 
 /** The last button of the pop-up: you're set, into the app. */
 export function StartUsingApp() {
-  const router = useRouter();
   return (
-    <button
-      type="button"
-      className="btn btn-primary"
-      onClick={() => {
-        document.cookie = `${ONBOARDING_COOKIE}=done; path=/; max-age=31536000; SameSite=Lax`;
-        router.push("/start");
-        router.refresh();
-      }}
-    >
-      Start using your app: request care as a patient
-    </button>
+    <form action={finishOnboardingAction}>
+      <button type="submit" className="btn btn-primary">Start using your app: request care as a patient</button>
+    </form>
   );
 }

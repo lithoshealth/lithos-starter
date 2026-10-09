@@ -5,7 +5,8 @@ import { readHandoff } from "@/lib/setup/handoff";
 import { readProgramOptions } from "@/lib/setup/steps";
 import { BrandPanel } from "../(dev)/setup/brand-panel";
 import { ConnectForm, ProgramPicker } from "../(dev)/setup/step-actions";
-import { ONBOARDING_COOKIE, OnboardingDialog, StartUsingApp } from "./onboarding-dialog";
+import { ONBOARDING_COOKIE } from "./onboarding-cookie";
+import { OnboardingDialog, StartUsingApp } from "./onboarding-dialog";
 
 /**
  * Development only: the first thing someone sees after `npm run dev`. Two
