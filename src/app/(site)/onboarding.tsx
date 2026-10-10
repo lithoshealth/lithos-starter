@@ -6,7 +6,7 @@ import { BrandPanel } from "../(dev)/setup/brand-panel";
 import { ConnectForm } from "../(dev)/setup/step-actions";
 import { ONBOARDING_COOKIE } from "./onboarding-cookie";
 import { onboardingDoneValue } from "./onboarding-done";
-import { OnboardingDialog, StartUsingApp } from "./onboarding-dialog";
+import { MakeItYours, OnboardingDialog } from "./onboarding-dialog";
 
 /**
  * Development only: the first thing someone sees after `npm run dev`. Two
@@ -35,15 +35,15 @@ export async function Onboarding() {
 
   if (seen === onboardingDoneValue()) return null;
   return (
-    <OnboardingDialog open={seen !== "later"} title="Make it yours">
-      <p>
-        Connected. Your app offers the programs your organization chose in the Lithos console — a patient picks one
-        when they start. Give it your name, colour and logo, now or later from the Developer page.
-      </p>
-      <BrandPanel brand={config.brand} program={config.program} writable={configWritable()} />
-      <div>
-        <StartUsingApp />
-      </div>
-    </OnboardingDialog>
+    <MakeItYours
+      open={seen !== "later"}
+      intro={
+        <p>
+          Connected. Your app offers the programs your organization chose in the Lithos console — a patient picks one
+          when they start. Give it your name, colour and logo, now or later in Settings.
+        </p>
+      }
+      brandPanel={<BrandPanel brand={config.brand} program={config.program} writable={configWritable()} />}
+    />
   );
 }

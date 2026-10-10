@@ -729,3 +729,5 @@ html[data-embedded] .onboard-overlay { display: none; }
 .sample-photos img { border-radius: var(--radius-sm); border: 1px solid var(--line); }
 .dev-tab { text-decoration: none; }
 .site-nav a.dev-tab-on { font-weight: 700; color: var(--ink); text-decoration: underline; text-underline-offset: 0.3em; }
+.mission { display: grid; gap: 0.6rem; margin: 0; padding-left: 1.3rem; }
+.mission li { padding-left: 0.2rem; }
