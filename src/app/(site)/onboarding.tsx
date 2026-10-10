@@ -23,7 +23,7 @@ export async function Onboarding() {
   if (!connected) {
     const handoff = await readHandoff();
     return (
-      <OnboardingDialog open={seen !== "later"} title="Connect this app to Lithos">
+      <OnboardingDialog open={seen !== "later"} title="Connect this app to Lithos" lookAround>
         <p>
           Paste the client ID and secret from your Lithos console, so its sandbox checklist ticks as this app makes the
           calls. They&rsquo;re checked with Lithos, then kept in <code>.env.local</code> on your server.

@@ -7,10 +7,17 @@ import { ONBOARDING_COOKIE } from "./onboarding-cookie";
 
 /**
  * The first-run pop-up's frame. It opens by itself until the app is connected
- * and made yours; "Look around first" closes it for this browser session, and
- * the dev bar's Connect link (?connect=1) opens it again.
+ * and made yours. Before connecting, "Look around first" closes it for this
+ * browser session (the app runs unconnected), and the dev bar's Connect link
+ * (?connect=1) opens it again. After connecting there's nothing to put off:
+ * the pop-up's own button is the way out.
  */
-export function OnboardingDialog({ open: openByDefault, title, children }: { open: boolean; title: string; children: ReactNode }) {
+export function OnboardingDialog({ open: openByDefault, title, lookAround: canLookAround = false, children }: {
+  open: boolean;
+  title: string;
+  lookAround?: boolean;
+  children: ReactNode;
+}) {
   const forced = useSearchParams().get("connect") === "1";
   const [closed, setClosed] = useState(false);
   if (closed || !(openByDefault || forced)) return null;
@@ -25,7 +32,7 @@ export function OnboardingDialog({ open: openByDefault, title, children }: { ope
       <div className="onboard-dialog card stack" role="dialog" aria-modal="true" aria-labelledby="onboard-title">
         <div className="onboard-head">
           <h2 id="onboard-title">{title}</h2>
-          <button type="button" className="link-button" onClick={lookAround}>Look around first</button>
+          {canLookAround && <button type="button" className="link-button" onClick={lookAround}>Look around first</button>}
         </div>
         {children}
       </div>
