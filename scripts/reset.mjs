@@ -23,7 +23,7 @@ const done = [];
 
 // ---- credentials
 const envPath = path.join(root, ".env.local");
-const CLEARED = ["LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET", "LITHOS_SIGNUP_EMAIL"];
+const CLEARED = ["LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET", "LITHOS_SIGNUP_EMAIL", "LITHOS_CONNECTED_AT"];
 if (existsSync(envPath)) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const backup = `.env.reset-${stamp}.local`;
@@ -52,8 +52,10 @@ if (existsSync(brandDir)) {
 }
 
 // ---- local database
+// A DATABASE_URL in .env.local counts too: that's where `npm run dev` gets it.
+const envDatabaseUrl = existsSync(envPath) && /^DATABASE_URL=\S/m.test(readFileSync(envPath, "utf8"));
 const dbDir = path.join(root, ".lithos-db");
-if (process.env.DATABASE_URL) {
+if (process.env.DATABASE_URL || envDatabaseUrl) {
   done.push("Database left alone (DATABASE_URL is set — it isn't this copy's to empty)");
 } else if (databaseUrl(root)) {
   done.push("Database left alone: the app is running. Stop npm run dev and run this again to empty it too");

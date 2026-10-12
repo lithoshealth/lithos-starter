@@ -81,6 +81,11 @@ async function checkAndSave(
     }
   }
 
+  // When this connection was made: the first-run pop-up's "done" is for this
+  // connection only (src/app/(site)/onboarding-done.ts), so connecting again
+  // brings back "Make it yours", even with the same credentials.
+  await saveToEnvLocal("LITHOS_CONNECTED_AT", new Date().toISOString());
+
   if (refresh) revalidatePath("/setup", "layout");
   return { status: "connected", treatments: checked.treatments };
 }
