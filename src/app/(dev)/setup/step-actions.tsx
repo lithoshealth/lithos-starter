@@ -166,19 +166,16 @@ export function StepAction({
 }
 
 /**
- * Step 2. Every program is listed, with what this organization's formulary has
- * for it — including the ones it can't pick yet, because seeing what exists is
- * part of the point.
+ * Re-reads the Webhooks page now that the secret is in .env.local — the
+ * endpoint card then offers the test event — and brings it into view.
  */
-
-/** Re-reads step 5 now that the app can hear Lithos, and brings the demo into view. */
 function TryItButton() {
   const router = useRouter();
   return (
     <button type="button" className="btn btn-primary" onClick={() => {
       router.refresh();
-      document.getElementById("step-updates")?.scrollIntoView({ block: "start" });
-    }}>Try it: ask the patient a question ↑</button>
+      document.getElementById("webhooks")?.scrollIntoView({ block: "start" });
+    }}>Next: send a test event ↑</button>
   );
 }
 
