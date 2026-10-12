@@ -2,7 +2,8 @@
 // the program picker and "Make it yours" show again. For trying the starter
 // as a new customer would, or giving the demo twice.
 //
-//   - .env.local: the client ID, secret and signup email are cleared. The old
+//   - .env.local: the client ID and secret, the webhook signing secret and the
+//     signup email are cleared. The old
 //     file is kept as .env.reset-<time>.local (gitignored) — nothing is lost.
 //   - starter.config.json: back to the Eucardia brand, no program chosen.
 //   - public/brand/: an uploaded logo is removed.
@@ -23,7 +24,8 @@ const done = [];
 
 // ---- credentials
 const envPath = path.join(root, ".env.local");
-const CLEARED = ["LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET", "LITHOS_SIGNUP_EMAIL", "LITHOS_CONNECTED_AT"];
+// The webhook secret goes too: it belongs to an endpoint of the old connection.
+const CLEARED = ["LITHOS_CLIENT_ID", "LITHOS_CLIENT_SECRET", "LITHOS_SIGNUP_EMAIL", "LITHOS_CONNECTED_AT", "LITHOS_WEBHOOK_SECRET"];
 if (existsSync(envPath)) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const backup = `.env.reset-${stamp}.local`;
