@@ -416,7 +416,7 @@ async function checkUpdates(ids: JourneyIds): Promise<StepState> {
   }
   return {
     ...base, status: received.status === "blocked" ? "blocked" : "ready",
-    summary: received.status === "blocked" ? received.summary : "Listening. Send a test event, or approve a patient in step 3: Lithos tells your app either way.",
+    summary: received.status === "blocked" ? received.summary : "Listening. Send a test event, or approve a patient on their care page: Lithos tells your app either way.",
     diagnosis: received.diagnosis, exchange: received.exchange ?? endpoint.exchange,
   };
 }
@@ -548,7 +548,7 @@ function diagnoseDelivery(failing: WebhookDelivery | undefined, attempts: Return
   if (!failing) {
     return {
       title: "Nothing has been delivered yet",
-      fix: "Send a test event, or approve a patient in step 3: each fires one. Webhooks need a public HTTPS URL: localhost can't receive them. Deploy this app, or run a tunnel (e.g. `cloudflared tunnel --url http://localhost:3001`) and register that URL.",
+      fix: "Send a test event, or approve a patient on their care page: each fires one. Webhooks need a public HTTPS URL: localhost can't receive them. Deploy this app, or run a tunnel (e.g. `cloudflared tunnel --url http://localhost:3001`) and register that URL.",
     };
   }
   const code = failing.last_response_code;
