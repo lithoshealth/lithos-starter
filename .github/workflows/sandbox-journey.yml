@@ -1,0 +1,46 @@
+# Nightly: the patient journey against the real Lithos sandbox, once per program
+# the organization's formulary offers (src/lib/sandbox-journey.e2e.test.ts).
+# CI never calls Lithos; this does, so an API change that breaks a protocol for
+# this app shows up the next morning, not when a prospect hits it.
+#
+# Secrets: a sandbox organization of its own (Get sandbox credentials in this
+# app's Settings), so its test patients don't land in anyone's console.
+#   LITHOS_SANDBOX_CLIENT_ID, LITHOS_SANDBOX_CLIENT_SECRET
+#   SLACK_WEBHOOK_URL (optional): where a failure is posted.
+name: Sandbox journey
+
+on:
+  schedule:
+    - cron: "17 11 * * *" # 07:17 New York, before the day starts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LITHOS_SANDBOX_E2E: "1"
+      LITHOS_API_BASE_URL: https://api.sandbox.lithoshealth.com
+      LITHOS_TOKEN_URL: https://api.sandbox.lithoshealth.com/v1/oauth2/token
+      LITHOS_CLIENT_ID: ${{ secrets.LITHOS_SANDBOX_CLIENT_ID }}
+      LITHOS_CLIENT_SECRET: ${{ secrets.LITHOS_SANDBOX_CLIENT_SECRET }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest run src/lib/sandbox-journey.e2e.test.ts
+      - name: Tell the team
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d "{\"text\":\"⚠️ The starter app's sandbox journey failed: a protocol may have changed. $RUN_URL\"}" \
+            "$SLACK_WEBHOOK_URL"
