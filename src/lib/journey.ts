@@ -260,6 +260,12 @@ export async function runJourney(
      * (src/lib/journey-photos.ts), because this file also runs in the browser.
      */
     attachUploads?: (program: ProgramKey, intake: JourneyInput["intake"], key: (step: string) => { idempotencyKey: string }) => Promise<JourneyInput["intake"]>;
+    /**
+     * Sends the patient's lab results when the precheck says the care plan
+     * needs them (`labs.required`), and says whether it did. Passed in by the
+     * server action (src/lib/journey-labs.ts), like `attachUploads`.
+     */
+    fileLabs?: (patientId: string, key: (step: string) => { idempotencyKey: string }) => Promise<boolean>;
   } = {},
 ): Promise<JourneyState> {
   let patientId = input.resume.patientId;
@@ -307,7 +313,14 @@ export async function runJourney(
   try {
     modality = await readModality(client, patientId, carePlanId);
   } catch (error) {
-    return failure("requirements", error, { patientId, carePlanId });
+    // The protocol needs lab results first: send them, then ask again.
+    const needsLabs = error instanceof LithosApiError && error.errors.some((e) => e.code === "labs.required");
+    try {
+      if (!needsLabs || !options.fileLabs || !(await options.fileLabs(patientId, key))) throw error;
+      modality = await readModality(client, patientId, carePlanId);
+    } catch (retryError) {
+      return failure("requirements", retryError, { patientId, carePlanId });
+    }
   }
 
   // A sync encounter can only be created with its first visit, so the patient

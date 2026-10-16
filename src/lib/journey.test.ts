@@ -68,6 +68,31 @@ describe("journey payloads", () => {
     expect(post).toHaveBeenCalledTimes(2);
   });
 
+  it("sends the lab results the precheck asks for, then asks again", async () => {
+    const value = input();
+    const now = new Date("2026-08-18T12:00:00.000Z");
+    const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" }).mockResolvedValueOnce({ id: "enc_1" });
+    const get = vi.fn()
+      .mockResolvedValueOnce({ passed: false, reasons: [{ code: "labs.required", message: "needs ldl_c" }], requirements: { modality: { value: "async" } } })
+      .mockResolvedValueOnce(ASYNC);
+    const fileLabs = vi.fn().mockResolvedValue(true);
+    const client = { post, get } as unknown as LithosClient;
+    const result = await runJourney(value, client, { now, externalId: "sample-fixed", fileLabs });
+    expect(fileLabs).toHaveBeenCalledWith("pat_1", expect.any(Function));
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ status: "complete", encounterId: "enc_1" });
+  });
+
+  it("stops on labs.required when it can't send lab results", async () => {
+    const value = input();
+    const post = vi.fn().mockResolvedValueOnce({ id: "pat_1" }).mockResolvedValueOnce({ id: "cp_1" });
+    const get = vi.fn().mockResolvedValue({ passed: false, reasons: [{ code: "labs.required", message: "needs ldl_c" }], requirements: { modality: { value: "async" } } });
+    const client = { post, get } as unknown as LithosClient;
+    const result = await runJourney(value, client, { externalId: "sample-fixed", fileLabs: vi.fn().mockResolvedValue(false) });
+    expect(result).toMatchObject({ status: "failed", stage: "requirements" });
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects non-synthetic data before any API request", () => {
     const form = validForm();
     form.set("first_name", "Jane"); form.set("last_name", "Doe"); form.set("email", "jane@real.test");
