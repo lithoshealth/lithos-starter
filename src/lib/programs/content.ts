@@ -11,7 +11,7 @@
  * Lithos — the intake contract is in src/lib/intake/ and src/lib/journey.ts.
  */
 
-import { programFor, type ProgramKey } from "../setup/programs";
+import { intakeKey, programFor, type ProgramKey } from "../setup/programs";
 
 type Titled = { name: string; body: string };
 
@@ -339,7 +339,7 @@ export function brandContent(labels: string[]): BrandContent {
 const CONTENT: Record<string, ProgramContent> = { lipid_management: LIPID, weight_management: WEIGHT };
 
 export function contentFor(program: ProgramKey): ProgramContent {
-  return CONTENT[program] ?? generic(programFor(program)?.label ?? "General");
+  return CONTENT[intakeKey(program)] ?? generic(programFor(program)?.label ?? "General");
 }
 
 /** Put the company name into a line of copy. */

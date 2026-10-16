@@ -93,6 +93,12 @@ describe("journey payloads", () => {
     expect(post).toHaveBeenCalledTimes(2);
   });
 
+  it("asks a PCSK9 inhibitor plan the lipid intake", () => {
+    const parsed = parseJourneyForm(validForm(), "lipid_pcsk9");
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.value).toMatchObject({ program: "lipid_pcsk9", intake: { indication: "hypercholesterolemia", ldl_c: 160 } });
+  });
+
   it("rejects non-synthetic data before any API request", () => {
     const form = validForm();
     form.set("first_name", "Jane"); form.set("last_name", "Doe"); form.set("email", "jane@real.test");

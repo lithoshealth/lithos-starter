@@ -6,7 +6,7 @@ import { createJourneyAction } from "../actions";
 import { INITIAL_JOURNEY_STATE } from "@/lib/journey";
 import { NotConnected } from "../not-connected";
 import { VisitStep } from "../_visit/visit-step";
-import type { ProgramKey } from "@/lib/setup/programs";
+import { intakeKey, type ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_SCREENING } from "@/lib/intake/lipid";
@@ -295,7 +295,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: null,
         },
       ]
-    : program === "lipid_management" ? [
+    : intakeKey(program) === "lipid_management" ? [
         {
           fields: ["indication"], autoAdvance: true,
           title: `What brings you to ${brandName}?`,

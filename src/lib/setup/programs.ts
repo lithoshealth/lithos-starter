@@ -40,6 +40,12 @@ export const PROGRAMS: Program[] = [
     asks: "the patient's LDL-C and when it was drawn, familial hypercholesterolemia status, and eight screening questions",
   },
   {
+    key: "lipid_pcsk9",
+    label: "Lipid management, PCSK9 inhibitors",
+    supported: true,
+    asks: "the lipid intake (LDL-C, familial hypercholesterolemia status and eight screening questions), and a recent lipid panel before the clinician reviews it",
+  },
+  {
     key: "weight_management",
     label: "Weight loss",
     supported: true,
@@ -58,6 +64,20 @@ export const PROGRAMS: Program[] = [
     asks: "what the patient wants treated, skin type and sun habits, spot and skin-cancer checks, a health screen, and four photos",
   },
 ];
+
+/**
+ * Categories that take another one's intake. A PCSK9 inhibitor plan
+ * (`lipid_pcsk9`) asks the lipid intake and has its own lab policy, so the
+ * form, the review and the copy are the lipid ones.
+ */
+const SAME_INTAKE: Record<string, ProgramKey> = { lipid_pcsk9: "lipid_management" };
+
+/** The program whose intake, review and copy a category uses. */
+export function intakeKey(key: ProgramKey): ProgramKey;
+export function intakeKey(key: ProgramKey | undefined): ProgramKey | undefined;
+export function intakeKey(key: ProgramKey | undefined): ProgramKey | undefined {
+  return key === undefined ? undefined : SAME_INTAKE[key] ?? key;
+}
 
 /** What a category slug looks like — anything else is refused before it reaches a URL or the config file. */
 const CATEGORY = /^[a-z][a-z0-9_]{0,63}$/;

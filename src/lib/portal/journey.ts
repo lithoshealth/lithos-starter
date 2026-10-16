@@ -7,6 +7,8 @@
  * is Lithos's real date, not a guess.
  */
 
+import { intakeKey } from "@/lib/setup/programs";
+
 type Step = { day: number; title: string; detail: string; firstDose?: boolean };
 
 const STEPS: Record<string, Step[]> = {
@@ -46,7 +48,7 @@ const DAY = 24 * 60 * 60 * 1000;
 export function journey(program: string | undefined, approvedAt: string | null, refillDueAt: string | null, deliveredAt: string | null, now: Date): JourneyItem[] {
   if (!approvedAt) return [];
   const start = new Date(approvedAt).getTime();
-  const items = (STEPS[program ?? ""] ?? STEPS.other).map((step) => ({
+  const items = (STEPS[intakeKey(program) ?? ""] ?? STEPS.other).map((step) => ({
     sortAt: start + step.day * DAY,
     date: step.firstDose ? deliveredAt : new Date(start + step.day * DAY).toISOString(),
     title: step.title,

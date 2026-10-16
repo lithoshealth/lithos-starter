@@ -4,11 +4,13 @@
  * for goes to Messages, which is the care team through Lithos.
  */
 
+import { intakeKey } from "@/lib/setup/programs";
+
 export type Answer = { topic: string; question: string; answer: string };
 
 export function supportAnswers(brandName: string, program: string | undefined): Answer[] {
   const weight = program === "weight_management";
-  const lipid = program === "lipid_management";
+  const lipid = intakeKey(program) === "lipid_management";
   return [
     {
       topic: "Shipping",

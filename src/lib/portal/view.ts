@@ -1,4 +1,5 @@
 import type { Appointment, CarePlan, Encounter, Inquiry, InquiryMessage, Order, Patient } from "@/lib/lithos/types";
+import { intakeKey } from "@/lib/setup/programs";
 
 /**
  * The patient portal, as the patient sees it: everything here is worked out
@@ -278,8 +279,9 @@ const KG_TO_LB = 2.20462;
  */
 export function progress(data: PortalData, program: string | undefined): Progress | undefined {
   // Only the two written-out programs have a number the intake reports.
-  if (program !== "lipid_management" && program !== "weight_management") return undefined;
-  const lipid = program === "lipid_management";
+  const intake = intakeKey(program);
+  if (intake !== "lipid_management" && intake !== "weight_management") return undefined;
+  const lipid = intake === "lipid_management";
   const readings = new Map<string, number>();
   for (const encounter of data.encounters) {
     const intake = encounter.intake_form?.data ?? {};

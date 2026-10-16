@@ -13,7 +13,7 @@ import { readModality, type VisitOffer } from "./sync-visits";
 import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
 import { parseGenericIntake, type GenericIntake } from "./intake/generic";
 import { DERM_PROGRAMS, parseAcneIntake, parseHyperpigmentationIntake } from "./intake/derm";
-import type { ProgramKey } from "./setup/programs";
+import { intakeKey, type ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
 /** `connection`: the form was valid, but the app has no Lithos credentials to send it with. */
@@ -119,7 +119,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
     errors.push(pointerError("/attestations", "Confirm both sample attestations before submitting."));
   }
   const intake = program === "weight_management" ? weightIntake(formData)
-    : program === "lipid_management" ? lipidIntake(formData)
+    : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
     : DERM_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);

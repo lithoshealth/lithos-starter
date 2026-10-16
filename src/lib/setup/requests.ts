@@ -1,4 +1,4 @@
-import type { ProgramKey } from "./programs";
+import { intakeKey, type ProgramKey } from "./programs";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
 
@@ -62,6 +62,61 @@ const SAMPLE_INTAKE: Record<string, Record<string, unknown>> = {
   },
 };
 
+/**
+ * The dermatology programs. Their photos aren't here: the care request adds
+ * them as `*_upload_id` fields just before it sends the intake
+ * (src/lib/journey-photos.ts).
+ */
+const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
+  acne: {
+    pregnancy: false,
+    affected_areas: ["face"],
+    condition_duration: "1_to_5_years",
+    lesion_types: ["red_bumps"],
+    scarring: "none",
+    rapid_worsening: false,
+    daily_life_impact: "mild",
+    severe_nodulocystic_acne: false,
+    systemic_symptoms: false,
+    oral_antibiotic_last_3_months: false,
+    oral_antibiotic_courses: 0,
+    isotretinoin_use: "never",
+    current_prescription_retinoid: false,
+    eczema_rosacea_or_broken_skin: false,
+    clindamycin_or_lincomycin_allergy: false,
+    ibd_diagnosis: false,
+    antibiotic_associated_colitis: false,
+    tetracycline_allergy: false,
+    trouble_swallowing_pills: false,
+    intracranial_hypertension: false,
+    hepatitis_liver_disease: false,
+    benzoyl_peroxide_attested: true,
+  },
+  hyperpigmentation_photoaging: {
+    pregnancy: false,
+    sulfite_allergy: false,
+    main_concerns: ["dark_spots"],
+    affected_areas: ["face"],
+    condition_duration: "1_to_5_years",
+    fitzpatrick_skin_type: 4,
+    hydroquinone_last_2_months: false,
+    hydroquinone_over_4_months_continuous: false,
+    current_prescription_retinoid: false,
+    isotretinoin_use: "never",
+    peel_or_laser_last_4_weeks: false,
+    daily_sunscreen_use: true,
+    sunscreen_attested: true,
+    atypical_spot: false,
+    skin_cancer_history: "none",
+    family_skin_cancer_history: false,
+    blue_gray_darkening: false,
+    eczema_rosacea_or_broken_skin: false,
+    vitiligo_or_depigmenting_disease: false,
+    persistent_redness_or_flushing: false,
+    active_acne: false,
+  },
+};
+
 /** Any other program: the illustrative intake (src/lib/intake/generic.ts). */
 const SAMPLE_GENERIC_INTAKE = {
   reason_for_visit: "I'd like to talk to a clinician about treatment options.",
@@ -80,7 +135,7 @@ export function encounterRequest(program: ProgramKey, patientId: string, carePla
   return {
     patient_id: patientId,
     care_plan_id: carePlanId,
-    intake_form: { data: SAMPLE_INTAKE[program] ?? SAMPLE_GENERIC_INTAKE },
+    intake_form: { data: SAMPLE_INTAKE[intakeKey(program)] ?? SAMPLE_DERM_INTAKE[program] ?? SAMPLE_GENERIC_INTAKE },
     requested_treatments: [{ action: "add", catalog_treatment_id: catalogTreatmentId }],
   };
 }

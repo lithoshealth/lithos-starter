@@ -10,7 +10,7 @@
  * Client-safe: no server imports.
  */
 
-import type { ProgramKey } from "../setup/programs";
+import { intakeKey, type ProgramKey } from "../setup/programs";
 import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
 import { GENERIC_SCREENING } from "./generic";
@@ -82,7 +82,7 @@ function derm(data: Data, screening: readonly (readonly [string, string])[]): In
 }
 
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
-  switch (program) {
+  switch (intakeKey(program)) {
     case "weight_management": return weight(data);
     case "lipid_management": return lipid(data);
     case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
