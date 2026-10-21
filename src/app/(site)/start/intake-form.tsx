@@ -16,6 +16,10 @@ import {
   HP_AREAS, HP_ATYPICAL_SIGNS, HP_CONCERNS, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SKIN_CANCER, HP_TRIGGERS,
   ISOTRETINOIN_USE, photosFor, SPOT_PHOTO, TRUNK_PHOTO, type PhotoField,
 } from "@/lib/intake/derm";
+import {
+  EYE_COLORS, EYELASH_CONSENT, EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS, EYES_AFFECTED,
+  LASH_GOALS, LASH_ONSETS, LASH_SERVICES,
+} from "@/lib/intake/eyelash";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -386,6 +390,49 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: HP_SCREENING_HEALTH.map(([n]) => n), checklist: HP_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
         { fields: ["medications_allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
         photoScreen([...photosFor("acne", {}), SPOT_PHOTO]),
+      ]
+    : program === "eyelash_growth" ? [
+        {
+          fields: ["treatment_goals"],
+          title: `Welcome to ${brandName}. What would you like for your lashes?`,
+          hint: "Select all that apply.",
+          body: pickSome("treatment_goals", LASH_GOALS, ["longer"]),
+        },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have your lashes been short or sparse?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["lash_loss_onset"], autoAdvance: true, title: "Did it happen gradually or suddenly?", body: pickOne("lash_loss_onset", LASH_ONSETS) },
+        { fields: ["eyes_affected"], autoAdvance: true, title: "Is it both eyes, or one?", body: pickOne("eyes_affected", EYES_AFFECTED) },
+        {
+          fields: ["eye_color"], autoAdvance: true, title: "What color are your eyes?",
+          hint: "The treatment can permanently darken the colored part of the eye. It shows most in hazel, green, blue, gray and mixed eyes.",
+          body: pickOne("eye_color", EYE_COLORS),
+        },
+        { fields: EYELASH_SCREENING_LIDS.map(([n]) => n), checklist: EYELASH_SCREENING_LIDS, title: "Do any of these apply to your lashes or eyelids?", hint: "Select all that apply.", body: null },
+        { fields: EYELASH_SCREENING_EYES.map(([n]) => n), checklist: EYELASH_SCREENING_EYES, title: "And to your eyes?", hint: "These help your clinician decide whether the treatment is safe for you. Select all that apply.", body: null },
+        { fields: EYELASH_SCREENING_HEALTH.map(([n]) => n), checklist: EYELASH_SCREENING_HEALTH, title: "And any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["chemotherapy_history", "chemotherapy_current", "chemotherapy_last_dose_on"],
+          reply: "Chemotherapy, ever: {chemotherapy_history}",
+          title: "Have you ever had chemotherapy for cancer?",
+          hint: "If you have, your clinician needs the date of your last dose and a clearance letter from your treating doctor. This sandbox sends a sample letter.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Chemotherapy, ever?<select name="chemotherapy_history" defaultValue="false" required><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="field">Still receiving it? <small>(if yes)</small><select name="chemotherapy_current" defaultValue="false"><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="field">Date of your last dose <small>(if yes)</small><input name="chemotherapy_last_dose_on" type="date" /></label>
+            </div>
+          ),
+        },
+        {
+          fields: ["medications_allergies", "prior_lash_products"], title: "What do you take, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Medicines, including every eye drop, and allergies <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Lash serums you&rsquo;ve tried <small>(optional, one per line: the product, how long, whether it helped)</small><textarea name="prior_lash_products" rows={3} maxLength={4000} defaultValue="Over-the-counter lash serum, 2 months, no change" /></label>
+            </div>
+          ),
+        },
+        { fields: ["lash_cosmetic_services"], title: "Do you have lash extensions, a lift or tinting?", hint: "Select any that apply, or none.", body: pickSome("lash_cosmetic_services", LASH_SERVICES) },
+        { fields: ["side_effects_consent_attested"], autoAdvance: true, title: "Do you understand the side effects?", hint: EYELASH_CONSENT, body: yesNoScreen("side_effects_consent_attested") },
       ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [

@@ -13,6 +13,7 @@ import { readModality, type VisitOffer } from "./sync-visits";
 import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
 import { parseGenericIntake, type GenericIntake } from "./intake/generic";
 import { DERM_PROGRAMS, parseAcneIntake, parseHyperpigmentationIntake } from "./intake/derm";
+import { parseEyelashIntake } from "./intake/eyelash";
 import { intakeKey, type ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
 
@@ -47,7 +48,10 @@ export type JourneyInput = {
   visit?: { reservationToken: string; idempotencyKey: string };
 };
 
-/** Acne or hyperpigmentation & photoaging (src/lib/intake/derm.ts); its photo fields are added when it's sent. */
+/**
+ * Acne, hyperpigmentation & photoaging (src/lib/intake/derm.ts) or eyelash
+ * growth (src/lib/intake/eyelash.ts); their uploads are added when it's sent.
+ */
 type DermIntake = Record<string, unknown>;
 
 type ParseResult = { ok: true; value: JourneyInput } | { ok: false; errors: ApiError[] };
@@ -120,7 +124,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   }
   const intake = program === "weight_management" ? weightIntake(formData)
     : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
-    : DERM_PROGRAMS.includes(program) ? dermIntake(formData, program)
+    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
@@ -206,7 +210,9 @@ function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermI
     all: (name: string) => formData.getAll(name).map(String),
     checked: (name: string) => formData.get(name) === "on",
   };
-  const parsed = program === "acne" ? parseAcneIntake(read) : parseHyperpigmentationIntake(read);
+  const parsed = program === "acne" ? parseAcneIntake(read)
+    : program === "eyelash_growth" ? parseEyelashIntake(read)
+    : parseHyperpigmentationIntake(read);
   if (parsed.ok) return parsed;
   return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
 }

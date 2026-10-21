@@ -37,7 +37,12 @@ const REPORT_TEXT = "Sample lab report: synthetic patient, Lithos sandbox only";
 
 /** A one-page PDF that says what it is. What's in it doesn't matter in the sandbox. */
 export function sampleLabReport(): { filename: string; contentType: string; bytes: Buffer } {
-  const stream = `BT /F1 14 Tf 72 720 Td (${REPORT_TEXT}) Tj ET`;
+  return samplePdf("sample-lab-report.pdf", REPORT_TEXT);
+}
+
+/** A one-page PDF saying `text`: the sandbox's stand-in for any document a patient sends. */
+export function samplePdf(filename: string, text: string): { filename: string; contentType: string; bytes: Buffer } {
+  const stream = `BT /F1 14 Tf 72 720 Td (${text}) Tj ET`;
   const pdf = [
     "%PDF-1.4",
     "1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj",
@@ -50,5 +55,5 @@ export function sampleLabReport(): { filename: string; contentType: string; byte
     "trailer <</Root 1 0 R>>",
     "%%EOF",
   ].join("\n");
-  return { filename: "sample-lab-report.pdf", contentType: "application/pdf", bytes: Buffer.from(pdf) };
+  return { filename, contentType: "application/pdf", bytes: Buffer.from(pdf) };
 }

@@ -1,6 +1,7 @@
 import { intakeKey, type ProgramKey } from "./programs";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
+import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
 
 /**
  * The exact request bodies the walkthrough sends.
@@ -114,6 +115,21 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     vitiligo_or_depigmenting_disease: false,
     persistent_redness_or_flushing: false,
     active_acne: false,
+  },
+  eyelash_growth: {
+    ...Object.fromEntries(
+      [...EYELASH_SCREENING_LIDS, ...EYELASH_SCREENING_EYES, ...EYELASH_SCREENING_HEALTH].map(([name]) => [name, false]),
+    ),
+    treatment_goals: ["longer", "fuller"],
+    condition_duration: "1_to_5_years",
+    lash_loss_onset: "gradual",
+    eyes_affected: "both",
+    eye_color: "brown",
+    chemotherapy_history: false,
+    medications_allergies: [],
+    prior_lash_products: [],
+    lash_cosmetic_services: [],
+    side_effects_consent_attested: true,
   },
 };
 

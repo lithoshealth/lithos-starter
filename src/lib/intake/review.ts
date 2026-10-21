@@ -15,6 +15,7 @@ import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
 import { GENERIC_SCREENING } from "./generic";
 import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT } from "./derm";
+import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "./eyelash";
 
 export type IntakeReview = {
   facts: Array<{ label: string; value: string }>;
@@ -81,12 +82,30 @@ function derm(data: Data, screening: readonly (readonly [string, string])[]): In
   };
 }
 
+function eyelash(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  const list = (name: string) => (Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).join(", ") : "None");
+  return {
+    facts: [
+      { label: "Wants lashes", value: list("treatment_goals") },
+      { label: "Short or sparse for", value: text("condition_duration") },
+      { label: "Came on", value: text("lash_loss_onset") },
+      { label: "Eyes", value: text("eyes_affected") },
+      { label: "Eye color", value: text("eye_color") },
+      { label: "Chemotherapy, ever", value: data.chemotherapy_history === true ? `Yes, last dose ${text("chemotherapy_last_dose_on")}` : "No" },
+      { label: "Lash extensions, lift or tinting", value: list("lash_cosmetic_services") },
+    ],
+    flags: yesTo(data, [...EYELASH_SCREENING_LIDS, ...EYELASH_SCREENING_EYES, ...EYELASH_SCREENING_HEALTH]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
     case "lipid_management": return lipid(data);
     case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
     case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
+    case "eyelash_growth": return eyelash(data);
     default: return generic(data);
   }
 }

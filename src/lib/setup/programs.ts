@@ -63,6 +63,12 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "what the patient wants treated, skin type and sun habits, spot and skin-cancer checks, a health screen, and four photos",
   },
+  {
+    key: "eyelash_growth",
+    label: "Eyelash growth",
+    supported: true,
+    asks: "what the patient wants for their lashes, how the lash loss came on, eye color, an eye and eyelid screen, chemotherapy history, and consent to the side effects",
+  },
 ];
 
 /**
