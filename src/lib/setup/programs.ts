@@ -70,6 +70,18 @@ export const PROGRAMS: Program[] = [
     asks: "what the patient wants for their lashes, how the lash loss came on, eye color, an eye and eyelid screen, chemotherapy history, and consent to the side effects",
   },
   {
+    key: "nad_plus",
+    label: "NAD+",
+    supported: true,
+    asks: "the patient's goals, a health screen with any history of cancer and kidney disease (with a nephrologist's approval), and whether they can give the injections",
+  },
+  {
+    key: "glutathione",
+    label: "Glutathione",
+    supported: true,
+    asks: "the patient's goals, a health screen with sulfur allergies and asthma, recent cancer treatment with the oncologist's approval, and whether they can give the injections",
+  },
+  {
     key: "sermorelin",
     label: "Sermorelin",
     supported: true,

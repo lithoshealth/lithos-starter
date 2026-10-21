@@ -3,8 +3,8 @@ import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
 import {
-  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL,
-  OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
+  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
+  OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "../intake/wellness";
 
 const no = (...lists: readonly (readonly (readonly [string, string])[])[]) =>
@@ -137,6 +137,17 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     prior_lash_products: [],
     lash_cosmetic_services: [],
     side_effects_consent_attested: true,
+  },
+  nad_plus: {
+    ...no(NAD_SCREENING),
+    treatment_goals: ["brain_fog"],
+    can_self_administer: true,
+  },
+  glutathione: {
+    ...no(GLUTATHIONE_SCREENING),
+    treatment_goals: ["antioxidant_support"],
+    cancer_treatment_last_3_years: false,
+    can_self_administer: true,
   },
   sermorelin: {
     ...no(SERMORELIN_SCREENING),

@@ -17,8 +17,8 @@ import { GENERIC_SCREENING } from "./generic";
 import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT } from "./derm";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "./eyelash";
 import {
-  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL,
-  OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
+  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
+  OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "./wellness";
 
 export type IntakeReview = {
@@ -123,6 +123,13 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
     case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
     case "eyelash_growth": return eyelash(data);
+    case "nad_plus":
+      return wellness(data, [
+        { label: "Goals", value: listOf(data, "treatment_goals") },
+        ...(data.kidney_disease === true ? [{ label: "Nephrologist approved", value: data.nephrologist_approval === true ? "Yes" : "No" }] : []),
+      ], NAD_SCREENING);
+    case "glutathione":
+      return wellness(data, [{ label: "Goals", value: listOf(data, "treatment_goals") }], GLUTATHIONE_SCREENING);
     case "sermorelin":
       return wellness(data, [
         { label: "Goals", value: listOf(data, "treatment_goals") },

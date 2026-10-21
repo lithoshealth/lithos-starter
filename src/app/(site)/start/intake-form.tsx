@@ -21,7 +21,8 @@ import {
   LASH_GOALS, LASH_ONSETS, LASH_SERVICES,
 } from "@/lib/intake/eyelash";
 import {
-  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, B12_SYMPTOMS, OXYTOCIN_CONCERNS, OXYTOCIN_CONSENT,
+  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, B12_SYMPTOMS, GLUTATHIONE_GOALS, GLUTATHIONE_SCREENING, NAD_GOALS,
+  NAD_SCREENING, OXYTOCIN_CONCERNS, OXYTOCIN_CONSENT,
   OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SLEEP_DISORDERS, OXYTOCIN_SUICIDE_SCREEN,
   SERMORELIN_GOALS, SERMORELIN_INTERACTIONS, SERMORELIN_SCREENING,
 } from "@/lib/intake/wellness";
@@ -470,6 +471,45 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
         { fields: ["lash_cosmetic_services"], title: "Do you have lash extensions, a lift or tinting?", hint: "Select any that apply, or none.", body: pickSome("lash_cosmetic_services", LASH_SERVICES) },
         { fields: ["side_effects_consent_attested"], autoAdvance: true, title: "Do you understand the side effects?", hint: EYELASH_CONSENT, body: yesNoScreen("side_effects_consent_attested") },
+      ]
+    : program === "nad_plus" ? [
+        {
+          fields: ["treatment_goals", "baseline_symptoms"],
+          title: `Welcome to ${brandName}. What would you like help with?`,
+          hint: "Select all that apply.",
+          body: (
+            <div className="stack">
+              {pickSome("treatment_goals", NAD_GOALS, ["brain_fog"])}
+              <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+        { fields: NAD_SCREENING.map(([n]) => n), checklist: NAD_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether NAD+ is safe for you. Select all that apply.", body: null },
+        {
+          fields: ["nephrologist_approval"], autoAdvance: true,
+          title: "If you have kidney disease, has a kidney specialist (nephrologist) approved this treatment?",
+          hint: "Skip with “No” if you don't have kidney disease.",
+          body: yesNoScreen("nephrologist_approval"),
+        },
+        selfInjectionScreen,
+        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
+      ]
+    : program === "glutathione" ? [
+        {
+          fields: ["treatment_goals", "baseline_symptoms"],
+          title: `Welcome to ${brandName}. What would you like help with?`,
+          hint: "Select all that apply.",
+          body: (
+            <div className="stack">
+              {pickSome("treatment_goals", GLUTATHIONE_GOALS, ["antioxidant_support"])}
+              <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+        { fields: GLUTATHIONE_SCREENING.map(([n]) => n), checklist: GLUTATHIONE_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether glutathione is safe for you. Select all that apply.", body: null },
+        cancerTreatmentScreen,
+        selfInjectionScreen,
+        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
       ]
     : program === "sermorelin" ? [
         {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseOxytocinIntake, parseSermorelinIntake, parseVitaminB12Intake } from "./wellness";
+import { parseGlutathioneIntake, parseNadPlusIntake, parseOxytocinIntake, parseSermorelinIntake, parseVitaminB12Intake } from "./wellness";
 
 function read(fields: Record<string, string | string[]>, checked: string[] = []) {
   return {
@@ -64,5 +64,25 @@ describe("parseOxytocinIntake", () => {
   it("needs the histories and the consent", () => {
     expect(pointers(parseOxytocinIntake(read({ ...answers, sleep_history: "", psychiatric_history: "", off_label_understanding_attested: "false" }))))
       .toEqual(["/intake_form/data/sleep_history", "/intake_form/data/psychiatric_history", "/intake_form/data/off_label_understanding_attested"]);
+  });
+});
+
+describe("parseNadPlusIntake", () => {
+  it("sends the nephrologist's approval only after kidney disease", () => {
+    const answers = { treatment_goals: ["brain_fog"], nephrologist_approval: "true", can_self_administer: "true" };
+    expect(parseNadPlusIntake(read(answers, ["kidney_disease"])).ok && parseNadPlusIntake(read(answers, ["kidney_disease"])))
+      .toMatchObject({ value: { kidney_disease: true, nephrologist_approval: true } });
+    const none = parseNadPlusIntake(read(answers));
+    expect(none.ok && none.value).not.toHaveProperty("nephrologist_approval");
+  });
+});
+
+describe("parseGlutathioneIntake", () => {
+  it("asks about sulfur allergies, asthma and recent cancer treatment", () => {
+    const parsed = parseGlutathioneIntake(read(
+      { treatment_goals: ["aging_skin"], cancer_treatment_last_3_years: "false", can_self_administer: "true" },
+      ["sulfhydryl_or_sulfur_allergy"],
+    ));
+    expect(parsed.ok && parsed.value).toMatchObject({ sulfhydryl_or_sulfur_allergy: true, asthma: false, cancer_treatment_last_3_years: false });
   });
 });

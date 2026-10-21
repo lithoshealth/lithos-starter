@@ -1,6 +1,7 @@
 import "server-only";
 import { photosFor } from "./intake/derm";
 import { samplePdf } from "./journey-labs";
+import { APPROVAL_DOCUMENT_PROGRAMS } from "./intake/wellness";
 import { getLithosClient } from "./lithos/client";
 import { sampleImage, uploadFile } from "./lithos/uploads";
 import type { JourneyInput } from "./journey";
@@ -21,7 +22,8 @@ export async function attachSamplePhotos(
   // Eyelash growth after chemotherapy needs the treating physician's clearance;
   // B12 and Oxytocin after recent cancer treatment, the oncologist's approval.
   const clearance = program === "eyelash_growth" && data.chemotherapy_history === true;
-  const approval = data.cancer_treatment_last_3_years === true && data.oncologist_approval === true;
+  const approval = APPROVAL_DOCUMENT_PROGRAMS.includes(program)
+    && data.cancer_treatment_last_3_years === true && data.oncologist_approval === true;
   if (photos.length === 0 && !clearance && !approval) return intake;
   const client = getLithosClient();
   const ids = await Promise.all(photos.map(async (photo) => [photo.field, await uploadFile(client, await sampleImage(photo.sample), key(`upload-${photo.field}`))] as const));

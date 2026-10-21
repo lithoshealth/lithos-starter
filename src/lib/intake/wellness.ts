@@ -1,9 +1,11 @@
 /**
- * The longevity intakes — Sermorelin, Vitamin B12 and Oxytocin — shared by the
+ * The longevity intakes — NAD+, Glutathione, Sermorelin, Vitamin B12 and
+ * Oxytocin — shared by the
  * patient-facing intake (which asks them) and the journey (which sends them).
  * The field names and values are Lithos's `sermorelin`, `vitamin_b12` and
- * `oxytocin` initial contracts (the Intake Schemas guide); keep them as they
- * are. The questions follow each protocol (v1.1).
+ * `oxytocin` initial contracts, and `nad_plus` and `glutathione` (the Intake
+ * Schemas guide); keep them as they are. The questions follow each protocol
+ * (v1.1; v1.0 for NAD+ and Glutathione until their update).
  *
  * Every screening answer is a yes-or-no Lithos requires: unticked is `false`.
  * After cancer treatment with the oncologist's approval, Lithos wants the
@@ -20,7 +22,10 @@ type Options = readonly (readonly [string, string])[];
 
 export { DURATIONS };
 
-export const WELLNESS_PROGRAMS = ["sermorelin", "vitamin_b12", "oxytocin"];
+export const WELLNESS_PROGRAMS = ["nad_plus", "glutathione", "sermorelin", "vitamin_b12", "oxytocin"];
+
+/** The programs whose protocol asks for the oncologist's approval as a document. */
+export const APPROVAL_DOCUMENT_PROGRAMS = ["vitamin_b12", "oxytocin"];
 
 const PREGNANCY: readonly [string, string] = ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy in the next 2 months"];
 const MENTAL_HEALTH: readonly [string, string] = [
@@ -28,6 +33,51 @@ const MENTAL_HEALTH: readonly [string, string] = [
   "I have a serious mental health condition that isn't under control (for example schizophrenia or bipolar disorder)",
 ];
 const STEROIDS: readonly [string, string] = ["daily_steroid_use", "I take steroid pills or injections every day (for example prednisone)"];
+
+// ------------------------------------------------------------------ NAD+
+
+export const NAD_GOALS: Options = [
+  ["brain_fog", "Brain fog"],
+  ["age_related_fatigue", "Feeling more tired as I get older"],
+  ["persistent_fatigue", "Fatigue that hasn't got better with the usual fixes"],
+  ["post_workout_recovery", "Recovering after workouts"],
+  ["anti_aging", "Healthy aging"],
+  ["preventive_optimization", "Staying at my best"],
+];
+
+export const NAD_SCREENING: Options = [
+  ["cancer_history", "I've had cancer, at any time"],
+  ["active_malignancy", "I have cancer now"],
+  ["on_chemotherapy", "I take a chemotherapy medicine"],
+  ["kidney_disease", "I have, or have had, kidney disease"],
+  ["cellular_metabolism_medications", "I take a medicine that affects how my cells use energy (my doctor would know)"],
+  ["hypersensitivity", "I'm allergic to NAD+ or any of its ingredients"],
+  MENTAL_HEALTH,
+  PREGNANCY,
+  STEROIDS,
+];
+
+// ------------------------------------------------------------------ glutathione
+
+export const GLUTATHIONE_GOALS: Options = [
+  ["antioxidant_support", "Antioxidant support"],
+  ["low_energy_fatigue", "Low energy or fatigue"],
+  ["poor_recovery", "Slow recovery from exercise or illness"],
+  ["aging_skin", "Aging skin"],
+  ["oxidative_imbalance", "Oxidative stress my doctor has mentioned"],
+  ["glutathione_deficiency", "A condition linked to low glutathione"],
+];
+
+export const GLUTATHIONE_SCREENING: Options = [
+  ["sulfhydryl_or_sulfur_allergy", "I'm allergic to sulfur compounds or a sulfhydryl medicine"],
+  ["hypersensitivity", "I'm allergic to glutathione or any of its ingredients"],
+  ["asthma", "I have asthma"],
+  ["active_malignancy", "I have cancer now"],
+  ["on_chemotherapy", "I take a chemotherapy medicine"],
+  MENTAL_HEALTH,
+  PREGNANCY,
+  STEROIDS,
+];
 
 // ------------------------------------------------------------------ sermorelin
 
@@ -171,6 +221,43 @@ function cancerTreatment(read: Read, errors: FieldError[]) {
   };
 }
 
+/** The symptoms in the patient's words, sent when given. */
+function described(read: Read) {
+  const text = read.text("baseline_symptoms");
+  return text ? { baseline_symptoms: text } : {};
+}
+
+function medicines(read: Read) {
+  const meds = lines(read.text("medications_allergies"));
+  return meds.length ? { medications_allergies: meds } : {};
+}
+
+export function parseNadPlusIntake(read: Read): Parsed {
+  const errors: FieldError[] = [];
+  const screening = booleans(read, NAD_SCREENING);
+  return result({
+    treatment_goals: someOf(read, "treatment_goals", NAD_GOALS, errors, "Pick at least one goal."),
+    ...described(read),
+    ...screening,
+    // After kidney disease, whether a nephrologist approved it.
+    ...(screening.kidney_disease ? { nephrologist_approval: read.text("nephrologist_approval") === "true" } : {}),
+    ...selfInjection(read, errors),
+    ...medicines(read),
+  }, errors);
+}
+
+export function parseGlutathioneIntake(read: Read): Parsed {
+  const errors: FieldError[] = [];
+  return result({
+    treatment_goals: someOf(read, "treatment_goals", GLUTATHIONE_GOALS, errors, "Pick at least one goal."),
+    ...described(read),
+    ...booleans(read, GLUTATHIONE_SCREENING),
+    ...cancerTreatment(read, errors),
+    ...selfInjection(read, errors),
+    ...medicines(read),
+  }, errors);
+}
+
 export function parseSermorelinIntake(read: Read): Parsed {
   const errors: FieldError[] = [];
   const { heightCm, weightKg, errors: measured } = metricHeightWeight(read.text);
@@ -237,6 +324,8 @@ export function parseOxytocinIntake(read: Read): Parsed {
 }
 
 export const WELLNESS_PARSERS: Record<string, (read: Read) => Parsed> = {
+  nad_plus: parseNadPlusIntake,
+  glutathione: parseGlutathioneIntake,
   sermorelin: parseSermorelinIntake,
   vitamin_b12: parseVitaminB12Intake,
   oxytocin: parseOxytocinIntake,
