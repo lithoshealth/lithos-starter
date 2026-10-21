@@ -69,6 +69,24 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "what the patient wants for their lashes, how the lash loss came on, eye color, an eye and eyelid screen, chemotherapy history, and consent to the side effects",
   },
+  {
+    key: "sermorelin",
+    label: "Sermorelin",
+    supported: true,
+    asks: "the patient's goals, height and weight, a health screen with any history of cancer, interacting medicines, and whether they can give the injections",
+  },
+  {
+    key: "vitamin_b12",
+    label: "Vitamin B12",
+    supported: true,
+    asks: "the patient's symptoms and how long, absorption and health screens, recent cancer treatment with the oncologist's approval, medicines, and whether they can give the injections",
+  },
+  {
+    key: "oxytocin",
+    label: "Oxytocin",
+    supported: true,
+    asks: "the patient's sleep and stress concerns, how they sleep, sleep disorders, mental health history, a suicide and behavioral health screen, a health screen, and consent to its off-label use",
+  },
 ];
 
 /**

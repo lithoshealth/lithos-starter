@@ -18,14 +18,20 @@ export async function attachSamplePhotos(
 ): Promise<JourneyInput["intake"]> {
   const data = intake as Record<string, unknown>;
   const photos = photosFor(program, data);
-  // Eyelash growth after chemotherapy needs the treating physician's clearance.
+  // Eyelash growth after chemotherapy needs the treating physician's clearance;
+  // B12 and Oxytocin after recent cancer treatment, the oncologist's approval.
   const clearance = program === "eyelash_growth" && data.chemotherapy_history === true;
-  if (photos.length === 0 && !clearance) return intake;
+  const approval = data.cancer_treatment_last_3_years === true && data.oncologist_approval === true;
+  if (photos.length === 0 && !clearance && !approval) return intake;
   const client = getLithosClient();
   const ids = await Promise.all(photos.map(async (photo) => [photo.field, await uploadFile(client, await sampleImage(photo.sample), key(`upload-${photo.field}`))] as const));
   if (clearance) {
     const letter = samplePdf("sample-medical-clearance.pdf", "Sample medical clearance: synthetic patient, Lithos sandbox only");
     ids.push(["chemotherapy_clearance_upload_id", await uploadFile(client, letter, key("upload-chemotherapy-clearance"))]);
+  }
+  if (approval) {
+    const letter = samplePdf("sample-oncologist-approval.pdf", "Sample oncologist approval: synthetic patient, Lithos sandbox only");
+    ids.push(["oncologist_approval_upload_id", await uploadFile(client, letter, key("upload-oncologist-approval"))]);
   }
   return { ...data, ...Object.fromEntries(ids) };
 }

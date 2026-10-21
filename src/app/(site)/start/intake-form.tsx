@@ -20,6 +20,11 @@ import {
   EYE_COLORS, EYELASH_CONSENT, EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS, EYES_AFFECTED,
   LASH_GOALS, LASH_ONSETS, LASH_SERVICES,
 } from "@/lib/intake/eyelash";
+import {
+  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, B12_SYMPTOMS, OXYTOCIN_CONCERNS, OXYTOCIN_CONSENT,
+  OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SLEEP_DISORDERS, OXYTOCIN_SUICIDE_SCREEN,
+  SERMORELIN_GOALS, SERMORELIN_INTERACTIONS, SERMORELIN_SCREENING,
+} from "@/lib/intake/wellness";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -221,6 +226,38 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       <label className="field wide">Skin products you&rsquo;ve tried <small>(optional, one per line: the product, how long, whether it helped)</small><textarea name="prior_products" rows={3} maxLength={4000} defaultValue="Over-the-counter benzoyl peroxide wash, 2 months, helped a little" /></label>
     </div>
   );
+  // The longevity programs' shared screens.
+  const medicinesText = (label: string) => (
+    <label className="field wide">{label} <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+  );
+  const heightWeightScreen = (hint: string): Screen => ({
+    fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
+    title: "What's your height and weight?", hint,
+    body: (
+      <div className="field-grid">
+        <label className="field">Height (feet)<input name="height_ft" type="number" min="3" max="8" step="1" defaultValue="5" required /></label>
+        <label className="field">Height (inches)<input name="height_in" type="number" min="0" max="11" step="1" defaultValue="10" required /></label>
+        <label className="field">Weight (lbs)<input name="weight_lb" type="number" min="70" max="1100" step="1" defaultValue="180" required /></label>
+      </div>
+    ),
+  });
+  const selfInjectionScreen: Screen = {
+    fields: ["can_self_administer"], autoAdvance: true,
+    title: "Can you give yourself an injection under the skin, or do you have someone who will?",
+    hint: "The medication is a small injection under the skin, a few times a week.",
+    body: yesNoScreen("can_self_administer"),
+  };
+  const cancerTreatmentScreen: Screen = {
+    fields: ["cancer_treatment_last_3_years", "oncologist_approval"], reply: "Cancer treatment in the last 3 years: {cancer_treatment_last_3_years}",
+    title: "Have you had treatment for cancer in the last 3 years?",
+    hint: "If you have, your clinician needs your oncologist's approval. This sandbox sends a sample approval letter.",
+    body: (
+      <div className="field-grid">
+        <label className="field">Cancer treatment in the last 3 years?<select name="cancer_treatment_last_3_years" defaultValue="false" required><option value="false">No</option><option value="true">Yes</option></select></label>
+        <label className="field">Has your oncologist approved this treatment? <small>(if yes)</small><select name="oncologist_approval" defaultValue="false"><option value="false">No</option><option value="true">Yes</option></select></label>
+      </div>
+    ),
+  };
   const photoScreen = (photos: PhotoField[], note?: string): Screen => ({
     fields: photos.map((p) => p.field), reply: `${photos.length} sample photos`,
     title: "Photos of your skin",
@@ -433,6 +470,78 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
         { fields: ["lash_cosmetic_services"], title: "Do you have lash extensions, a lift or tinting?", hint: "Select any that apply, or none.", body: pickSome("lash_cosmetic_services", LASH_SERVICES) },
         { fields: ["side_effects_consent_attested"], autoAdvance: true, title: "Do you understand the side effects?", hint: EYELASH_CONSENT, body: yesNoScreen("side_effects_consent_attested") },
+      ]
+    : program === "sermorelin" ? [
+        {
+          fields: ["treatment_goals"],
+          title: `Welcome to ${brandName}. What would you like from treatment?`,
+          hint: "Select all that apply.",
+          body: pickSome("treatment_goals", SERMORELIN_GOALS, ["body_composition"]),
+        },
+        heightWeightScreen("Your clinician tracks these to see how treatment is working."),
+        { fields: SERMORELIN_SCREENING.map(([n]) => n), checklist: SERMORELIN_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether sermorelin is safe for you. Select all that apply.", body: null },
+        { fields: ["interacting_medications"], title: "Do you take any of these?", hint: "Some medicines change how sermorelin works. Select any that apply, or none.", body: pickSome("interacting_medications", SERMORELIN_INTERACTIONS) },
+        selfInjectionScreen,
+        { fields: ["medications_allergies"], title: "What else do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
+      ]
+    : program === "vitamin_b12" ? [
+        {
+          fields: ["treatment_goals", "baseline_symptoms"],
+          title: `Welcome to ${brandName}. What would you like help with?`,
+          hint: "Select all that apply. This isn't treatment for a known B12 deficiency.",
+          body: (
+            <div className="stack">
+              {pickSome("treatment_goals", B12_SYMPTOMS, ["fatigue"])}
+              <label className="field wide">Describe your symptoms <small>(needed if you picked something else)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had these symptoms?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: B12_SCREENING_ABSORPTION.map(([n]) => n), checklist: B12_SCREENING_ABSORPTION, title: "Do any of these apply to you?", hint: "These affect how your body absorbs B12. Select all that apply.", body: null },
+        { fields: B12_SCREENING_HEALTH.map(([n]) => n), checklist: B12_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician decide whether B12 injections are safe for you. Select all that apply.", body: null },
+        cancerTreatmentScreen,
+        selfInjectionScreen,
+        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, including acid reducers (PPIs), metformin or colchicine, and allergies") },
+      ]
+    : program === "oxytocin" ? [
+        {
+          fields: ["treatment_goals"],
+          title: `Welcome to ${brandName}. What would you like help with?`,
+          hint: "Select all that apply.",
+          body: pickSome("treatment_goals", OXYTOCIN_CONCERNS, ["trouble_falling_asleep"]),
+        },
+        {
+          fields: ["sleep_history"], reply: "{sleep_history}",
+          title: "Tell us how you sleep",
+          hint: "Your usual bedtime and wake time, how long it takes to fall asleep, how often you wake, how you feel during the day, and habits like screens, caffeine or alcohol.",
+          body: <label className="field wide">How you sleep<textarea name="sleep_history" rows={4} maxLength={2000} defaultValue="Bed around 11pm, up at 7am. About 45 minutes to fall asleep, wake twice most nights, tired in the afternoon. Phone in bed, coffee until 3pm." required /></label>,
+        },
+        { fields: ["sleep_disorders"], title: "Do you have, or think you might have, any of these?", hint: "Select any that aren't being treated, or none.", body: pickSome("sleep_disorders", OXYTOCIN_SLEEP_DISORDERS) },
+        {
+          fields: ["psychiatric_history"], reply: "{psychiatric_history}",
+          title: "Your mental health history",
+          hint: "Any diagnoses and current treatment. Write “None reported” if there are none.",
+          body: <label className="field wide">Diagnoses and treatment<textarea name="psychiatric_history" rows={3} maxLength={2000} defaultValue="None reported" required /></label>,
+        },
+        {
+          fields: OXYTOCIN_SUICIDE_SCREEN.map(([n]) => n), checklist: OXYTOCIN_SUICIDE_SCREEN,
+          title: "A few questions about how you've been feeling",
+          hint: "Select any that apply. If you're thinking about suicide right now, call or text 988, or call 911 in an emergency.",
+          body: null,
+        },
+        { fields: OXYTOCIN_SCREENING_MENTAL.map(([n]) => n), checklist: OXYTOCIN_SCREENING_MENTAL, title: "Do any of these apply to you?", hint: "Select all that apply.", body: null },
+        { fields: OXYTOCIN_SCREENING_HEALTH.map(([n]) => n), checklist: OXYTOCIN_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician decide whether oxytocin is safe for you. Select all that apply.", body: null },
+        cancerTreatmentScreen,
+        {
+          fields: ["medications_allergies", "nasal_sinus_history"], title: "What do you take, and anything about your nose?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Medicines, including sleep aids and supplements, and allergies <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Nose or sinus surgery, with the date <small>(optional)</small><textarea name="nasal_sinus_history" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+        { fields: ["off_label_understanding_attested"], autoAdvance: true, title: "Do you understand how oxytocin is used here?", hint: OXYTOCIN_CONSENT, body: yesNoScreen("off_label_understanding_attested") },
       ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [

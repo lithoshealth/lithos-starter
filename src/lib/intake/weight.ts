@@ -56,6 +56,28 @@ export type { WeightManagementInitialIntake };
 const HEIGHT_CM = { min: 50, max: 272 };
 const WEIGHT_KG = { min: 30, max: 500 };
 
+/**
+ * Feet, inches and pounds as the contract's whole centimetres and kilograms,
+ * with an error for each one out of range. Shared with the Sermorelin intake,
+ * which asks the same two.
+ */
+export function metricHeightWeight(get: (name: string) => string): {
+  heightCm: number;
+  weightKg: number;
+  errors: Array<{ pointer: string; message: string }>;
+} {
+  const errors: Array<{ pointer: string; message: string }> = [];
+  const heightCm = Math.round((Number(get("height_ft")) * 12 + Number(get("height_in") || "0")) * 2.54);
+  if (!Number.isFinite(heightCm) || heightCm < HEIGHT_CM.min || heightCm > HEIGHT_CM.max) {
+    errors.push({ pointer: "/intake_form/data/height_cm", message: "Enter your height in feet and inches." });
+  }
+  const weightKg = Math.round(Number(get("weight_lb")) * 0.45359237 * 10) / 10;
+  if (!Number.isFinite(weightKg) || weightKg < WEIGHT_KG.min || weightKg > WEIGHT_KG.max) {
+    errors.push({ pointer: "/intake_form/data/weight_kg", message: "Enter your weight in pounds." });
+  }
+  return { heightCm, weightKg, errors };
+}
+
 export type IntakeParse<T> = { ok: true; value: T } | { ok: false; errors: Array<{ pointer: string; message: string }> };
 
 /**
@@ -64,19 +86,7 @@ export type IntakeParse<T> = { ok: true; value: T } | { ok: false; errors: Array
  * a reviewer can check.
  */
 export function parseWeightIntake(get: (name: string) => string, has: (name: string) => boolean): IntakeParse<WeightManagementInitialIntake> {
-  const errors: Array<{ pointer: string; message: string }> = [];
-  const feet = Number(get("height_ft"));
-  const inches = Number(get("height_in") || "0");
-  const pounds = Number(get("weight_lb"));
-
-  const heightCm = Math.round((feet * 12 + inches) * 2.54);
-  if (!Number.isFinite(heightCm) || heightCm < HEIGHT_CM.min || heightCm > HEIGHT_CM.max) {
-    errors.push({ pointer: "/intake_form/data/height_cm", message: "Enter your height in feet and inches." });
-  }
-  const weightKg = Math.round(pounds * 0.45359237 * 10) / 10;
-  if (!Number.isFinite(weightKg) || weightKg < WEIGHT_KG.min || weightKg > WEIGHT_KG.max) {
-    errors.push({ pointer: "/intake_form/data/weight_kg", message: "Enter your weight in pounds." });
-  }
+  const { heightCm, weightKg, errors } = metricHeightWeight(get);
   if (errors.length > 0) return { ok: false, errors };
 
   const screening = Object.fromEntries(WEIGHT_SCREENING_FIELDS.map((name) => [name, has(name)])) as Record<ScreeningField, boolean>;

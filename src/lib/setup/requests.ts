@@ -2,6 +2,13 @@ import { intakeKey, type ProgramKey } from "./programs";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
+import {
+  B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL,
+  OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
+} from "../intake/wellness";
+
+const no = (...lists: readonly (readonly (readonly [string, string])[])[]) =>
+  Object.fromEntries(lists.flat().map(([name]) => [name, false]));
 
 /**
  * The exact request bodies the walkthrough sends.
@@ -130,6 +137,31 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     prior_lash_products: [],
     lash_cosmetic_services: [],
     side_effects_consent_attested: true,
+  },
+  sermorelin: {
+    ...no(SERMORELIN_SCREENING),
+    treatment_goals: ["body_composition"],
+    height_cm: 178,
+    weight_kg: 82,
+    interacting_medications: [],
+    can_self_administer: true,
+  },
+  vitamin_b12: {
+    ...no(B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH),
+    treatment_goals: ["fatigue"],
+    condition_duration: "3_to_12_months",
+    cancer_treatment_last_3_years: false,
+    can_self_administer: true,
+    medications_allergies: [],
+  },
+  oxytocin: {
+    ...no(OXYTOCIN_SUICIDE_SCREEN, OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SCREENING_HEALTH),
+    treatment_goals: ["trouble_falling_asleep"],
+    sleep_history: "Bed around 11pm, up at 7am; about 45 minutes to fall asleep; wakes twice most nights.",
+    sleep_disorders: [],
+    psychiatric_history: "None reported",
+    cancer_treatment_last_3_years: false,
+    off_label_understanding_attested: true,
   },
 };
 
