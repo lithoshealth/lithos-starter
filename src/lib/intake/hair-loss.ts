@@ -128,6 +128,9 @@ export function parseHairLossIntake(read: Read): Parsed {
     medications_allergies: lines(read.text("medications_allergies")),
     prior_hair_treatments: lines(read.text("prior_hair_treatments")),
     // A "no" only rules out finasteride and dutasteride: the other treatments don't need it.
+    // Dutasteride is only for someone whose loss kept going after 12 months of finasteride.
+    finasteride_12_months_without_stabilization: yesNo(read, "finasteride_12_months_without_stabilization", errors,
+      "Say whether you've taken finasteride for 12 months or more."),
     finasteride_risks_attested: yesNo(read, "finasteride_risks_attested", errors, "Say whether you understand the side effects."),
   };
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };

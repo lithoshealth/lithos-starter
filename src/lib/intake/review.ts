@@ -147,6 +147,7 @@ function hairLoss(data: Data): IntakeReview {
       { label: "For", value: `${text("condition_duration")}, ${text("thinning_pace")}, ${text("shedding_or_thinning")}` },
       { label: "Family history", value: data.family_history === true ? "Yes" : "No" },
       { label: "Could become pregnant", value: data.can_become_pregnant === true ? `Yes, ${data.reliable_contraception === true ? "with" : "without"} reliable contraception` : "No" },
+      { label: "12+ months of finasteride, still losing hair", value: data.finasteride_12_months_without_stabilization === true ? "Yes" : "No" },
       { label: "Finasteride side effects understood", value: data.finasteride_risks_attested === true ? "Yes" : "No" },
     ],
     flags: yesTo(data, [...HAIR_SCREENING_SIGNS, ...HAIR_SCREENING_MOOD, ...HAIR_FERTILITY, ...HAIR_SCREENING_MEDICINES, ...HAIR_SCREENING_HEALTH]),

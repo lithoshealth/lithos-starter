@@ -214,6 +214,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     reliable_contraception: false,
     medications_allergies: [],
     prior_hair_treatments: [],
+    finasteride_12_months_without_stabilization: false,
     finasteride_risks_attested: true,
   },
   herpes_simplex: {

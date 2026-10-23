@@ -705,6 +705,12 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
             </div>
           ),
         },
+        {
+          fields: ["finasteride_12_months_without_stabilization"], autoAdvance: true,
+          title: "Have you taken finasteride for 12 months or more, and your hair loss kept going?",
+          hint: "Dutasteride is only an option after that.",
+          body: yesNoScreen("finasteride_12_months_without_stabilization"),
+        },
         { fields: ["finasteride_risks_attested"], autoAdvance: true, title: "Do you understand these side effects?", hint: `${FINASTERIDE_RISKS} If you say no, your clinician won't offer finasteride or dutasteride.`, body: yesNoScreen("finasteride_risks_attested") },
       ]
     : program === "herpes_simplex" ? [
