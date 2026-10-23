@@ -213,11 +213,12 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     </div>
   );
   // Several answers to one field, sent as a list (`affected_areas`, `lesion_types`, …).
-  const pickSome = (name: string, options: readonly (readonly [string, string])[], preset: string[] = []) => (
+  // Nothing is ticked to start with: a pre-ticked box reads as an answer the patient gave.
+  const pickSome = (name: string, options: readonly (readonly [string, string])[]) => (
     <div className="quiz-options">
       {options.map(([value, label]) => (
         <label key={value} className="quiz-option quiz-option-multi">
-          <input type="checkbox" name={name} value={value} defaultChecked={preset.includes(value)} /> <span>{label}</span>
+          <input type="checkbox" name={name} value={value} /> <span>{label}</span>
         </label>
       ))}
     </div>
@@ -392,9 +393,9 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["affected_areas"],
           title: `Welcome to ${brandName}. Where is your acne?`,
           hint: "Select all that apply.",
-          body: pickSome("affected_areas", ACNE_AREAS, ["face"]),
+          body: pickSome("affected_areas", ACNE_AREAS),
         },
-        { fields: ["lesion_types"], title: "What kinds of spots do you get?", hint: "Select all that apply.", body: pickSome("lesion_types", ACNE_LESIONS, ["red_bumps"]) },
+        { fields: ["lesion_types"], title: "What kinds of spots do you get?", hint: "Select all that apply.", body: pickSome("lesion_types", ACNE_LESIONS) },
         { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had acne?", body: pickOne("condition_duration", DURATIONS) },
         { fields: ["scarring"], autoAdvance: true, title: "Has it left any scars?", body: pickOne("scarring", ACNE_SCARRING) },
         { fields: ["daily_life_impact"], autoAdvance: true, title: "How much does it affect your daily life?", body: pickOne("daily_life_impact", ACNE_IMPACT) },
@@ -420,11 +421,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["main_concerns"],
           title: `Welcome to ${brandName}. What would you like to treat?`,
           hint: "Select all that apply.",
-          body: pickSome("main_concerns", HP_CONCERNS, ["dark_spots"]),
+          body: pickSome("main_concerns", HP_CONCERNS),
         },
-        { fields: ["affected_areas"], title: "Where?", hint: "Select all that apply.", body: pickSome("affected_areas", HP_AREAS, ["face"]) },
+        { fields: ["affected_areas"], title: "Where?", hint: "Select all that apply.", body: pickSome("affected_areas", HP_AREAS) },
         { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had it?", body: pickOne("condition_duration", DURATIONS) },
-        { fields: ["triggers"], title: "What brought it on, or makes it worse?", hint: "Select any that apply, or none.", body: pickSome("triggers", HP_TRIGGERS, ["sun"]) },
+        { fields: ["triggers"], title: "What brought it on, or makes it worse?", hint: "Select any that apply, or none.", body: pickSome("triggers", HP_TRIGGERS) },
         { fields: ["fitzpatrick_skin_type"], autoAdvance: true, title: "How does your skin react to the sun?", body: pickOne("fitzpatrick_skin_type", FITZPATRICK) },
         { fields: ["isotretinoin_use"], autoAdvance: true, title: "Have you ever taken isotretinoin (Accutane)?", body: pickOne("isotretinoin_use", ISOTRETINOIN_USE) },
         { fields: ["daily_sunscreen_use"], autoAdvance: true, title: "Do you wear sunscreen every day?", body: yesNoScreen("daily_sunscreen_use") },
@@ -441,7 +442,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["treatment_goals"],
           title: `Welcome to ${brandName}. What would you like for your lashes?`,
           hint: "Select all that apply.",
-          body: pickSome("treatment_goals", LASH_GOALS, ["longer"]),
+          body: pickSome("treatment_goals", LASH_GOALS),
         },
         { fields: ["condition_duration"], autoAdvance: true, title: "How long have your lashes been short or sparse?", body: pickOne("condition_duration", DURATIONS) },
         { fields: ["lash_loss_onset"], autoAdvance: true, title: "Did it happen gradually or suddenly?", body: pickOne("lash_loss_onset", LASH_ONSETS) },
@@ -486,7 +487,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           hint: "Select all that apply.",
           body: (
             <div className="stack">
-              {pickSome("treatment_goals", NAD_GOALS, ["brain_fog"])}
+              {pickSome("treatment_goals", NAD_GOALS)}
               <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
             </div>
           ),
@@ -508,7 +509,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           hint: "Select all that apply.",
           body: (
             <div className="stack">
-              {pickSome("treatment_goals", GLUTATHIONE_GOALS, ["antioxidant_support"])}
+              {pickSome("treatment_goals", GLUTATHIONE_GOALS)}
               <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
             </div>
           ),
@@ -523,7 +524,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["treatment_goals"],
           title: `Welcome to ${brandName}. What would you like from treatment?`,
           hint: "Select all that apply.",
-          body: pickSome("treatment_goals", SERMORELIN_GOALS, ["body_composition"]),
+          body: pickSome("treatment_goals", SERMORELIN_GOALS),
         },
         heightWeightScreen("Your clinician tracks these to see how treatment is working."),
         { fields: SERMORELIN_SCREENING.map(([n]) => n), checklist: SERMORELIN_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether sermorelin is safe for you. Select all that apply.", body: null },
@@ -538,7 +539,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           hint: "Select all that apply. This isn't treatment for a known B12 deficiency.",
           body: (
             <div className="stack">
-              {pickSome("treatment_goals", B12_SYMPTOMS, ["fatigue"])}
+              {pickSome("treatment_goals", B12_SYMPTOMS)}
               <label className="field wide">Describe your symptoms <small>(needed if you picked something else)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
             </div>
           ),
@@ -555,7 +556,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["treatment_goals"],
           title: `Welcome to ${brandName}. What would you like help with?`,
           hint: "Select all that apply.",
-          body: pickSome("treatment_goals", OXYTOCIN_CONCERNS, ["trouble_falling_asleep"]),
+          body: pickSome("treatment_goals", OXYTOCIN_CONCERNS),
         },
         {
           fields: ["sleep_history"], reply: "{sleep_history}",
@@ -595,7 +596,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           fields: ["treatment_goals"],
           title: `Welcome to ${brandName}. What would you like from treatment?`,
           hint: "Select all that apply.",
-          body: pickSome("treatment_goals", ED_GOALS, ["keep_an_erection"]),
+          body: pickSome("treatment_goals", ED_GOALS),
         },
         { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had trouble with erections?", body: pickOne("condition_duration", DURATIONS) },
         { fields: ["ed_onset"], autoAdvance: true, title: "Did it come on gradually or suddenly?", body: pickOne("ed_onset", ED_ONSETS) },
