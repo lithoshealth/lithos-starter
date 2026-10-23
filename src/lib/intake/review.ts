@@ -18,6 +18,9 @@ import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCR
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "./eyelash";
 import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "./ed";
 import {
+  HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
+} from "./hair-loss";
+import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "./wellness";
@@ -133,6 +136,22 @@ function ed(data: Data): IntakeReview {
   };
 }
 
+function hairLoss(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  const list = (name: string) => (Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).join(", ").replaceAll("_", " ") : "None");
+  return {
+    facts: [
+      { label: "Goals", value: list("treatment_goals") },
+      { label: "Where", value: list("thinning_areas") },
+      { label: "For", value: `${text("condition_duration")}, ${text("thinning_pace")}, ${text("shedding_or_thinning")}` },
+      { label: "Family history", value: data.family_history === true ? "Yes" : "No" },
+      { label: "Could become pregnant", value: data.can_become_pregnant === true ? `Yes, ${data.reliable_contraception === true ? "with" : "without"} reliable contraception` : "No" },
+      { label: "Finasteride side effects understood", value: data.finasteride_risks_attested === true ? "Yes" : "No" },
+    ],
+    flags: yesTo(data, [...HAIR_SCREENING_SIGNS, ...HAIR_SCREENING_MOOD, ...HAIR_FERTILITY, ...HAIR_SCREENING_MEDICINES, ...HAIR_SCREENING_HEALTH]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
@@ -141,6 +160,7 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
     case "eyelash_growth": return eyelash(data);
     case "erectile_dysfunction": return ed(data);
+    case "hair_loss": return hairLoss(data);
     case "nad_plus":
       return wellness(data, [
         { label: "Goals", value: listOf(data, "treatment_goals") },

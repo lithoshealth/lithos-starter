@@ -105,6 +105,12 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "the patient's goals and how the problem started, a recent blood pressure reading, heart, medicine and health screens, history, alcohol, and the promise never to take it with nitrates",
   },
+  {
+    key: "hair_loss",
+    label: "Hair loss",
+    supported: true,
+    asks: "the patient's goals, where and how fast the hair is thinning, warning signs, mood, pregnancy and contraception, medicine and health screens, treatments tried, and the finasteride side effects",
+  },
 ];
 
 /**

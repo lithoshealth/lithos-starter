@@ -4,6 +4,9 @@ import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
 import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "../intake/ed";
 import {
+  HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
+} from "../intake/hair-loss";
+import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "../intake/wellness";
@@ -197,6 +200,20 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     medications_allergies: [],
     prior_ed_medications: [],
     nitrate_acknowledgment_attested: true,
+  },
+  hair_loss: {
+    ...no(HAIR_SCREENING_SIGNS, HAIR_SCREENING_MOOD, HAIR_FERTILITY, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_HEALTH),
+    treatment_goals: ["slow_the_loss"],
+    thinning_areas: ["hairline", "crown"],
+    condition_duration: "1_to_5_years",
+    thinning_pace: "slow",
+    shedding_or_thinning: "thinning",
+    family_history: true,
+    can_become_pregnant: false,
+    reliable_contraception: false,
+    medications_allergies: [],
+    prior_hair_treatments: [],
+    finasteride_risks_attested: true,
   },
 };
 

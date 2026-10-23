@@ -15,6 +15,7 @@ import { parseGenericIntake, type GenericIntake } from "./intake/generic";
 import { DERM_PROGRAMS, parseAcneIntake, parseHyperpigmentationIntake } from "./intake/derm";
 import { parseEyelashIntake } from "./intake/eyelash";
 import { parseEdIntake } from "./intake/ed";
+import { parseHairLossIntake } from "./intake/hair-loss";
 import { WELLNESS_PARSERS, WELLNESS_PROGRAMS } from "./intake/wellness";
 import { intakeKey, type ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
@@ -53,7 +54,8 @@ export type JourneyInput = {
 /**
  * Acne, hyperpigmentation & photoaging (src/lib/intake/derm.ts), eyelash growth
  * (src/lib/intake/eyelash.ts), the longevity protocols (src/lib/intake/wellness.ts)
- * or erectile dysfunction (src/lib/intake/ed.ts); uploads are added when it's sent.
+ * erectile dysfunction (src/lib/intake/ed.ts) or hair loss
+ * (src/lib/intake/hair-loss.ts); uploads are added when it's sent.
  */
 type DermIntake = Record<string, unknown>;
 
@@ -127,7 +129,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   }
   const intake = program === "weight_management" ? weightIntake(formData)
     : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
-    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
+    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
@@ -216,6 +218,7 @@ function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermI
   const parsed = program === "acne" ? parseAcneIntake(read)
     : program === "eyelash_growth" ? parseEyelashIntake(read)
     : program === "erectile_dysfunction" ? parseEdIntake(read)
+    : program === "hair_loss" ? parseHairLossIntake(read)
     : WELLNESS_PARSERS[program] ? WELLNESS_PARSERS[program](read)
     : parseHyperpigmentationIntake(read);
   if (parsed.ok) return parsed;

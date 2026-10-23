@@ -30,6 +30,10 @@ import {
   BLOOD_PRESSURE_SETTINGS, CARDIOVASCULAR_RISK_FACTORS, CLIMBS_TWO_FLIGHTS, ED_CONSISTENCY, ED_GOALS, ED_HISTORY, ED_ONSETS,
   ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES, NITRATE_ACKNOWLEDGMENT, RELATED_MEDICATIONS,
 } from "@/lib/intake/ed";
+import {
+  FINASTERIDE_RISKS, HAIR_AREAS, HAIR_CHANGES, HAIR_FERTILITY, HAIR_GOALS, HAIR_PACES, HAIR_SCREENING_HEALTH,
+  HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
+} from "@/lib/intake/hair-loss";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -652,6 +656,52 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
           body: yesNoScreen("nitrate_acknowledgment_attested"),
         },
+      ]
+    : program === "hair_loss" ? [
+        {
+          fields: ["treatment_goals"],
+          title: `Welcome to ${brandName}. What would you like from treatment?`,
+          hint: "Select all that apply.",
+          body: pickSome("treatment_goals", HAIR_GOALS),
+        },
+        { fields: ["thinning_areas"], title: "Where is your hair thinning?", hint: "Select all that apply.", body: pickSome("thinning_areas", HAIR_AREAS) },
+        { fields: ["condition_duration"], autoAdvance: true, title: "When did it start?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["thinning_pace"], autoAdvance: true, title: "How fast is it going?", body: pickOne("thinning_pace", HAIR_PACES) },
+        { fields: ["shedding_or_thinning"], autoAdvance: true, title: "Do you notice thinning, shedding, or both?", body: pickOne("shedding_or_thinning", HAIR_CHANGES) },
+        { fields: ["family_history"], autoAdvance: true, title: "Does a parent or sibling have pattern hair loss?", body: yesNoScreen("family_history") },
+        { fields: HAIR_SCREENING_SIGNS.map(([n]) => n), checklist: HAIR_SCREENING_SIGNS, title: "Do any of these apply?", hint: "Some signs mean it isn't pattern hair loss and needs an in-person visit. Select all that apply.", body: null },
+        {
+          fields: HAIR_SCREENING_MOOD.map(([n]) => n), checklist: HAIR_SCREENING_MOOD,
+          title: "How has your mood been?",
+          hint: "Two of these medicines can affect mood. If you're having thoughts of suicide, call or text 988, or call 911. Select all that apply.",
+          body: null,
+        },
+        {
+          fields: ["can_become_pregnant", "reliable_contraception", "contraception_method"],
+          reply: "Could become pregnant: {can_become_pregnant}",
+          title: "Could you become pregnant?",
+          hint: "Some of these medicines can harm a pregnancy, so we ask everyone.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Could you become pregnant?<select name="can_become_pregnant" defaultValue="" required><option value="" disabled>Choose</option><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="field">Do you use reliable contraception? <small>(if yes)</small><select name="reliable_contraception" defaultValue="false"><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="field wide">Which contraception? <small>(optional)</small><input name="contraception_method" autoComplete="off" /></label>
+            </div>
+          ),
+        },
+        { fields: HAIR_FERTILITY.map(([n]) => n), checklist: HAIR_FERTILITY, title: "And any of these?", hint: "Select all that apply.", body: null },
+        { fields: HAIR_SCREENING_MEDICINES.map(([n]) => n), checklist: HAIR_SCREENING_MEDICINES, title: "Do you take any of these, or have these allergies?", hint: "Select all that apply.", body: null },
+        { fields: HAIR_SCREENING_HEALTH.map(([n]) => n), checklist: HAIR_SCREENING_HEALTH, title: "Do you have any of these?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
+        {
+          fields: ["medications_allergies", "prior_hair_treatments"], title: "What do you take, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines and supplements, including high-dose biotin, and allergies")}
+              <label className="field wide">Hair treatments you&rsquo;ve tried or use now <small>(optional, one per line: what, how long, whether it helped)</small><textarea name="prior_hair_treatments" rows={3} maxLength={4000} /></label>
+            </div>
+          ),
+        },
+        { fields: ["finasteride_risks_attested"], autoAdvance: true, title: "Do you understand these side effects?", hint: `${FINASTERIDE_RISKS} If you say no, your clinician won't offer finasteride or dutasteride.`, body: yesNoScreen("finasteride_risks_attested") },
       ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [
