@@ -34,6 +34,10 @@ import {
   FINASTERIDE_RISKS, HAIR_AREAS, HAIR_CHANGES, HAIR_FERTILITY, HAIR_GOALS, HAIR_PACES, HAIR_SCREENING_HEALTH,
   HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
 } from "@/lib/intake/hair-loss";
+import {
+  HSV_DIAGNOSIS_METHODS, HSV_GOALS, HSV_IMPACTS, HSV_ONSETS, HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH,
+  HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT, HSV_WANTS,
+} from "@/lib/intake/hsv";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -702,6 +706,59 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         { fields: ["finasteride_risks_attested"], autoAdvance: true, title: "Do you understand these side effects?", hint: `${FINASTERIDE_RISKS} If you say no, your clinician won't offer finasteride or dutasteride.`, body: yesNoScreen("finasteride_risks_attested") },
+      ]
+    : program === "herpes_simplex" ? [
+        {
+          fields: ["requested_treatment", "sore_site"], autoAdvance: true,
+          title: `Welcome to ${brandName}. What would you like?`,
+          hint: "This is for herpes a clinician has already diagnosed in the same place.",
+          body: pickOne("requested_treatment", HSV_WANTS),
+        },
+        { fields: ["prior_diagnosis_method"], autoAdvance: true, title: "How was it diagnosed?", hint: "A blood test alone isn't enough: it can't say where the sores are.", body: pickOne("prior_diagnosis_method", HSV_DIAGNOSIS_METHODS) },
+        {
+          fields: ["prior_diagnosis_details", "prior_diagnosis_unclear"], title: "Who diagnosed it, and when?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Who and when, or the test and its date <small>(skip if it&rsquo;s never been diagnosed)</small><textarea name="prior_diagnosis_details" rows={2} maxLength={1000} /></label>
+              <label className="quiz-option quiz-option-multi field wide"><input type="checkbox" name="prior_diagnosis_unclear" /> <span>I don&rsquo;t remember exactly who or when</span></label>
+            </div>
+          ),
+        },
+        { fields: HSV_SCREENING_EPISODE.map(([n]) => n), checklist: HSV_SCREENING_EPISODE, title: "Do any of these apply?", hint: "A first or unusual sore needs an in-person exam and a test. Select all that apply.", body: null },
+        {
+          fields: ["sores_onset", "episode_description"], title: "If you're treating an outbreak now, when did it start?",
+          hint: "Treatment works best at the first tingle or within a day of sores. Skip this if you want a daily medicine.",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">When it started<select name="sores_onset" defaultValue=""><option value="">Not treating an outbreak now</option>{HSV_ONSETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">What the sores look like now, and how they&rsquo;re healing<textarea name="episode_description" rows={2} maxLength={1000} /></label>
+            </div>
+          ),
+        },
+        {
+          fields: ["outbreaks_last_12_months", "outbreak_impact"], reply: "{outbreaks_last_12_months} outbreaks, affect me: {outbreak_impact}",
+          title: "How often do you get outbreaks?",
+          body: (
+            <div className="field-grid">
+              <label className="field">Outbreaks in the last 12 months<input name="outbreaks_last_12_months" type="number" min="0" max="100" step="1" required /></label>
+              <label className="field">How much they affect you<select name="outbreak_impact" defaultValue="" required><option value="" disabled>Choose</option>{HSV_IMPACTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            </div>
+          ),
+        },
+        { fields: ["suppression_goals"], title: "If you want a daily medicine, what should it do?", hint: "Select all that apply. Skip this if you're treating an outbreak.", body: pickSome("suppression_goals", HSV_GOALS) },
+        { fields: HSV_SCREENING_URGENT.map(([n]) => n), checklist: HSV_SCREENING_URGENT, title: "Do you have any of these now?", hint: "Eye symptoms need same-day eye care. For the others, call 911 or go to the nearest emergency department. Select all that apply.", body: null },
+        { fields: HSV_SCREENING_HEALTH.map(([n]) => n), checklist: HSV_SCREENING_HEALTH, title: "Do any of these apply?", hint: "These decide whether the medicine is safe for you. Select all that apply.", body: null },
+        { fields: HSV_SCREENING_MEDICINES.map(([n]) => n), checklist: HSV_SCREENING_MEDICINES, title: "And any of these?", hint: "Select all that apply.", body: null },
+        { fields: ["new_sexual_exposure_or_sti_symptoms"], autoAdvance: true, title: "Any new sexual partner or exposure, or other STI symptoms?", body: yesNoScreen("new_sexual_exposure_or_sti_symptoms") },
+        {
+          fields: ["medications_allergies", "antiviral_history"], title: "What do you take, and what have you taken for herpes?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines and supplements, and allergies with the reaction")}
+              <label className="field wide">Herpes medicines you take or have taken <small>(optional, one per line: the medicine, dose, when, whether it helped)</small><textarea name="antiviral_history" rows={3} maxLength={4000} /></label>
+            </div>
+          ),
+        },
       ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [

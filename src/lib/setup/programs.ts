@@ -111,6 +111,12 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "the patient's goals, where and how fast the hair is thinning, warning signs, mood, pregnancy and contraception, medicine and health screens, treatments tried, and the finasteride side effects",
   },
+  {
+    key: "herpes_simplex",
+    label: "Herpes (HSV)",
+    supported: true,
+    asks: "whether the patient wants an outbreak treated or daily suppression, how and when it was diagnosed, this outbreak, how often they get them, urgent signs, health and allergy screens, and herpes medicines taken",
+  },
 ];
 
 /**

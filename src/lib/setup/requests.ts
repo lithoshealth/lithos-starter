@@ -6,6 +6,7 @@ import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDIC
 import {
   HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
 } from "../intake/hair-loss";
+import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "../intake/hsv";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
@@ -214,6 +215,21 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     medications_allergies: [],
     prior_hair_treatments: [],
     finasteride_risks_attested: true,
+  },
+  herpes_simplex: {
+    ...no(HSV_SCREENING_EPISODE, HSV_SCREENING_URGENT, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES),
+    requested_treatment: "genital_outbreak",
+    sore_site: "genital",
+    prior_diagnosis_method: "clinician_exam",
+    prior_diagnosis_details: "Diagnosed by a primary care doctor in 2022",
+    prior_diagnosis_unclear: false,
+    sores_onset: "tingling_only",
+    episode_description: "Tingling since this morning, no sores yet",
+    outbreaks_last_12_months: 3,
+    outbreak_impact: "moderate",
+    new_sexual_exposure_or_sti_symptoms: false,
+    antiviral_history: [],
+    medications_allergies: [],
   },
 };
 

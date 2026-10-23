@@ -20,6 +20,7 @@ import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDIC
 import {
   HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
 } from "./hair-loss";
+import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "./hsv";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
@@ -152,6 +153,24 @@ function hairLoss(data: Data): IntakeReview {
   };
 }
 
+function hsv(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  return {
+    facts: [
+      { label: "Wants", value: text("requested_treatment") },
+      { label: "Diagnosed by", value: `${text("prior_diagnosis_method")}${data.prior_diagnosis_details ? `: ${String(data.prior_diagnosis_details)}` : ""}` },
+      ...(data.sores_onset ? [{ label: "This outbreak", value: `${text("sores_onset")}. ${String(data.episode_description ?? "")}` }] : []),
+      { label: "Outbreaks, last 12 months", value: `${text("outbreaks_last_12_months")}, ${text("outbreak_impact")} impact` },
+      ...(Array.isArray(data.suppression_goals) ? [{ label: "Suppression goals", value: (data.suppression_goals as unknown[]).join(", ").replaceAll("_", " ") }] : []),
+    ],
+    flags: yesTo(data, [
+      ...HSV_SCREENING_EPISODE, ...HSV_SCREENING_URGENT, ...HSV_SCREENING_HEALTH, ...HSV_SCREENING_MEDICINES,
+      ["prior_diagnosis_unclear", "Doesn't remember exactly who diagnosed it or when"],
+      ["new_sexual_exposure_or_sti_symptoms", "New sexual partner or exposure, or other STI symptoms"],
+    ]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
@@ -161,6 +180,7 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "eyelash_growth": return eyelash(data);
     case "erectile_dysfunction": return ed(data);
     case "hair_loss": return hairLoss(data);
+    case "herpes_simplex": return hsv(data);
     case "nad_plus":
       return wellness(data, [
         { label: "Goals", value: listOf(data, "treatment_goals") },
