@@ -99,6 +99,12 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "the patient's sleep and stress concerns, how they sleep, sleep disorders, mental health history, a suicide and behavioral health screen, a health screen, and consent to its off-label use",
   },
+  {
+    key: "erectile_dysfunction",
+    label: "Erectile dysfunction",
+    supported: true,
+    asks: "the patient's goals and how the problem started, a recent blood pressure reading, heart, medicine and health screens, history, alcohol, and the promise never to take it with nitrates",
+  },
 ];
 
 /**

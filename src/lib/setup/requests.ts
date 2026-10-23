@@ -2,6 +2,7 @@ import { intakeKey, type ProgramKey } from "./programs";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
+import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "../intake/ed";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
@@ -19,17 +20,20 @@ const no = (...lists: readonly (readonly (readonly [string, string])[])[]) =>
  * from the real one would teach the wrong thing. Pure: safe to import anywhere.
  */
 
+// Programs that treat men only get a male sample patient.
+const MALE_ONLY = new Set<ProgramKey>(["erectile_dysfunction"]);
+
 /**
  * A sample patient. Names, email and phone satisfy the synthetic-data guards.
  * `lastName` tells patients apart in a patient list; the walkthrough's is "Walkthrough".
  */
-export function patientRequest(stamp: string, lastName = "Walkthrough") {
+export function patientRequest(stamp: string, lastName = "Walkthrough", program?: ProgramKey) {
   return {
     external_id: `setup_${stamp}`,
     first_name: "Sample",
     last_name: lastName,
     date_of_birth: "1978-05-14",
-    sex: "female" as const,
+    sex: program && MALE_ONLY.has(program) ? ("male" as const) : ("female" as const),
     address: { line1: "410 Sample Street", line2: null, city: "Brooklyn", state: "NY", postal_code: "11201" },
     email: `sample.${lastName.toLowerCase()}+${stamp}@example.com`,
     phone: "+12125550142",
@@ -173,6 +177,26 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     psychiatric_history: "None reported",
     cancer_treatment_last_3_years: false,
     off_label_understanding_attested: true,
+  },
+  // A reading from a month before the app started: Lithos wants one from the last 6 months.
+  erectile_dysfunction: {
+    ...no(ED_SCREENING_HEART, ED_SCREENING_MEDICINES, ED_SCREENING_HEALTH, ED_HISTORY),
+    blood_pressure_systolic: 124,
+    blood_pressure_diastolic: 78,
+    blood_pressure_measured_on: new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10),
+    blood_pressure_setting: "pharmacy",
+    treatment_goals: ["keep_an_erection"],
+    condition_duration: "1_to_5_years",
+    ed_onset: "gradual",
+    erection_consistency: "most_times",
+    morning_erections: true,
+    climbs_two_flights: "yes",
+    cardiovascular_risk_factors: [],
+    related_medications: [],
+    heavy_drinking_days_past_year: 0,
+    medications_allergies: [],
+    prior_ed_medications: [],
+    nitrate_acknowledgment_attested: true,
   },
 };
 

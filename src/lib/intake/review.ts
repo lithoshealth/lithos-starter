@@ -16,6 +16,7 @@ import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS 
 import { GENERIC_SCREENING } from "./generic";
 import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT } from "./derm";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "./eyelash";
+import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "./ed";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
@@ -116,6 +117,22 @@ function wellness(data: Data, facts: IntakeReview["facts"], screening: readonly 
 const listOf = (data: Data, name: string) =>
   Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).map((v) => String(v).replaceAll("_", " ")).join(", ") : "None";
 
+function ed(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  const list = (name: string) => (Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).join(", ").replaceAll("_", " ") : "None");
+  return {
+    facts: [
+      { label: "Goals", value: list("treatment_goals") },
+      { label: "For", value: `${text("condition_duration")}, came on ${text("ed_onset")}` },
+      { label: "Blood pressure", value: `${data.blood_pressure_systolic ?? "—"}/${data.blood_pressure_diastolic ?? "—"} on ${text("blood_pressure_measured_on")} (${text("blood_pressure_setting")})` },
+      { label: "Two flights of stairs", value: text("climbs_two_flights") },
+      { label: "Risk factors", value: list("cardiovascular_risk_factors") },
+      { label: "Heavy drinking days, past year", value: String(data.heavy_drinking_days_past_year ?? "—") },
+    ],
+    flags: yesTo(data, [...ED_SCREENING_HEART, ...ED_SCREENING_MEDICINES, ...ED_SCREENING_HEALTH, ...ED_HISTORY]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
@@ -123,6 +140,7 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
     case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
     case "eyelash_growth": return eyelash(data);
+    case "erectile_dysfunction": return ed(data);
     case "nad_plus":
       return wellness(data, [
         { label: "Goals", value: listOf(data, "treatment_goals") },

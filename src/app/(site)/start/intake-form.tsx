@@ -26,9 +26,16 @@ import {
   OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SLEEP_DISORDERS, OXYTOCIN_SUICIDE_SCREEN,
   SERMORELIN_GOALS, SERMORELIN_INTERACTIONS, SERMORELIN_SCREENING,
 } from "@/lib/intake/wellness";
+import {
+  BLOOD_PRESSURE_SETTINGS, CARDIOVASCULAR_RISK_FACTORS, CLIMBS_TWO_FLIGHTS, ED_CONSISTENCY, ED_GOALS, ED_HISTORY, ED_ONSETS,
+  ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES, NITRATE_ACKNOWLEDGMENT, RELATED_MEDICATIONS,
+} from "@/lib/intake/ed";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
+
+// A sample blood pressure reading from a month ago: Lithos wants one from the last 6 months.
+const RECENT_READING = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
 
 /*
  * The intake as a quiz: one question per screen, a progress bar, and
@@ -583,6 +590,68 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
         { fields: ["off_label_understanding_attested"], autoAdvance: true, title: "Do you understand how oxytocin is used here?", hint: OXYTOCIN_CONSENT, body: yesNoScreen("off_label_understanding_attested") },
       ]
+    : program === "erectile_dysfunction" ? [
+        {
+          fields: ["treatment_goals"],
+          title: `Welcome to ${brandName}. What would you like from treatment?`,
+          hint: "Select all that apply.",
+          body: pickSome("treatment_goals", ED_GOALS, ["keep_an_erection"]),
+        },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had trouble with erections?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["ed_onset"], autoAdvance: true, title: "Did it come on gradually or suddenly?", body: pickOne("ed_onset", ED_ONSETS) },
+        { fields: ["erection_consistency"], autoAdvance: true, title: "How often does it happen?", body: pickOne("erection_consistency", ED_CONSISTENCY) },
+        { fields: ["morning_erections"], autoAdvance: true, title: "Do you still get erections in the morning or on their own?", body: yesNoScreen("morning_erections") },
+        {
+          fields: ["blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"],
+          reply: "{blood_pressure_systolic}/{blood_pressure_diastolic} on {blood_pressure_measured_on}, {blood_pressure_setting}",
+          title: "What was your most recent blood pressure?",
+          hint: "From the last 6 months: at home, at a pharmacy or at a clinic. If you don't have one, get a reading first.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Top number<input name="blood_pressure_systolic" type="number" min="50" max="260" step="1" defaultValue="124" required /></label>
+              <label className="field">Bottom number<input name="blood_pressure_diastolic" type="number" min="30" max="160" step="1" defaultValue="78" required /></label>
+              <label className="field">Date<input name="blood_pressure_measured_on" type="date" defaultValue={RECENT_READING} required /></label>
+              <label className="field">Taken<select name="blood_pressure_setting" defaultValue="pharmacy" required>{BLOOD_PRESSURE_SETTINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            </div>
+          ),
+        },
+        { fields: ["climbs_two_flights"], autoAdvance: true, title: "Can you climb two flights of stairs without chest pain or getting out of breath?", body: pickOne("climbs_two_flights", CLIMBS_TWO_FLIGHTS) },
+        { fields: ED_SCREENING_HEART.map(([n]) => n), checklist: ED_SCREENING_HEART, title: "Do any of these apply to your heart or blood pressure?", hint: "These decide whether these medicines are safe for you. Select all that apply.", body: null },
+        { fields: ED_SCREENING_MEDICINES.map(([n]) => n), checklist: ED_SCREENING_MEDICINES, title: "Do you take any of these, or have these allergies?", hint: "Select all that apply.", body: null },
+        { fields: ED_SCREENING_HEALTH.map(([n]) => n), checklist: ED_SCREENING_HEALTH, title: "And any of these?", hint: "Select all that apply.", body: null },
+        { fields: ["cardiovascular_risk_factors"], title: "Do any of these apply to you?", hint: "Select any that apply, or none.", body: pickSome("cardiovascular_risk_factors", CARDIOVASCULAR_RISK_FACTORS) },
+        { fields: ["related_medications"], title: "Do you take any of these?", hint: "They can affect erections. Select any that apply, or none.", body: pickSome("related_medications", RELATED_MEDICATIONS) },
+        { fields: ED_HISTORY.map(([n]) => n), checklist: ED_HISTORY, title: "And any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["heavy_drinking_days_past_year"], reply: "{heavy_drinking_days_past_year} times",
+          title: "In the past year, how many times have you had 5 or more drinks in a day?",
+          hint: "4 or more for women and anyone over 65. Enter 0 if never.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Times in the past year<input name="heavy_drinking_days_past_year" type="number" min="0" step="1" defaultValue="0" required /></label>
+            </div>
+          ),
+        },
+        {
+          fields: ["medications_allergies", "prior_ed_medications"], title: "What do you take, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines and supplements, including sexual-enhancement ones, and allergies")}
+              <label className="field wide">ED medicines you&rsquo;ve tried <small>(optional, one per line: the medicine, dose, how many tries, whether it worked, side effects)</small><textarea name="prior_ed_medications" rows={3} maxLength={4000} /></label>
+            </div>
+          ),
+        },
+        {
+          fields: ["nitrate_acknowledgment_attested"], autoAdvance: true, title: "Do you understand the one thing you must never do?",
+          hint: (
+            <>
+              {NITRATE_ACKNOWLEDGMENT} An erection lasting 4 hours or more, chest pain during or after sex, or fainting: call 911,
+              and don&rsquo;t take nitroglycerin. Sudden vision or hearing loss: stop the medicine and get care the same day.
+            </>
+          ),
+          body: yesNoScreen("nitrate_acknowledgment_attested"),
+        },
+      ]
     // Any other program: the illustrative intake (src/lib/intake/generic.ts) — general questions, not the protocol's own.
     : [
         {
@@ -633,7 +702,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           <label className="field">First name<input name="first_name" defaultValue="Sample" autoComplete="off" required /></label>
           <label className="field">Last name<input name="last_name" defaultValue="Patient" autoComplete="off" required /></label>
           <label className="field">Date of birth<input name="date_of_birth" type="date" defaultValue="1990-01-15" required /></label>
-          <label className="field">Sex at birth<select name="sex" defaultValue="female" required><option value="female">Female</option><option value="male">Male</option></select></label>
+          <label className="field">Sex at birth<select name="sex" defaultValue={program === "erectile_dysfunction" ? "male" : "female"} required><option value="female">Female</option><option value="male">Male</option></select></label>
         </div>
       ),
     },

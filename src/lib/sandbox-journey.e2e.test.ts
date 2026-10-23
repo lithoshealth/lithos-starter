@@ -32,7 +32,7 @@ describe.skipIf(!enabled)("patient journey against the Lithos sandbox", () => {
     for (const program of programs) {
       try {
         const stamp = `${Date.now()}`;
-        const { external_id: externalId, telehealth_consented_at: _c, identity_verified_at: _i, ...patient } = patientRequest(stamp, "Nightly");
+        const { external_id: externalId, telehealth_consented_at: _c, identity_verified_at: _i, ...patient } = patientRequest(stamp, "Nightly", program);
         const result = await runJourney(
           {
             patient,
