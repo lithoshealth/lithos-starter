@@ -38,6 +38,9 @@ import {
   HSV_DIAGNOSIS_METHODS, HSV_GOALS, HSV_IMPACTS, HSV_ONSETS, HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH,
   HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT, HSV_WANTS,
 } from "@/lib/intake/hsv";
+import {
+  GLP1_ATTEMPT_TIMINGS, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
+} from "@/lib/intake/glp1";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
@@ -351,6 +354,60 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           title: "Do you have any weight-related conditions?",
           hint: "Losing weight often improves these, so your clinician will want to know. Select all that apply.",
           body: null,
+        },
+      ]
+    : GLP1_PROGRAMS.includes(program) ? [
+        ...(program === "glp1_microdose" ? [{
+          fields: ["goal"], title: `Welcome to ${brandName}. Why do you want a GLP-1 microdose?`,
+          hint: "In your own words. A microdose isn't for weight loss, and its other benefits aren't established.",
+          body: <div className="field-grid"><label className="field wide">Your goal<textarea name="goal" rows={3} maxLength={1000} required /></label></div>,
+        }] : []),
+        {
+          fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
+          title: program === "glp1_microdose" ? "What's your height and weight?" : `Welcome to ${brandName}. What's your height and weight?`,
+          hint: `Your clinician works out your BMI from these: this program starts at ${program === "glp1_microdose" ? "20" : "22"}.`,
+          body: (
+            <div className="field-grid">
+              <label className="field">Height (feet)<input name="height_ft" type="number" min="3" max="8" step="1" defaultValue="5" required /></label>
+              <label className="field">Height (inches)<input name="height_in" type="number" min="0" max="11" step="1" defaultValue="7" required /></label>
+              <label className="field">Weight (lbs)<input name="weight_lb" type="number" min="70" max="1100" step="1" defaultValue={program === "glp1_microdose" ? "135" : "150"} required /></label>
+            </div>
+          ),
+        },
+        { fields: GLP1_HARD_STOPS.map(([n]) => n), checklist: GLP1_HARD_STOPS, title: "Have you ever had any of these?", hint: "If any applies, this program isn't safe for you and we won't send your request. Select all that apply.", body: null },
+        { fields: ["glp1_ever_used"], autoAdvance: true, title: "Have you ever used a GLP-1 medication?", hint: "For example Wegovy, Ozempic, Zepbound, Mounjaro, or a compounded one.", body: yesNoScreen("glp1_ever_used") },
+        { fields: ["already_on_glp1"], autoAdvance: true, title: "Are you taking one now?", body: yesNoScreen("already_on_glp1") },
+        {
+          fields: ["glp1_current_drug", "glp1_current_dose_mg", "glp1_length_of_use_weeks", "glp1_last_dose_date", "glp1_desired_direction", "current_glp1_dosage_upload_id"],
+          title: "If you've used one, tell us about the most recent",
+          hint: "Skip this if you've never used a GLP-1. We'll also send your most recent prescription.",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Medication<select name="glp1_current_drug" defaultValue=""><option value="">Never used one</option>{GLP1_DRUGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field">Weekly dose (mg)<input name="glp1_current_dose_mg" type="number" min="0" max="30" step="0.01" /></label>
+              <label className="field">Weeks you took it<input name="glp1_length_of_use_weeks" type="number" min="0" max="520" step="1" /></label>
+              <label className="field">Last dose<input name="glp1_last_dose_date" type="date" /></label>
+              <label className="field">If you take it now, your dose should<select name="glp1_desired_direction" defaultValue=""><option value="">Not taking one now</option>{glp1Directions(program).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            </div>
+          ),
+        },
+        { fields: [...GLP1_HISTORY.map(([n]) => n), "gi_clearance_upload_id"], checklist: GLP1_HISTORY, title: "Do any of these apply?", hint: "With ulcerative colitis or Crohn's, we'll send your GI doctor's clearance. Select all that apply.", body: null },
+        {
+          fields: [...WEIGHT_COMORBIDITIES.map(([key]) => `comorbidity_${key}`), "comorbidities"],
+          checklist: WEIGHT_COMORBIDITIES.map(([key, label]) => [`comorbidity_${key}`, label] as const),
+          title: "Do you have any weight-related conditions?", hint: "Select all that apply.", body: null,
+        },
+        { fields: [...GLP1_SUICIDE_SCREEN.map(([n]) => n)], checklist: GLP1_SUICIDE_SCREEN, title: "How have you been feeling?", hint: "We ask everyone. Select all that apply.", body: null },
+        { fields: ["suicide_attempt_timing"], title: "If you've tried to kill yourself, when was the most recent time?", hint: "Skip this if you haven't.", body: <div className="field-grid"><label className="field wide">Most recent<select name="suicide_attempt_timing" defaultValue=""><option value="">Never</option>{GLP1_ATTEMPT_TIMINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label></div> },
+        { fields: ["suicidal_thoughts_current"], autoAdvance: true, title: "Are you having thoughts of killing yourself right now?", hint: "If you are, call or text 988 now, or call 911 if you're in danger.", body: yesNoScreen("suicidal_thoughts_current") },
+        {
+          fields: ["medications_allergies", "prior_weight_loss_meds"], title: "What do you take, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines, supplements and allergies, with any past reaction")}
+              <label className="field wide">Weight-loss medicines you&rsquo;ve tried <small>(optional, one per line)</small><textarea name="prior_weight_loss_meds" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
         },
       ]
     : intakeKey(program) === "lipid_management" ? [

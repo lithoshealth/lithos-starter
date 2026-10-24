@@ -17,6 +17,7 @@ import { parseEyelashIntake } from "./intake/eyelash";
 import { parseEdIntake } from "./intake/ed";
 import { parseHairLossIntake } from "./intake/hair-loss";
 import { parseHsvIntake } from "./intake/hsv";
+import { GLP1_PROGRAMS, parseGlp1Intake } from "./intake/glp1";
 import { WELLNESS_PARSERS, WELLNESS_PROGRAMS } from "./intake/wellness";
 import { intakeKey, type ProgramKey } from "./setup/programs";
 import { newAttempt, stepKeys, type Attempt } from "./lithos/idempotency";
@@ -131,7 +132,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   }
   const intake = program === "weight_management" ? weightIntake(formData)
     : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
-    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
+    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || GLP1_PROGRAMS.includes(program) || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
@@ -222,6 +223,7 @@ function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermI
     : program === "erectile_dysfunction" ? parseEdIntake(read)
     : program === "hair_loss" ? parseHairLossIntake(read)
     : program === "herpes_simplex" ? parseHsvIntake(read)
+    : GLP1_PROGRAMS.includes(program) ? parseGlp1Intake(read, program)
     : WELLNESS_PARSERS[program] ? WELLNESS_PARSERS[program](read)
     : parseHyperpigmentationIntake(read);
   if (parsed.ok) return parsed;

@@ -52,6 +52,18 @@ export const PROGRAMS: Program[] = [
     asks: "height and weight, whether they already take a GLP-1, seventeen screening questions and any weight-related conditions",
   },
   {
+    key: "weight_management_low_dose",
+    label: "Weight management, low dose",
+    supported: true,
+    asks: "height and weight, the hard stops (screened here, never sent), GLP-1 history with the latest prescription, a suicide screen, medicines, and weight-loss medicines tried",
+  },
+  {
+    key: "glp1_microdose",
+    label: "Microdose GLP-1",
+    supported: true,
+    asks: "the patient's goal, height and weight, the hard stops (screened here, never sent), GLP-1 history with the latest prescription, a suicide screen, and medicines",
+  },
+  {
     key: "acne",
     label: "Acne",
     supported: true,

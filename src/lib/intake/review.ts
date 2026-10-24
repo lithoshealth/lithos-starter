@@ -20,6 +20,7 @@ import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDIC
 import {
   HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
 } from "./hair-loss";
+import { GLP1_HISTORY, GLP1_SUICIDE_SCREEN } from "./glp1";
 import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "./hsv";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
@@ -172,6 +173,23 @@ function hsv(data: Data): IntakeReview {
   };
 }
 
+function glp1(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  return {
+    facts: [
+      ...(data.goal ? [{ label: "Goal", value: String(data.goal) }] : []),
+      { label: "Height and weight", value: `${text("height_cm")} cm, ${text("weight_kg")} kg` },
+      {
+        label: "GLP-1",
+        value: data.glp1_ever_used === true
+          ? `${text("glp1_current_drug")} ${text("glp1_current_dose_mg")} mg, last dose ${text("glp1_last_dose_date")}${data.already_on_glp1 === true ? `, on it now, wants to ${text("glp1_desired_direction")}` : ""}`
+          : "Never used one",
+      },
+    ],
+    flags: yesTo(data, [...GLP1_HISTORY, ...GLP1_SUICIDE_SCREEN]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
@@ -182,6 +200,8 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "erectile_dysfunction": return ed(data);
     case "hair_loss": return hairLoss(data);
     case "herpes_simplex": return hsv(data);
+    case "glp1_microdose":
+    case "weight_management_low_dose": return glp1(data);
     case "nad_plus":
       return wellness(data, [
         { label: "Goals", value: listOf(data, "treatment_goals") },
