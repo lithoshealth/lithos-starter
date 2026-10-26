@@ -91,7 +91,7 @@ function GLP1_SAMPLE(program: string): Record<string, unknown> {
     ...no(GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_SUICIDE_SCREEN),
     suicidal_thoughts_current: false,
     glp1_ever_used: false, already_on_glp1: false,
-    medications_allergies: [], prior_weight_loss_meds: [],
+    current_medications: [], allergies: [], prior_weight_loss_meds: [],
   };
 }
 

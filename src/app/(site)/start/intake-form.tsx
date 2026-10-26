@@ -39,7 +39,7 @@ import {
   HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT, HSV_WANTS,
 } from "@/lib/intake/hsv";
 import {
-  GLP1_ATTEMPT_TIMINGS, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
+  GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
 } from "@/lib/intake/glp1";
 import { newAttemptKey } from "../../idempotency-field";
 
@@ -378,12 +378,13 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: ["glp1_ever_used"], autoAdvance: true, title: "Have you ever used a GLP-1 medication?", hint: "For example Wegovy, Ozempic, Zepbound, Mounjaro, or a compounded one.", body: yesNoScreen("glp1_ever_used") },
         { fields: ["already_on_glp1"], autoAdvance: true, title: "Are you taking one now?", body: yesNoScreen("already_on_glp1") },
         {
-          fields: ["glp1_current_drug", "glp1_current_dose_mg", "glp1_length_of_use_weeks", "glp1_last_dose_date", "glp1_desired_direction", "current_glp1_dosage_upload_id"],
+          fields: ["glp1_current_drug", "glp1_current_drug_other", "glp1_current_dose_mg", "glp1_length_of_use_weeks", "glp1_last_dose_date", "glp1_desired_direction", "current_glp1_dosage_upload_id"],
           title: "If you've used one, tell us about the most recent",
           hint: "Skip this if you've never used a GLP-1. We'll also send your most recent prescription.",
           body: (
             <div className="field-grid">
               <label className="field wide">Medication<select name="glp1_current_drug" defaultValue=""><option value="">Never used one</option>{GLP1_DRUGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">If another one, which? <small>(its name)</small><input name="glp1_current_drug_other" autoComplete="off" /></label>
               <label className="field">Weekly dose (mg)<input name="glp1_current_dose_mg" type="number" min="0" max="30" step="0.01" /></label>
               <label className="field">Weeks you took it<input name="glp1_length_of_use_weeks" type="number" min="0" max="520" step="1" /></label>
               <label className="field">Last dose<input name="glp1_last_dose_date" type="date" /></label>
@@ -393,19 +394,21 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
         { fields: [...GLP1_HISTORY.map(([n]) => n), "gi_clearance_upload_id"], checklist: GLP1_HISTORY, title: "Do any of these apply?", hint: "With ulcerative colitis or Crohn's, we'll send your GI doctor's clearance. Select all that apply.", body: null },
         {
-          fields: [...WEIGHT_COMORBIDITIES.map(([key]) => `comorbidity_${key}`), "comorbidities"],
-          checklist: WEIGHT_COMORBIDITIES.map(([key, label]) => [`comorbidity_${key}`, label] as const),
-          title: "Do you have any weight-related conditions?", hint: "Select all that apply.", body: null,
+          fields: [...GLP1_COMORBIDITIES.map(([key]) => `comorbidity_${key}`), "comorbidities"],
+          checklist: GLP1_COMORBIDITIES.map(([key, label]) => [`comorbidity_${key}`, label] as const),
+          title: "Do you have any weight-related conditions?", hint: "Select all that apply. You can name another one on the last screen.", body: null,
         },
         { fields: [...GLP1_SUICIDE_SCREEN.map(([n]) => n)], checklist: GLP1_SUICIDE_SCREEN, title: "How have you been feeling?", hint: "We ask everyone. Select all that apply.", body: null },
         { fields: ["suicide_attempt_timing"], title: "If you've tried to kill yourself, when was the most recent time?", hint: "Skip this if you haven't.", body: <div className="field-grid"><label className="field wide">Most recent<select name="suicide_attempt_timing" defaultValue=""><option value="">Never</option>{GLP1_ATTEMPT_TIMINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label></div> },
         { fields: ["suicidal_thoughts_current"], autoAdvance: true, title: "Are you having thoughts of killing yourself right now?", hint: "If you are, call or text 988 now, or call 911 if you're in danger.", body: yesNoScreen("suicidal_thoughts_current") },
         {
-          fields: ["medications_allergies", "prior_weight_loss_meds"], title: "What do you take, and what have you tried?",
+          fields: ["current_medications", "allergies", "prior_weight_loss_meds", "comorbidities_other"], title: "What do you take, and what have you tried?",
           body: (
             <div className="field-grid">
-              {medicinesText("Medicines, supplements and allergies, with any past reaction")}
+              <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Allergies, and any past reaction to a medicine <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
               <label className="field wide">Weight-loss medicines you&rsquo;ve tried <small>(optional, one per line)</small><textarea name="prior_weight_loss_meds" rows={2} maxLength={2000} /></label>
+              <label className="field wide">Another weight-related condition <small>(optional)</small><input name="comorbidities_other" autoComplete="off" /></label>
             </div>
           ),
         },

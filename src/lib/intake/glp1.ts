@@ -33,7 +33,8 @@ export const GLP1_HARD_STOPS: Options = [
 ];
 
 export const GLP1_HISTORY: Options = [
-  ["cancer_treatment_or_steroids", "Cancer treatment in the last 3 years, or daily steroids"],
+  ["cancer_treatment_last_3_years", "Cancer treatment in the last 3 years"],
+  ["daily_steroid_use", "I take steroids every day"],
   ["ibd_diagnosis", "Ulcerative colitis or Crohn's disease"],
   ["oral_contraceptive", "I take birth control pills"],
 ];
@@ -56,7 +57,8 @@ export function glp1Directions(program: string): Options {
     : [["same", "Stay the same"], ["increase", "Go up"], ["decrease", "Go down"]];
 }
 
-export { WEIGHT_COMORBIDITIES };
+/** Weight management's conditions, without "something else": that one is typed, so it has a name. */
+export const GLP1_COMORBIDITIES = WEIGHT_COMORBIDITIES.filter(([key]) => key !== "other");
 
 // ------------------------------------------------------------------ parsing
 
@@ -92,6 +94,7 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
   }
 
   const goal = read.text("goal");
+  const otherCondition = read.text("comorbidities_other");
   if (program === "glp1_microdose" && !goal) errors.push({ pointer: pointer("goal"), message: "Say why you want the microdose." });
 
   const everUsed = yesNo(read, "glp1_ever_used", errors, "Say whether you've ever used a GLP-1.");
@@ -100,6 +103,9 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
   if (everUsed || onNow) {
     const drug = read.text("glp1_current_drug");
     if (!keys(GLP1_DRUGS).includes(drug)) errors.push({ pointer: pointer("glp1_current_drug"), message: "Pick the GLP-1 you took most recently." });
+    const drugOther = read.text("glp1_current_drug_other");
+    if (drug === "other" && !drugOther) errors.push({ pointer: pointer("glp1_current_drug_other"), message: "Name the GLP-1 you took." });
+    if (drug === "other") history.glp1_current_drug_other = drugOther;
     const dose = Number(read.text("glp1_current_dose_mg"));
     if (!(dose > 0)) errors.push({ pointer: pointer("glp1_current_dose_mg"), message: "Enter your most recent weekly dose in mg." });
     const weeks = Number(read.text("glp1_length_of_use_weeks"));
@@ -124,11 +130,14 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
     errors.push({ pointer: pointer("suicide_attempt_timing"), message: "Say when the most recent attempt was." });
   }
 
-  const comorbidities = keys(WEIGHT_COMORBIDITIES).filter((key) => read.checked(`comorbidity_${key}`));
+  // "Something else" needs its name: Lithos refuses an `other` with nothing to read.
+  const comorbidities = keys(WEIGHT_COMORBIDITIES).filter((key) => key !== "other" && read.checked(`comorbidity_${key}`));
+  if (otherCondition) comorbidities.push("other");
   const value = {
     height_cm: heightCm,
     weight_kg: weightKg,
     ...(comorbidities.length > 0 ? { comorbidities } : {}),
+    ...(otherCondition ? { comorbidities_other: otherCondition } : {}),
     ...(program === "glp1_microdose" ? { goal } : {}),
     // Only reached with every hard stop answered no; sent so the record shows it.
     ...booleans(read, GLP1_HARD_STOPS),
@@ -139,8 +148,9 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
     ...history,
     ...screen,
     ...(screen.suicide_attempt_ever ? { suicide_attempt_timing: timing } : {}),
-    // Both required by Lithos; an empty list means none.
-    medications_allergies: lines(read.text("medications_allergies")),
+    // Required by Lithos; an empty list means none.
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
     prior_weight_loss_meds: lines(read.text("prior_weight_loss_meds")),
   };
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };

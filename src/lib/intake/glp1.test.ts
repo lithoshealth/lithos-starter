@@ -13,7 +13,7 @@ const clean = {
   goal: "Appetite and metabolic health",
   height_ft: "5", height_in: "7", weight_lb: "135",
   glp1_ever_used: "false", already_on_glp1: "false", suicidal_thoughts_current: "false",
-  medications_allergies: "", prior_weight_loss_meds: "",
+  current_medications: "", allergies: "", prior_weight_loss_meds: "",
 };
 
 describe("parseGlp1Intake", () => {
@@ -23,8 +23,8 @@ describe("parseGlp1Intake", () => {
     if (!parsed.ok) return;
     expect(parsed.value).toMatchObject({
       goal: "Appetite and metabolic health", height_cm: 170, weight_kg: 61.2, glp1_ever_used: false, already_on_glp1: false,
-      ibd_diagnosis: true, cancer_treatment_or_steroids: false, recent_wish_to_be_dead: false, suicide_attempt_ever: false,
-      medications_allergies: [], prior_weight_loss_meds: [],
+      ibd_diagnosis: true, cancer_treatment_last_3_years: false, daily_steroid_use: false, recent_wish_to_be_dead: false,
+      suicide_attempt_ever: false, current_medications: [], allergies: [], prior_weight_loss_meds: [],
     });
     expect(parsed.value).toMatchObject({ pancreatitis_pancreatic_ca: false, drug_hypersensitivity: false, suicidal_thoughts_current: false });
   });
@@ -51,5 +51,14 @@ describe("parseGlp1Intake", () => {
     expect(pointers({ already_on_glp1: "true", glp1_current_drug: "semaglutide", glp1_current_dose_mg: "0.2",
       glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "increase" }))
       .toEqual(["/intake_form/data/glp1_desired_direction"]);
+  });
+
+  it("names an other GLP-1 and an other condition, which Lithos needs to read", () => {
+    const parsed = parseGlp1Intake(read({ ...clean, comorbidities_other: "Fatty liver", already_on_glp1: "true", glp1_current_drug: "other",
+      glp1_current_dose_mg: "1", glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "same" },
+    ["comorbidity_htn"]), "glp1_microdose");
+    expect(parsed.ok ? [] : parsed.errors.map((e) => e.pointer)).toEqual(["/intake_form/data/glp1_current_drug_other"]);
+    const named = parseGlp1Intake(read({ ...clean, comorbidities_other: "Fatty liver" }, ["comorbidity_htn"]), "glp1_microdose");
+    expect(named.ok && named.value).toMatchObject({ comorbidities: ["htn", "other"], comorbidities_other: "Fatty liver" });
   });
 });
