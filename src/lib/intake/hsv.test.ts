@@ -19,7 +19,8 @@ const outbreak = {
   outbreak_impact: "mild",
   suppression_goals: ["fewer_outbreaks"],
   new_sexual_exposure_or_sti_symptoms: "false",
-  medications_allergies: "",
+  current_medications: "",
+  allergies: "Penicillin (rash)",
   antiviral_history: "Valacyclovir 2 g twice, last spring, helped",
 };
 
@@ -31,7 +32,8 @@ describe("parseHsvIntake", () => {
     expect(parsed.value).toMatchObject({
       requested_treatment: "cold_sore_outbreak", sore_site: "outer_lip", prior_diagnosis_details: "My dentist, 2020",
       sores_onset: "tingling_only", outbreaks_last_12_months: 4, kidney_risk_factors: true, pregnancy: false,
-      eye_symptoms: false, antiviral_history: ["Valacyclovir 2 g twice, last spring, helped"], medications_allergies: [],
+      eye_symptoms_or_sores_near_eye: false, antiviral_history: ["Valacyclovir 2 g twice, last spring, helped"],
+      current_medications: [], allergies: ["Penicillin (rash)"],
     });
     // Suppression goals only go with suppression.
     expect(parsed.value).not.toHaveProperty("suppression_goals");

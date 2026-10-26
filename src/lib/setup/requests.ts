@@ -245,7 +245,8 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     outbreak_impact: "moderate",
     new_sexual_exposure_or_sti_symptoms: false,
     antiviral_history: [],
-    medications_allergies: [],
+    current_medications: [],
+    allergies: [],
   },
 };
 

@@ -817,10 +817,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: HSV_SCREENING_MEDICINES.map(([n]) => n), checklist: HSV_SCREENING_MEDICINES, title: "And any of these?", hint: "Select all that apply.", body: null },
         { fields: ["new_sexual_exposure_or_sti_symptoms"], autoAdvance: true, title: "Any new sexual partner or exposure, or other STI symptoms?", body: yesNoScreen("new_sexual_exposure_or_sti_symptoms") },
         {
-          fields: ["medications_allergies", "antiviral_history"], title: "What do you take, and what have you taken for herpes?",
+          fields: ["current_medications", "allergies", "antiviral_history"], title: "What do you take, and what have you taken for herpes?",
           body: (
             <div className="field-grid">
-              {medicinesText("Medicines and supplements, and allergies with the reaction")}
+              <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Allergies, with the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
               <label className="field wide">Herpes medicines you take or have taken <small>(optional, one per line: the medicine, dose, when, whether it helped)</small><textarea name="antiviral_history" rows={3} maxLength={4000} /></label>
             </div>
           ),

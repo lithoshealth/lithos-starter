@@ -52,7 +52,7 @@ export const HSV_SCREENING_EPISODE: Options = [
 ];
 
 export const HSV_SCREENING_URGENT: Options = [
-  ["eye_symptoms", "Eye pain, redness, light sensitivity, vision changes, or sores near my eye"],
+  ["eye_symptoms_or_sores_near_eye", "Eye pain, redness, light sensitivity, vision changes, or sores near my eye"],
   ["emergency_symptoms", "Confusion, a seizure, a severe headache with fever or a stiff neck, a widespread rash, or I can't urinate and feel very ill"],
 ];
 
@@ -132,7 +132,8 @@ export function parseHsvIntake(read: Read): Parsed {
     new_sexual_exposure_or_sti_symptoms: exposure === "true",
     // Both required by Lithos; an empty list means none.
     antiviral_history: lines(read.text("antiviral_history")),
-    medications_allergies: lines(read.text("medications_allergies")),
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
   };
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };
 }
