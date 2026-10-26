@@ -17,7 +17,7 @@ const clean = {
 };
 
 describe("parseGlp1Intake", () => {
-  it("builds Lithos's glp1_microdose intake, without sending the hard stops", () => {
+  it("builds Lithos's glp1_microdose intake, with every hard stop answered no", () => {
     const parsed = parseGlp1Intake(read(clean, ["ibd_diagnosis"]), "glp1_microdose");
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
@@ -26,8 +26,7 @@ describe("parseGlp1Intake", () => {
       ibd_diagnosis: true, cancer_treatment_or_steroids: false, recent_wish_to_be_dead: false, suicide_attempt_ever: false,
       medications_allergies: [], prior_weight_loss_meds: [],
     });
-    expect(parsed.value).not.toHaveProperty("pancreatitis_pancreatic_ca");
-    expect(parsed.value).not.toHaveProperty("suicidal_thoughts_current");
+    expect(parsed.value).toMatchObject({ pancreatitis_pancreatic_ca: false, drug_hypersensitivity: false, suicidal_thoughts_current: false });
   });
 
   it("sends the GLP-1 history for a patient on one, and Low Dose has no goal", () => {

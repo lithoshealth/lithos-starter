@@ -6,7 +6,7 @@ import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDIC
 import {
   HAIR_FERTILITY, HAIR_SCREENING_HEALTH, HAIR_SCREENING_MEDICINES, HAIR_SCREENING_MOOD, HAIR_SCREENING_SIGNS,
 } from "../intake/hair-loss";
-import { GLP1_HISTORY, GLP1_SUICIDE_SCREEN } from "../intake/glp1";
+import { GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_SUICIDE_SCREEN } from "../intake/glp1";
 import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "../intake/hsv";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
@@ -88,7 +88,8 @@ function GLP1_SAMPLE(program: string): Record<string, unknown> {
   return {
     height_cm: 170, weight_kg: program === "glp1_microdose" ? 62 : 68,
     ...(program === "glp1_microdose" ? { goal: "Appetite and metabolic health, not weight loss." } : {}),
-    ...no(GLP1_HISTORY, GLP1_SUICIDE_SCREEN),
+    ...no(GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_SUICIDE_SCREEN),
+    suicidal_thoughts_current: false,
     glp1_ever_used: false, already_on_glp1: false,
     medications_allergies: [], prior_weight_loss_meds: [],
   };
@@ -228,7 +229,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     finasteride_12_months_without_stabilization: false,
     finasteride_risks_attested: true,
   },
-  // A clean patient who has never used a GLP-1. The hard stops aren't sent.
+  // A clean patient who has never used a GLP-1, every hard stop answered no.
   glp1_microdose: GLP1_SAMPLE("glp1_microdose"),
   weight_management_low_dose: GLP1_SAMPLE("weight_management_low_dose"),
   herpes_simplex: {

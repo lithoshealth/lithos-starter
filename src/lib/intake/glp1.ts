@@ -7,9 +7,10 @@
  * (v1.0). Low Dose is Microdose with a capped step-up, so one intake serves
  * both: Microdose also asks the patient's goal, and offers no increase.
  *
- * These protocols screen their hard stops at the partner and never send them.
- * So does this intake: a hard stop, or current thoughts of suicide, stops it
- * before anything reaches Lithos. The rest (a BMI below the program's floor,
+ * A hard stop, or current thoughts of suicide, stops this intake before
+ * anything reaches Lithos. Every hard-stop answer is still sent, as `false`:
+ * an unanswered question isn't a no, so Lithos is moving to require them, as
+ * it does for every other protocol (ENG-804). The rest (a BMI below the program's floor,
  * a dose above its cap) goes to Lithos, which rules the treatments out for the
  * clinician. The prescription photo and the GI clearance are added when it's
  * sent (src/lib/journey-photos.ts).
@@ -129,6 +130,9 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
     weight_kg: weightKg,
     ...(comorbidities.length > 0 ? { comorbidities } : {}),
     ...(program === "glp1_microdose" ? { goal } : {}),
+    // Only reached with every hard stop answered no; sent so the record shows it.
+    ...booleans(read, GLP1_HARD_STOPS),
+    suicidal_thoughts_current: false,
     ...booleans(read, GLP1_HISTORY),
     glp1_ever_used: everUsed || onNow,
     already_on_glp1: onNow,
