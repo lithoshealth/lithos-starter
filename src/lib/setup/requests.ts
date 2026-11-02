@@ -9,6 +9,13 @@ import {
 import { GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_SUICIDE_SCREEN } from "../intake/glp1";
 import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "../intake/hsv";
 import {
+  PREGNANCY_QUESTIONS, RINGWORM_SCREENING_ALLERGIES, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_URGENT,
+} from "../intake/ringworm";
+import {
+  VAGINITIS_HISTORY, VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_EXPOSURE, VAGINITIS_SCREENING_HEALTH,
+  VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST,
+} from "../intake/vaginitis";
+import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "../intake/wellness";
@@ -232,6 +239,40 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
   // A clean patient who has never used a GLP-1, every hard stop answered no.
   glp1_microdose: GLP1_SAMPLE("glp1_microdose"),
   weight_management_low_dose: GLP1_SAMPLE("weight_management_low_dose"),
+  // A small itchy patch on the body. Its two photos are added before sending.
+  dermatophyte_infection: {
+    ...no(RINGWORM_SCREENING_URGENT, PREGNANCY_QUESTIONS, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_ALLERGIES),
+    affected_areas: ["body"],
+    excluded_areas: [],
+    patch_count: 1,
+    largest_patch_cm: 3,
+    condition_duration: "under_3_months",
+    rash_symptoms: ["scaling", "itch"],
+    exposures: ["gym"],
+    associated_findings: [],
+    diabetes: "none",
+    immune_compromise: "none",
+    foot_wound: false,
+    prior_products: [],
+    current_medications: [],
+    allergies: [],
+  },
+  // Classic thin discharge with a fishy odor. No photos or labs.
+  vaginitis: {
+    ...no(VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_EXPOSURE, PREGNANCY_QUESTIONS,
+      VAGINITIS_SCREENING_YEAST, VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_HEALTH, VAGINITIS_HISTORY),
+    odor: "fishy",
+    discharge: "thin_gray_or_white",
+    vulvovaginal_symptoms: ["itching"],
+    symptom_duration_days: 4,
+    confirmed_bv_episodes_12_months: 0,
+    yeast_episodes_12_months: 0,
+    diabetes: "none",
+    immune_compromise: "none",
+    prior_products: [],
+    current_medications: [],
+    allergies: [],
+  },
   herpes_simplex: {
     ...no(HSV_SCREENING_EPISODE, HSV_SCREENING_URGENT, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES),
     requested_treatment: "genital_outbreak",

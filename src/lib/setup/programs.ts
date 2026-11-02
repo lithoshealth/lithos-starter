@@ -129,6 +129,18 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "whether the patient wants an outbreak treated or daily suppression, how and when it was diagnosed, this outbreak, how often they get them, urgent signs, health and allergy screens, and herpes medicines taken",
   },
+  {
+    key: "dermatophyte_infection",
+    label: "Ringworm",
+    supported: true,
+    asks: "where the rash is, how big and how long, warning signs, pregnancy, diabetes and immune health, exposures, medicines, and a photo overview and close-up of each site",
+  },
+  {
+    key: "vaginitis",
+    label: "Vaginitis (BV and yeast)",
+    supported: true,
+    asks: "odor, discharge and other symptoms, warning signs, pregnancy, STI exposure, past BV and yeast infections, medicine safety, and what they've tried",
+  },
 ];
 
 /**

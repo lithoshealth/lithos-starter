@@ -39,6 +39,14 @@ import {
   HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT, HSV_WANTS,
 } from "@/lib/intake/hsv";
 import {
+  DIABETES, DURATIONS as RINGWORM_DURATIONS, IMMUNE_COMPROMISE, PREGNANCY_QUESTIONS, RINGWORM_EXCLUDED_AREAS, RINGWORM_EXPOSURES,
+  RINGWORM_FINDINGS, RINGWORM_SCREENING_ALLERGIES, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_URGENT, RINGWORM_SITES, RINGWORM_SYMPTOMS,
+} from "@/lib/intake/ringworm";
+import {
+  VAGINITIS_DISCHARGE, VAGINITIS_HISTORY, VAGINITIS_ODORS, VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_EXPOSURE,
+  VAGINITIS_SCREENING_HEALTH, VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST, VAGINITIS_SYMPTOMS,
+} from "@/lib/intake/vaginitis";
+import {
   GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
 } from "@/lib/intake/glp1";
 import { newAttemptKey } from "../../idempotency-field";
@@ -823,6 +831,118 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
               <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
               <label className="field wide">Allergies, with the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
               <label className="field wide">Herpes medicines you take or have taken <small>(optional, one per line: the medicine, dose, when, whether it helped)</small><textarea name="antiviral_history" rows={3} maxLength={4000} /></label>
+            </div>
+          ),
+        },
+      ]
+    : program === "dermatophyte_infection" ? [
+        {
+          fields: ["affected_areas"], title: `Welcome to ${brandName}. Where is the rash?`,
+          hint: "Select all that apply. Skip this if it's only on your scalp, beard, nails, face or near your eye.",
+          body: pickSome("affected_areas", RINGWORM_SITES),
+        },
+        { fields: ["excluded_areas"], title: "Is it also on any of these?", hint: "Select all that apply. These need other care, so your clinician will refer you.", body: pickSome("excluded_areas", RINGWORM_EXCLUDED_AREAS) },
+        {
+          fields: ["patch_count", "largest_patch_cm", "condition_duration"], reply: "{patch_count} patches, largest {largest_patch_cm} cm",
+          title: "Tell us about the rash",
+          body: (
+            <div className="field-grid">
+              <label className="field">How many patches<input name="patch_count" type="number" min="1" max="100" step="1" required /></label>
+              <label className="field">Width of the largest, in cm<input name="largest_patch_cm" type="number" min="0.1" max="100" step="0.1" required /></label>
+              <label className="field wide">How long you&rsquo;ve had it<select name="condition_duration" defaultValue="" required><option value="" disabled>Choose</option>{RINGWORM_DURATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            </div>
+          ),
+        },
+        { fields: ["rash_symptoms"], title: "What's the rash like?", hint: "Select all that apply.", body: pickSome("rash_symptoms", RINGWORM_SYMPTOMS) },
+        { fields: RINGWORM_SCREENING_URGENT.map(([n]) => n), checklist: RINGWORM_SCREENING_URGENT, title: "Do you have any of these now?", hint: "These need an exam rather than a cream. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["diabetes", "immune_compromise", "foot_wound"], reply: "Diabetes: {diabetes}. Immune system: {immune_compromise}",
+          title: "A few questions about your health",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Do you have diabetes?<select name="diabetes" defaultValue="" required><option value="" disabled>Choose</option>{DIABETES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">Is your immune system weakened?<select name="immune_compromise" defaultValue="" required><option value="" disabled>Choose</option>{IMMUNE_COMPROMISE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">An open wound on a foot?<select name="foot_wound" defaultValue="" required><option value="" disabled>Choose</option><option value="false">No</option><option value="true">Yes</option></select></label>
+            </div>
+          ),
+        },
+        { fields: RINGWORM_SCREENING_RASH.map(([n]) => n), checklist: RINGWORM_SCREENING_RASH, title: "Do any of these apply to the rash?", hint: "Your clinician reads these before deciding. Select all that apply.", body: null },
+        { fields: RINGWORM_SCREENING_ALLERGIES.map(([n]) => n), checklist: RINGWORM_SCREENING_ALLERGIES, title: "Any of these allergies?", hint: "Select all that apply.", body: null },
+        { fields: ["exposures"], title: "Where might you have caught it?", hint: "Select all that apply.", body: pickSome("exposures", RINGWORM_EXPOSURES) },
+        { fields: ["associated_findings"], title: "Do you also have any of these?", hint: "Select all that apply.", body: pickSome("associated_findings", RINGWORM_FINDINGS) },
+        {
+          fields: ["current_medications", "allergies", "prior_products"], title: "What do you take, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Allergies, with the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
+              <label className="field wide">Antifungal products you&rsquo;ve tried <small>(optional, one per line: the product, how often, how long, used as directed or not)</small><textarea name="prior_products" rows={3} maxLength={4000} /></label>
+            </div>
+          ),
+        },
+        photoScreen(
+          [{ field: "body_overview_photo_upload_id", label: "Overview, with a coin or ruler", sample: "skin-trunk.png" }, { field: "body_close_up_photo_upload_id", label: "Close-up, with a coin or ruler", sample: "skin-closeup.png" }],
+          "One overview and one close-up are sent for each site you picked.",
+        ),
+      ]
+    : program === "vaginitis" ? [
+        { fields: ["odor"], autoAdvance: true, title: `Welcome to ${brandName}. Is there an unusual odor?`, hint: "This is for bacterial vaginosis and yeast infections.", body: pickOne("odor", VAGINITIS_ODORS) },
+        {
+          fields: ["discharge", "discharge_other"], reply: "Discharge: {discharge}", title: "What's the discharge like?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Color and texture<select name="discharge" defaultValue="" required><option value="" disabled>Choose</option>{VAGINITIS_DISCHARGE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">If it&rsquo;s something else, describe it<textarea name="discharge_other" rows={2} maxLength={1000} /></label>
+            </div>
+          ),
+        },
+        { fields: ["vulvovaginal_symptoms"], title: "Do you have any of these?", hint: "Select all that apply.", body: pickSome("vulvovaginal_symptoms", VAGINITIS_SYMPTOMS) },
+        {
+          fields: ["symptom_duration_days", "ph_result"], reply: "For {symptom_duration_days} days", title: "How long have you had symptoms?",
+          body: (
+            <div className="field-grid">
+              <label className="field">Days<input name="symptom_duration_days" type="number" min="0" max="3650" step="1" required /></label>
+              <label className="field">Vaginal pH, if you tested <small>(optional)</small><input name="ph_result" type="number" min="0" max="14" step="0.1" /></label>
+            </div>
+          ),
+        },
+        { fields: VAGINITIS_SCREENING_EMERGENCY.map(([n]) => n), checklist: VAGINITIS_SCREENING_EMERGENCY, title: "Do you have either of these now?", hint: "For these, call 911 or go to the nearest emergency department.", body: null },
+        { fields: VAGINITIS_SCREENING_URGENT.map(([n]) => n), checklist: VAGINITIS_SCREENING_URGENT, title: "Do you have any of these?", hint: "These need an in-person exam. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        { fields: VAGINITIS_SCREENING_EXPOSURE.map(([n]) => n), checklist: VAGINITIS_SCREENING_EXPOSURE, title: "Any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["confirmed_bv_episodes_12_months", "yeast_episodes_12_months"], reply: "{confirmed_bv_episodes_12_months} BV, {yeast_episodes_12_months} yeast",
+          title: "In the last 12 months, how many have you had?",
+          body: (
+            <div className="field-grid">
+              <label className="field">BV episodes confirmed by a clinician or a test<input name="confirmed_bv_episodes_12_months" type="number" min="0" max="52" step="1" required /></label>
+              <label className="field">Yeast infections<input name="yeast_episodes_12_months" type="number" min="0" max="52" step="1" required /></label>
+            </div>
+          ),
+        },
+        { fields: VAGINITIS_SCREENING_YEAST.map(([n]) => n), checklist: VAGINITIS_SCREENING_YEAST, title: "If it might be yeast, do any of these apply?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["diabetes", "immune_compromise"], reply: "Diabetes: {diabetes}. Immune system: {immune_compromise}", title: "A few questions about your health",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Do you have diabetes?<select name="diabetes" defaultValue="" required><option value="" disabled>Choose</option>{DIABETES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <label className="field wide">Is your immune system weakened?<select name="immune_compromise" defaultValue="" required><option value="" disabled>Choose</option>{IMMUNE_COMPROMISE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            </div>
+          ),
+        },
+        { fields: VAGINITIS_SCREENING_MEDICINES.map(([n]) => n), checklist: VAGINITIS_SCREENING_MEDICINES, title: "Do any of these apply?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
+        { fields: VAGINITIS_SCREENING_HEALTH.map(([n]) => n), checklist: VAGINITIS_SCREENING_HEALTH, title: "And any of these?", hint: "Select all that apply.", body: null },
+        { fields: VAGINITIS_HISTORY.map(([n]) => n), checklist: VAGINITIS_HISTORY, title: "A little more background", hint: "Select all that apply.", body: null },
+        {
+          fields: ["prior_diagnosis_details", "most_recent_test_on", "prior_products", "current_medications", "allergies"], title: "What's your history, and what have you tried?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Any past diagnosis of BV or yeast, with the date and how <small>(optional)</small><textarea name="prior_diagnosis_details" rows={2} maxLength={1000} /></label>
+              <label className="field wide">Your most recent BV or yeast test <small>(optional)</small><input name="most_recent_test_on" type="date" /></label>
+              <label className="field wide">Over-the-counter products you&rsquo;ve tried <small>(one per line; leave empty for none)</small><textarea name="prior_products" rows={2} maxLength={2000} /></label>
+              <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Allergies, with the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
             </div>
           ),
         },

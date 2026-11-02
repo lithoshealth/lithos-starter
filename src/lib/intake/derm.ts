@@ -13,6 +13,8 @@
  * Client-safe: no server imports.
  */
 
+import { ringwormPhotos } from "./ringworm";
+
 type Options = readonly (readonly [string, string])[];
 
 export const DURATIONS: Options = [
@@ -160,6 +162,7 @@ export function photosFor(program: string, data: Record<string, unknown>): Photo
     return trunk ? [...FACE, TRUNK_PHOTO] : FACE;
   }
   if (program === "hyperpigmentation_photoaging") return [...FACE, SPOT_PHOTO];
+  if (program === "dermatophyte_infection") return ringwormPhotos(data);
   return [];
 }
 

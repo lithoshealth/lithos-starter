@@ -23,6 +23,13 @@ import {
 import { GLP1_HISTORY, GLP1_SUICIDE_SCREEN } from "./glp1";
 import { HSV_SCREENING_EPISODE, HSV_SCREENING_HEALTH, HSV_SCREENING_MEDICINES, HSV_SCREENING_URGENT } from "./hsv";
 import {
+  PREGNANCY_QUESTIONS, RINGWORM_SCREENING_ALLERGIES, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_URGENT,
+} from "./ringworm";
+import {
+  VAGINITIS_HISTORY, VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_EXPOSURE, VAGINITIS_SCREENING_HEALTH,
+  VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST,
+} from "./vaginitis";
+import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "./wellness";
@@ -173,6 +180,40 @@ function hsv(data: Data): IntakeReview {
   };
 }
 
+function ringworm(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  const list = (name: string) => (Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).join(", ").replaceAll("_", " ") : "None");
+  return {
+    facts: [
+      { label: "Sites", value: list("affected_areas") },
+      { label: "Excluded areas", value: list("excluded_areas") },
+      { label: "Patches", value: `${text("patch_count")}, largest ${text("largest_patch_cm")} cm, for ${text("condition_duration")}` },
+      { label: "Symptoms", value: list("rash_symptoms") },
+      { label: "Diabetes · immune compromise", value: `${text("diabetes")} · ${text("immune_compromise")}` },
+    ],
+    flags: yesTo(data, [
+      ...RINGWORM_SCREENING_URGENT, ...PREGNANCY_QUESTIONS, ...RINGWORM_SCREENING_RASH, ...RINGWORM_SCREENING_ALLERGIES,
+      ["foot_wound", "An open wound on a foot"],
+    ]),
+  };
+}
+
+function vaginitis(data: Data): IntakeReview {
+  const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+  return {
+    facts: [
+      { label: "Odor · discharge", value: `${text("odor")} · ${data.discharge_other ? String(data.discharge_other) : text("discharge")}` },
+      { label: "Symptoms", value: `${Array.isArray(data.vulvovaginal_symptoms) && data.vulvovaginal_symptoms.length ? data.vulvovaginal_symptoms.join(", ") : "None"}, for ${text("symptom_duration_days")} days` },
+      { label: "Last 12 months", value: `${text("confirmed_bv_episodes_12_months")} confirmed BV, ${text("yeast_episodes_12_months")} yeast` },
+      { label: "Diabetes · immune compromise", value: `${text("diabetes")} · ${text("immune_compromise")}` },
+    ],
+    flags: yesTo(data, [
+      ...VAGINITIS_SCREENING_EMERGENCY, ...VAGINITIS_SCREENING_URGENT, ...VAGINITIS_SCREENING_EXPOSURE, ...PREGNANCY_QUESTIONS,
+      ...VAGINITIS_SCREENING_YEAST, ...VAGINITIS_SCREENING_MEDICINES, ...VAGINITIS_SCREENING_HEALTH, ...VAGINITIS_HISTORY,
+    ]),
+  };
+}
+
 function glp1(data: Data): IntakeReview {
   const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
   return {
@@ -200,6 +241,8 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "erectile_dysfunction": return ed(data);
     case "hair_loss": return hairLoss(data);
     case "herpes_simplex": return hsv(data);
+    case "dermatophyte_infection": return ringworm(data);
+    case "vaginitis": return vaginitis(data);
     case "glp1_microdose":
     case "weight_management_low_dose": return glp1(data);
     case "nad_plus":
