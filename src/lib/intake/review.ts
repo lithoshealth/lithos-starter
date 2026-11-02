@@ -26,6 +26,9 @@ import {
   PREGNANCY_QUESTIONS, RINGWORM_SCREENING_ALLERGIES, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_URGENT,
 } from "./ringworm";
 import {
+  BV_PARTNER_RELATIONSHIP, BV_PARTNER_SCREENING_HEALTH, BV_PARTNER_SCREENING_MEDICINES, BV_PARTNER_SCREENING_SYMPTOMS,
+} from "./bv-partner";
+import {
   VAGINITIS_HISTORY, VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_EXPOSURE, VAGINITIS_SCREENING_HEALTH,
   VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST,
 } from "./vaginitis";
@@ -198,6 +201,20 @@ function ringworm(data: Data): IntakeReview {
   };
 }
 
+function bvPartner(data: Data): IntakeReview {
+  const list = (name: string) => (Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).join(", ") : "None");
+  return {
+    facts: [
+      ...BV_PARTNER_RELATIONSHIP.map(([name, label]) => ({ label, value: data[name] === true ? "Yes" : "No" })),
+      { label: "Medical history", value: list("medical_history") },
+      { label: "Heavy drinking days, past year", value: String(data.heavy_drinking_days_past_year ?? "—") },
+    ],
+    flags: yesTo(data, [
+      ...BV_PARTNER_SCREENING_SYMPTOMS, ...PREGNANCY_QUESTIONS, ...BV_PARTNER_SCREENING_MEDICINES, ...BV_PARTNER_SCREENING_HEALTH,
+    ]),
+  };
+}
+
 function vaginitis(data: Data): IntakeReview {
   const text = (name: string) => String(data[name] ?? "—").replaceAll("_", " ");
   return {
@@ -243,6 +260,7 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "herpes_simplex": return hsv(data);
     case "dermatophyte_infection": return ringworm(data);
     case "vaginitis": return vaginitis(data);
+    case "bv_partner_treatment": return bvPartner(data);
     case "glp1_microdose":
     case "weight_management_low_dose": return glp1(data);
     case "nad_plus":

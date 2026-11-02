@@ -12,6 +12,9 @@ import {
   PREGNANCY_QUESTIONS, RINGWORM_SCREENING_ALLERGIES, RINGWORM_SCREENING_RASH, RINGWORM_SCREENING_URGENT,
 } from "../intake/ringworm";
 import {
+  BV_PARTNER_RELATIONSHIP, BV_PARTNER_SCREENING_HEALTH, BV_PARTNER_SCREENING_MEDICINES, BV_PARTNER_SCREENING_SYMPTOMS,
+} from "../intake/bv-partner";
+import {
   VAGINITIS_HISTORY, VAGINITIS_SCREENING_EMERGENCY, VAGINITIS_SCREENING_EXPOSURE, VAGINITIS_SCREENING_HEALTH,
   VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST,
 } from "../intake/vaginitis";
@@ -254,6 +257,15 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     immune_compromise: "none",
     foot_wound: false,
     prior_products: [],
+    current_medications: [],
+    allergies: [],
+  },
+  // The patient is being treated, an ongoing monogamous relationship, no symptoms.
+  bv_partner_treatment: {
+    ...no(BV_PARTNER_SCREENING_SYMPTOMS, PREGNANCY_QUESTIONS, BV_PARTNER_SCREENING_MEDICINES, BV_PARTNER_SCREENING_HEALTH),
+    ...Object.fromEntries(BV_PARTNER_RELATIONSHIP.map(([name]) => [name, true])),
+    heavy_drinking_days_past_year: 0,
+    medical_history: [],
     current_medications: [],
     allergies: [],
   },

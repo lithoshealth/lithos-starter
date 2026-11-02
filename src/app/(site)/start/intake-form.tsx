@@ -47,6 +47,9 @@ import {
   VAGINITIS_SCREENING_HEALTH, VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST, VAGINITIS_SYMPTOMS,
 } from "@/lib/intake/vaginitis";
 import {
+  BV_PARTNER_RELATIONSHIP, BV_PARTNER_SCREENING_HEALTH, BV_PARTNER_SCREENING_MEDICINES, BV_PARTNER_SCREENING_SYMPTOMS,
+} from "@/lib/intake/bv-partner";
+import {
   GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
 } from "@/lib/intake/glp1";
 import { newAttemptKey } from "../../idempotency-field";
@@ -885,6 +888,33 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           [{ field: "body_overview_photo_upload_id", label: "Overview, with a coin or ruler", sample: "skin-trunk.png" }, { field: "body_close_up_photo_upload_id", label: "Close-up, with a coin or ruler", sample: "skin-closeup.png" }],
           "One overview and one close-up are sent for each site you picked.",
         ),
+      ]
+    : program === "bv_partner_treatment" ? [
+        { fields: BV_PARTNER_RELATIONSHIP.map(([n]) => n), checklist: BV_PARTNER_RELATIONSHIP, title: `Welcome to ${brandName}. Do both of these apply?`, hint: "This is for the partner of someone being treated for bacterial vaginosis (BV). Select all that apply.", body: null },
+        { fields: BV_PARTNER_SCREENING_SYMPTOMS.map(([n]) => n), checklist: BV_PARTNER_SCREENING_SYMPTOMS, title: "Do you have any of these now?", hint: "These need STI testing or an in-person exam. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply. Leave them empty if they don't apply to you.", body: null },
+        { fields: BV_PARTNER_SCREENING_MEDICINES.map(([n]) => n), checklist: BV_PARTNER_SCREENING_MEDICINES, title: "Do any of these apply?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
+        { fields: BV_PARTNER_SCREENING_HEALTH.map(([n]) => n), checklist: BV_PARTNER_SCREENING_HEALTH, title: "And any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["heavy_drinking_days_past_year"], reply: "{heavy_drinking_days_past_year} times",
+          title: "In the past year, how many times have you had 5 or more drinks in a day?",
+          hint: "4 or more for women and anyone over 65. Enter 0 if never.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Times in the past year<input name="heavy_drinking_days_past_year" type="number" min="0" step="1" defaultValue="0" required /></label>
+            </div>
+          ),
+        },
+        {
+          fields: ["medical_history", "current_medications", "allergies"], title: "A little about your health",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Past and current medical conditions <small>(one per line; leave empty for none)</small><textarea name="medical_history" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Medicines and supplements you take now <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+              <label className="field wide">Allergies and the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
       ]
     : program === "vaginitis" ? [
         { fields: ["odor"], autoAdvance: true, title: `Welcome to ${brandName}. Is there an unusual odor?`, hint: "This is for bacterial vaginosis and yeast infections.", body: pickOne("odor", VAGINITIS_ODORS) },

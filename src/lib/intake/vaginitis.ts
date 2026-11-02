@@ -3,7 +3,7 @@
  * (which asks it) and the journey (which sends it). The field names and values
  * are Lithos's `vaginitis` initial contract (the Intake Schemas guide); keep
  * them as they are. The questions follow the Vaginitis (BV and Yeast Infection)
- * clinical protocol (v0.2). No photos or labs for a classic presentation.
+ * clinical protocol (v0.4). No photos or labs for a classic presentation.
  *
  * Client-safe: no server imports.
  */
@@ -41,7 +41,7 @@ export const VAGINITIS_SCREENING_URGENT: Options = [
   ["abnormal_bleeding", "Abnormal vaginal bleeding"],
   ["bleeding_after_sex", "Bleeding after sex"],
   ["genital_sores", "New sores, blisters or ulcers"],
-  ["significant_urinary_symptoms", "Significant urinary symptoms"],
+  ["significant_urinary_symptoms", "Pain or burning inside when I urinate, or needing to go often or urgently"],
   ["blood_in_urine", "Blood in my urine"],
   ["flank_pain", "Pain in my side"],
   ["severe_swelling", "Severe swelling"],
@@ -56,7 +56,7 @@ export const VAGINITIS_SCREENING_EXPOSURE: Options = [
 ];
 
 export const VAGINITIS_SCREENING_YEAST: Options = [
-  ["severe_yeast_symptoms", "Severe yeast symptoms"],
+  ["severe_yeast_symptoms", "Widespread redness and swelling, or cracks, sores or raw skin from scratching"],
   ["yeast_returned_within_2_months", "A yeast infection came back within 2 months"],
   ["failed_otc_yeast_treatment", "Over-the-counter yeast treatment didn't work"],
 ];

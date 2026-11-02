@@ -141,6 +141,12 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "odor, discharge and other symptoms, warning signs, pregnancy, STI exposure, past BV and yeast infections, medicine safety, and what they've tried",
   },
+  {
+    key: "bv_partner_treatment",
+    label: "BV partner treatment",
+    supported: true,
+    asks: "the relationship, symptoms of their own, pregnancy, medical history, medicine safety, alcohol use, and current medicines and allergies",
+  },
 ];
 
 /**
