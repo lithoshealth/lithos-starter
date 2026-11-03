@@ -253,13 +253,17 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   );
   const freeText = (
     <div className="field-grid">
-      <label className="field wide">Medicines and allergies <small>(optional, one per line)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+      <label className="field wide">Medicines and supplements <small>(optional, one per line)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+      <label className="field wide">Allergies, with the reaction <small>(optional, one per line)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
       <label className="field wide">Skin products you&rsquo;ve tried <small>(optional, one per line: the product, how long, whether it helped)</small><textarea name="prior_products" rows={3} maxLength={4000} defaultValue="Over-the-counter benzoyl peroxide wash, 2 months, helped a little" /></label>
     </div>
   );
   // The longevity programs' shared screens.
   const medicinesText = (label: string) => (
-    <label className="field wide">{label} <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+    <>
+      <label className="field wide">{label} <small>(one per line; leave empty for none)</small><textarea name="current_medications" rows={3} maxLength={4000} /></label>
+      <label className="field wide">Allergies, with the reaction <small>(one per line; leave empty for none)</small><textarea name="allergies" rows={2} maxLength={2000} /></label>
+    </>
   );
   const heightWeightScreen = (hint: string): Screen => ({
     fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
@@ -492,7 +496,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: ["benzoyl_peroxide_attested"], autoAdvance: true, title: "Do you use a benzoyl peroxide wash every morning?", hint: "An over-the-counter acne wash, such as PanOxyl.", body: yesNoScreen("benzoyl_peroxide_attested") },
         { fields: ACNE_SCREENING_SKIN.map(([n]) => n), checklist: ACNE_SCREENING_SKIN, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
         { fields: ACNE_SCREENING_HEALTH.map(([n]) => n), checklist: ACNE_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
-        { fields: ["medications_allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
+        { fields: ["current_medications", "allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
         photoScreen([...photosFor("acne", {}), TRUNK_PHOTO], "The chest, back or shoulders photo is only sent if you picked one of those."),
       ]
     : program === "hyperpigmentation_photoaging" ? [
@@ -513,7 +517,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: ["skin_cancer_history"], autoAdvance: true, title: "Have you ever had skin cancer?", body: pickOne("skin_cancer_history", HP_SKIN_CANCER) },
         { fields: HP_SCREENING_RECENT.map(([n]) => n), checklist: HP_SCREENING_RECENT, title: "Any of these recently?", hint: "Select all that apply.", body: null },
         { fields: HP_SCREENING_HEALTH.map(([n]) => n), checklist: HP_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
-        { fields: ["medications_allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
+        { fields: ["current_medications", "allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
         photoScreen([...photosFor("acne", {}), SPOT_PHOTO]),
       ]
     : program === "eyelash_growth" ? [
@@ -548,10 +552,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         {
-          fields: ["medications_allergies", "prior_lash_products"], title: "What do you take, and what have you tried?",
+          fields: ["current_medications", "allergies", "prior_lash_products"], title: "What do you take, and what have you tried?",
           body: (
             <div className="field-grid">
-              <label className="field wide">Medicines, including every eye drop, and allergies <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+              {medicinesText("Medicines, including every eye drop")}
               <label className="field wide">Lash serums you&rsquo;ve tried <small>(optional, one per line: the product, how long, whether it helped)</small><textarea name="prior_lash_products" rows={3} maxLength={4000} defaultValue="Over-the-counter lash serum, 2 months, no change" /></label>
             </div>
           ),
@@ -579,7 +583,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: yesNoScreen("nephrologist_approval"),
         },
         selfInjectionScreen,
-        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
+        { fields: ["current_medications", "allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines and supplements") },
       ]
     : program === "glutathione" ? [
         {
@@ -596,7 +600,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: GLUTATHIONE_SCREENING.map(([n]) => n), checklist: GLUTATHIONE_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether glutathione is safe for you. Select all that apply.", body: null },
         cancerTreatmentScreen,
         selfInjectionScreen,
-        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
+        { fields: ["current_medications", "allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines and supplements") },
       ]
     : program === "sermorelin" ? [
         {
@@ -609,7 +613,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: SERMORELIN_SCREENING.map(([n]) => n), checklist: SERMORELIN_SCREENING, title: "Do any of these apply to you?", hint: "These help your clinician decide whether sermorelin is safe for you. Select all that apply.", body: null },
         { fields: ["interacting_medications"], title: "Do you take any of these?", hint: "Some medicines change how sermorelin works. Select any that apply, or none.", body: pickSome("interacting_medications", SERMORELIN_INTERACTIONS) },
         selfInjectionScreen,
-        { fields: ["medications_allergies"], title: "What else do you take, and what are you allergic to?", body: medicinesText("Medicines, supplements and allergies") },
+        { fields: ["current_medications", "allergies"], title: "What else do you take, and what are you allergic to?", body: medicinesText("Medicines and supplements") },
       ]
     : program === "vitamin_b12" ? [
         {
@@ -628,7 +632,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: B12_SCREENING_HEALTH.map(([n]) => n), checklist: B12_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician decide whether B12 injections are safe for you. Select all that apply.", body: null },
         cancerTreatmentScreen,
         selfInjectionScreen,
-        { fields: ["medications_allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, including acid reducers (PPIs), metformin or colchicine, and allergies") },
+        { fields: ["current_medications", "allergies"], title: "What do you take, and what are you allergic to?", body: medicinesText("Medicines, including acid reducers (PPIs), metformin or colchicine") },
       ]
     : program === "oxytocin" ? [
         {
@@ -660,10 +664,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: OXYTOCIN_SCREENING_HEALTH.map(([n]) => n), checklist: OXYTOCIN_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician decide whether oxytocin is safe for you. Select all that apply.", body: null },
         cancerTreatmentScreen,
         {
-          fields: ["medications_allergies", "nasal_sinus_history"], title: "What do you take, and anything about your nose?",
+          fields: ["current_medications", "allergies", "nasal_sinus_history"], title: "What do you take, and anything about your nose?",
           body: (
             <div className="field-grid">
-              <label className="field wide">Medicines, including sleep aids and supplements, and allergies <small>(one per line; leave empty for none)</small><textarea name="medications_allergies" rows={3} maxLength={4000} /></label>
+              {medicinesText("Medicines, including sleep aids and supplements")}
               <label className="field wide">Nose or sinus surgery, with the date <small>(optional)</small><textarea name="nasal_sinus_history" rows={2} maxLength={2000} /></label>
             </div>
           ),
@@ -713,10 +717,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         {
-          fields: ["medications_allergies", "prior_ed_medications"], title: "What do you take, and what have you tried?",
+          fields: ["current_medications", "allergies", "prior_ed_medications"], title: "What do you take, and what have you tried?",
           body: (
             <div className="field-grid">
-              {medicinesText("Medicines and supplements, including sexual-enhancement ones, and allergies")}
+              {medicinesText("Medicines and supplements, including sexual-enhancement ones")}
               <label className="field wide">ED medicines you&rsquo;ve tried <small>(optional, one per line: the medicine, dose, how many tries, whether it worked, side effects)</small><textarea name="prior_ed_medications" rows={3} maxLength={4000} /></label>
             </div>
           ),
@@ -768,10 +772,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: HAIR_SCREENING_MEDICINES.map(([n]) => n), checklist: HAIR_SCREENING_MEDICINES, title: "Do you take any of these, or have these allergies?", hint: "Select all that apply.", body: null },
         { fields: HAIR_SCREENING_HEALTH.map(([n]) => n), checklist: HAIR_SCREENING_HEALTH, title: "Do you have any of these?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
         {
-          fields: ["medications_allergies", "prior_hair_treatments"], title: "What do you take, and what have you tried?",
+          fields: ["current_medications", "allergies", "prior_hair_treatments"], title: "What do you take, and what have you tried?",
           body: (
             <div className="field-grid">
-              {medicinesText("Medicines and supplements, including high-dose biotin, and allergies")}
+              {medicinesText("Medicines and supplements, including high-dose biotin")}
               <label className="field wide">Hair treatments you&rsquo;ve tried or use now <small>(optional, one per line: what, how long, whether it helped)</small><textarea name="prior_hair_treatments" rows={3} maxLength={4000} /></label>
             </div>
           ),

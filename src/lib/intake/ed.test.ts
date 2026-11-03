@@ -21,7 +21,8 @@ const answers = {
   blood_pressure_setting: "pharmacy",
   climbs_two_flights: "yes",
   heavy_drinking_days_past_year: "0",
-  medications_allergies: "Lisinopril 10 mg daily\nPenicillin: hives",
+  current_medications: "Lisinopril 10 mg daily",
+  allergies: "Penicillin: hives",
   prior_ed_medications: "",
   nitrate_acknowledgment_attested: "true",
 };
@@ -43,7 +44,8 @@ describe("parseEdIntake", () => {
       low_libido: false,
       related_medications: ["antidepressant"],
       cardiovascular_risk_factors: [],
-      medications_allergies: ["Lisinopril 10 mg daily", "Penicillin: hives"],
+      current_medications: ["Lisinopril 10 mg daily"],
+      allergies: ["Penicillin: hives"],
       prior_ed_medications: [],
       nitrate_acknowledgment_attested: true,
     });

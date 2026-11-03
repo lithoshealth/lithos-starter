@@ -19,7 +19,7 @@ const answers = {
   can_become_pregnant: "false",
   reliable_contraception: "true",
   contraception_method: "IUD",
-  medications_allergies: "Biotin 10,000 mcg",
+  current_medications: "Biotin 10,000 mcg",
   prior_hair_treatments: "",
   finasteride_12_months_without_stabilization: "false",
   finasteride_risks_attested: "true",
@@ -32,7 +32,7 @@ describe("parseHairLossIntake", () => {
     if (!parsed.ok) return;
     expect(parsed.value).toMatchObject({
       treatment_goals: ["slow_the_loss"], family_history: true, can_become_pregnant: false, reliable_contraception: false,
-      heart_disease: true, pregnancy: false, current_suicidal_thoughts: false, medications_allergies: ["Biotin 10,000 mcg"],
+      heart_disease: true, pregnancy: false, current_suicidal_thoughts: false, current_medications: ["Biotin 10,000 mcg"],
       prior_hair_treatments: [], finasteride_12_months_without_stabilization: false, finasteride_risks_attested: true,
     });
     // Contraception only counts for someone who could become pregnant.

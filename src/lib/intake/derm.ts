@@ -200,9 +200,14 @@ const booleans = (read: Read, options: Options) => Object.fromEntries(keys(optio
 
 /** Free-text lists — medicines and allergies, products tried — one per line, left out when empty. */
 function freeLists(read: Read) {
-  const meds = lines(read.text("medications_allergies"));
+  const meds = lines(read.text("current_medications"));
+  const allergies = lines(read.text("allergies"));
   const products = lines(read.text("prior_products"));
-  return { ...(meds.length ? { medications_allergies: meds } : {}), ...(products.length ? { prior_products: products } : {}) };
+  return {
+    ...(meds.length ? { current_medications: meds } : {}),
+    ...(allergies.length ? { allergies } : {}),
+    ...(products.length ? { prior_products: products } : {}),
+  };
 }
 
 export function parseAcneIntake(read: Read): Parsed {

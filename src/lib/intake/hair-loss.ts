@@ -124,8 +124,9 @@ export function parseHairLossIntake(read: Read): Parsed {
     ...booleans(read, HAIR_FERTILITY),
     ...booleans(read, HAIR_SCREENING_MEDICINES),
     ...booleans(read, HAIR_SCREENING_HEALTH),
-    // Both required by Lithos; an empty list means none.
-    medications_allergies: lines(read.text("medications_allergies")),
+    // Required by Lithos; an empty list means none.
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
     prior_hair_treatments: lines(read.text("prior_hair_treatments")),
     // A "no" only rules out finasteride and dutasteride: the other treatments don't need it.
     // Dutasteride is only for someone whose loss kept going after 12 months of finasteride.

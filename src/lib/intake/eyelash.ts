@@ -105,8 +105,9 @@ export function parseEyelashIntake(read: Read): Parsed {
     ...booleans(read, EYELASH_SCREENING_HEALTH),
     chemotherapy_history: chemotherapy,
     ...(chemotherapy ? { chemotherapy_current: read.text("chemotherapy_current") === "true", chemotherapy_last_dose_on: lastDose } : {}),
-    // Both required by Lithos; an empty list means none.
-    medications_allergies: lines(read.text("medications_allergies")),
+    // Required by Lithos; an empty list means none.
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
     prior_lash_products: lines(read.text("prior_lash_products")),
     lash_cosmetic_services: read.all("lash_cosmetic_services").filter((v) => keys(LASH_SERVICES).includes(v)),
     side_effects_consent_attested: true,

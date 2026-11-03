@@ -144,8 +144,9 @@ export function parseEdIntake(read: Read): Parsed {
     ...booleans(read, ED_SCREENING_MEDICINES),
     ...booleans(read, ED_SCREENING_HEALTH),
     ...booleans(read, ED_HISTORY),
-    // Both required by Lithos; an empty list means none.
-    medications_allergies: lines(read.text("medications_allergies")),
+    // Required by Lithos; an empty list means none.
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
     prior_ed_medications: lines(read.text("prior_ed_medications")),
     nitrate_acknowledgment_attested: true,
   };

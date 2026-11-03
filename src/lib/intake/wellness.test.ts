@@ -33,7 +33,7 @@ describe("parseVitaminB12Intake", () => {
 
   it("always sends the medicines list, empty for none", () => {
     const parsed = parseVitaminB12Intake(read(answers));
-    expect(parsed.ok && parsed.value).toMatchObject({ medications_allergies: [], cancer_treatment_last_3_years: false });
+    expect(parsed.ok && parsed.value).toMatchObject({ current_medications: [], allergies: [], cancer_treatment_last_3_years: false });
   });
 
   it("asks for a description when the symptom is something else", () => {

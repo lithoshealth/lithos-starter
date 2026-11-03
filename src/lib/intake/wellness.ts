@@ -228,8 +228,9 @@ function described(read: Read) {
 }
 
 function medicines(read: Read) {
-  const meds = lines(read.text("medications_allergies"));
-  return meds.length ? { medications_allergies: meds } : {};
+  const meds = lines(read.text("current_medications"));
+  const allergies = lines(read.text("allergies"));
+  return { ...(meds.length ? { current_medications: meds } : {}), ...(allergies.length ? { allergies } : {}) };
 }
 
 export function parseNadPlusIntake(read: Read): Parsed {
@@ -262,7 +263,6 @@ export function parseSermorelinIntake(read: Read): Parsed {
   const errors: FieldError[] = [];
   const { heightCm, weightKg, errors: measured } = metricHeightWeight(read.text);
   errors.push(...measured);
-  const meds = lines(read.text("medications_allergies"));
   return result({
     treatment_goals: someOf(read, "treatment_goals", SERMORELIN_GOALS, errors, "Pick at least one goal."),
     height_cm: heightCm,
@@ -270,7 +270,7 @@ export function parseSermorelinIntake(read: Read): Parsed {
     interacting_medications: someOf(read, "interacting_medications", SERMORELIN_INTERACTIONS, null, ""),
     ...booleans(read, SERMORELIN_SCREENING),
     ...selfInjection(read, errors),
-    ...(meds.length ? { medications_allergies: meds } : {}),
+    ...medicines(read),
   }, errors);
 }
 
@@ -292,7 +292,8 @@ export function parseVitaminB12Intake(read: Read): Parsed {
     ...cancerTreatment(read, errors),
     ...selfInjection(read, errors),
     // Required: acid reducers, metformin and colchicine affect B12. Empty means none.
-    medications_allergies: lines(read.text("medications_allergies")),
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
   }, errors);
 }
 
@@ -307,7 +308,6 @@ export function parseOxytocinIntake(read: Read): Parsed {
     errors.push({ pointer: pointer("off_label_understanding_attested"), message: "You need to agree to this to continue." });
   }
   const nasal = read.text("nasal_sinus_history");
-  const meds = lines(read.text("medications_allergies"));
   return result({
     treatment_goals: someOf(read, "treatment_goals", OXYTOCIN_CONCERNS, errors, "Pick at least one concern."),
     sleep_history: sleep,
@@ -318,7 +318,7 @@ export function parseOxytocinIntake(read: Read): Parsed {
     ...booleans(read, OXYTOCIN_SCREENING_HEALTH),
     ...cancerTreatment(read, errors),
     ...(nasal ? { nasal_sinus_history: nasal } : {}),
-    ...(meds.length ? { medications_allergies: meds } : {}),
+    ...medicines(read),
     off_label_understanding_attested: true,
   }, errors);
 }
