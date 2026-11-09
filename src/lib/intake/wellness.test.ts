@@ -18,7 +18,7 @@ describe("parseSermorelinIntake", () => {
     const parsed = parseSermorelinIntake(read({ ...answers, interacting_medications: ["insulin"] }, ["diabetes"]));
     expect(parsed.ok && parsed.value).toMatchObject({
       treatment_goals: ["healthy_aging"], height_cm: 178, weight_kg: 81.6, interacting_medications: ["insulin"],
-      diabetes: true, cancer_history: false, pregnancy: false, can_self_administer: true,
+      diabetes: true, cancer_history: false, pregnant: false, breastfeeding: false, planning_pregnancy: false, can_self_administer: true,
     });
   });
 

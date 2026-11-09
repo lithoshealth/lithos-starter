@@ -12,6 +12,7 @@
  */
 
 import { DURATIONS } from "./derm";
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
 
 type Options = readonly (readonly [string, string])[];
 
@@ -49,7 +50,7 @@ export const EYELASH_SCREENING_EYES: Options = [
 ];
 
 export const EYELASH_SCREENING_HEALTH: Options = [
-  ["pregnancy", "I'm pregnant, breastfeeding, or trying to conceive"],
+  ...PREGNANCY_QUESTIONS,
   ["bimatoprost_or_benzalkonium_allergy", "I'm allergic to bimatoprost (Latisse) or benzalkonium chloride"],
   ["alopecia_areata", "I have alopecia areata"],
   ["thyroid_disease", "I have thyroid disease"],

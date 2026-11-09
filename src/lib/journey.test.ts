@@ -278,12 +278,12 @@ describe("dermatology journeys", () => {
     const parsed = parseJourneyForm(dermForm({
       affected_areas: ["face", "back"], lesion_types: ["red_bumps"], condition_duration: "1_to_5_years", scarring: "none",
       daily_life_impact: "mild", isotretinoin_use: "never", oral_antibiotic_last_3_months: "false", oral_antibiotic_courses: "1",
-      benzoyl_peroxide_attested: "true", pregnancy: "on", allergies: "Penicillin allergy\n",
+      benzoyl_peroxide_attested: "true", planning_pregnancy: "on", allergies: "Penicillin allergy\n",
     }), "acne");
     if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
     expect(parsed.value.intake).toMatchObject({
       affected_areas: ["face", "back"], oral_antibiotic_courses: 1, benzoyl_peroxide_attested: true,
-      pregnancy: true, tetracycline_allergy: false, allergies: ["Penicillin allergy"],
+      pregnant: false, breastfeeding: false, planning_pregnancy: true, tetracycline_allergy: false, allergies: ["Penicillin allergy"],
     });
   });
 

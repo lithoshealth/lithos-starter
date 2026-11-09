@@ -107,7 +107,9 @@ function GLP1_SAMPLE(program: string): Record<string, unknown> {
 
 const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
   acne: {
-    pregnancy: false,
+    pregnant: false,
+    breastfeeding: false,
+    planning_pregnancy: false,
     affected_areas: ["face"],
     condition_duration: "1_to_5_years",
     lesion_types: ["red_bumps"],
@@ -131,7 +133,9 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     benzoyl_peroxide_attested: true,
   },
   hyperpigmentation_photoaging: {
-    pregnancy: false,
+    pregnant: false,
+    breastfeeding: false,
+    planning_pregnancy: false,
     sulfite_allergy: false,
     main_concerns: ["dark_spots"],
     affected_areas: ["face"],

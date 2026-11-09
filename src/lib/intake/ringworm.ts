@@ -15,6 +15,7 @@
 
 import { DURATIONS } from "./derm";
 import type { PhotoField } from "./derm";
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
 
 type Options = readonly (readonly [string, string])[];
 
@@ -66,11 +67,7 @@ export const RINGWORM_SCREENING_URGENT: Options = [
   ["expanding_rash_after_tick_bite", "A rash that keeps growing after a tick bite"],
 ];
 
-export const PREGNANCY_QUESTIONS: Options = [
-  ["pregnant", "I'm pregnant, or might be"],
-  ["breastfeeding", "I'm breastfeeding"],
-  ["planning_pregnancy", "I'm trying to conceive or planning a pregnancy"],
-];
+export { PREGNANCY_QUESTIONS };
 
 export const RINGWORM_SCREENING_RASH: Options = [
   ["extensive_rash", "The rash covers a large area"],

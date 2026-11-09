@@ -13,6 +13,7 @@
  * Client-safe: no server imports.
  */
 
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
 import { ringwormPhotos } from "./ringworm";
 
 type Options = readonly (readonly [string, string])[];
@@ -67,7 +68,7 @@ export const ACNE_SCREENING_SKIN: Options = [
 
 /** Health history that decides which treatments are safe. */
 export const ACNE_SCREENING_HEALTH: Options = [
-  ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy"],
+  ...PREGNANCY_QUESTIONS,
   ["clindamycin_or_lincomycin_allergy", "I'm allergic to clindamycin or lincomycin"],
   ["tetracycline_allergy", "I'm allergic to a tetracycline antibiotic (doxycycline, minocycline)"],
   ["ibd_diagnosis", "I have ulcerative colitis or Crohn's"],
@@ -133,7 +134,7 @@ export const HP_SCREENING_RECENT: Options = [
 ];
 
 export const HP_SCREENING_HEALTH: Options = [
-  ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy"],
+  ...PREGNANCY_QUESTIONS,
   ["sulfite_allergy", "I'm allergic to sulfites"],
   ["family_skin_cancer_history", "Someone in my family has had skin cancer"],
   ["blue_gray_darkening", "My skin turned blue-gray after a lightening cream"],

@@ -16,6 +16,7 @@
  */
 
 import { DURATIONS } from "./derm";
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
 import { metricHeightWeight } from "./weight";
 
 type Options = readonly (readonly [string, string])[];
@@ -27,7 +28,6 @@ export const WELLNESS_PROGRAMS = ["nad_plus", "glutathione", "sermorelin", "vita
 /** The programs whose protocol asks for the oncologist's approval as a document. */
 export const APPROVAL_DOCUMENT_PROGRAMS = ["vitamin_b12", "oxytocin"];
 
-const PREGNANCY: readonly [string, string] = ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy in the next 2 months"];
 const MENTAL_HEALTH: readonly [string, string] = [
   "unmanaged_mental_illness",
   "I have a serious mental health condition that isn't under control (for example schizophrenia or bipolar disorder)",
@@ -53,7 +53,7 @@ export const NAD_SCREENING: Options = [
   ["cellular_metabolism_medications", "I take a medicine that affects how my cells use energy (my doctor would know)"],
   ["hypersensitivity", "I'm allergic to NAD+ or any of its ingredients"],
   MENTAL_HEALTH,
-  PREGNANCY,
+  ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
 
@@ -75,7 +75,7 @@ export const GLUTATHIONE_SCREENING: Options = [
   ["active_malignancy", "I have cancer now"],
   ["on_chemotherapy", "I take a chemotherapy medicine"],
   MENTAL_HEALTH,
-  PREGNANCY,
+  ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
 
@@ -104,7 +104,7 @@ export const SERMORELIN_SCREENING: Options = [
   ["hypothyroidism", "I have an underactive thyroid (hypothyroidism)"],
   ["diabetes", "I have diabetes"],
   MENTAL_HEALTH,
-  PREGNANCY,
+  ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
 
@@ -127,7 +127,7 @@ export const B12_SCREENING_HEALTH: Options = [
   ["hypokalemia", "I have low potassium (hypokalemia)"],
   ["active_malignancy", "I have cancer now"],
   MENTAL_HEALTH,
-  PREGNANCY,
+  ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
 
@@ -174,7 +174,7 @@ export const OXYTOCIN_SCREENING_HEALTH: Options = [
   ["uncontrolled_illness_needing_specialist", "I have another serious illness that isn't under control"],
   ["hypersensitivity", "I'm allergic to oxytocin"],
   ["active_malignancy", "I have cancer now"],
-  PREGNANCY,
+  ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
 
