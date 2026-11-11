@@ -93,8 +93,9 @@ export async function demoAction(_prev: PortalActionState, formData: FormData): 
   try {
     switch (step) {
       case "approve": {
-        const { chose } = await signOffAsClinician(client, id);
+        const { chose, declined } = await signOffAsClinician(client, id);
         revalidatePath("/portal", "layout");
+        if (declined) return { status: "done", message: `Declined — the protocol leaves nothing to prescribe (${declined}).` };
         return { status: "done", message: chose ? `Approved — prescribed ${chose}.` : "Approved." };
       }
       case "decline":

@@ -10,21 +10,25 @@
  * decline (the plan becomes ineligible, with a reason code), or ask the patient
  * a question (an escalation, which opens a message thread with them).
  *
- * One wrinkle approval handles: a "clinician's choice" line (no treatment named)
- * can't be approved with an empty sign-off — someone has to choose. Here the
- * sandbox chooses the first active treatment in the encounter's category, at
- * its starting dose, and says so in the returned note.
+ * One wrinkle approval handles: a "clinician's choice" line (no treatment named).
+ * In a program whose protocol names a first-line treatment (hair loss:
+ * finasteride), an empty sign-off lets Lithos's simulated clinician pick it, at
+ * its starting dose. Elsewhere Lithos asks you to choose, so this picks the
+ * first active treatment in the encounter's category. Either way the returned
+ * note says what was prescribed.
  */
 
 import type { LithosClient } from "./lithos/client";
+import { LithosApiError } from "./lithos/errors";
 import { isSandboxBaseUrl } from "./lithos/sandbox";
 
-type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string };
+type RequestedLine = { id: string; catalog_treatment_id: string | null; status: string; ineligibility_reason_code?: string | null; treatments?: Array<{ catalog_treatment_id: string | null }> };
 type EncounterRead = { id: string; status: string; patient_id: string; care_plan_id: string; requested_treatments: RequestedLine[]; modality?: string };
 type InquiryRead = { id: string; status: string; references?: Array<{ id?: string }> };
 type CatalogTreatment = { id: string; name: string; status?: string; categories?: string[]; dosages?: Array<{ id: string }> };
 
-export type SignOffResult = { chose?: string };
+/** `chose`: what the sandbox prescribed on a clinician's-choice line. `declined`: the reason code when the protocol left it nothing to prescribe. */
+export type SignOffResult = { chose?: string; declined?: string };
 
 export { isSandboxBaseUrl };
 
@@ -72,8 +76,20 @@ export async function signOffAsClinician(client: LithosClient, encounterId: stri
     return {};
   }
 
-  const plan = await client.get<{ category: string }>(`/v1/care_plans/${encounter.care_plan_id}`);
   const catalog = await client.get<{ data: CatalogTreatment[] }>("/v1/catalog_treatments");
+  const nameOf = (slug: string | null | undefined) => catalog.data.find((t) => t.id === slug)?.name ?? slug ?? undefined;
+
+  // Let Lithos's simulated clinician choose first: it follows the protocol.
+  try {
+    const done = await client.post<EncounterRead>(`/v1/sandbox/encounters/${encounterId}/complete`, {});
+    const line = done.requested_treatments.find((l) => unchosen.some((u) => u.id === l.id));
+    if (line?.status === "rejected") return { declined: line.ineligibility_reason_code ?? "rejected" };
+    return { chose: nameOf(line?.treatments?.[0]?.catalog_treatment_id) };
+  } catch (error) {
+    if (!isClinicianChoiceRefusal(error)) throw error;
+  }
+
+  const plan = await client.get<{ category: string }>(`/v1/care_plans/${encounter.care_plan_id}`);
   const pick = catalog.data.find((t) => t.status !== "inactive" && t.categories?.includes(plan.category) && t.dosages?.length);
   if (!pick?.dosages) throw new Error(`Your formulary has no ${plan.category.replace(/_/g, " ")} treatment with a dosage to prescribe.`);
 
@@ -81,6 +97,12 @@ export async function signOffAsClinician(client: LithosClient, encounterId: stri
     treatments: unchosen.map((line) => ({ requested_treatment_id: line.id, status: "approved", dosage_ids: [pick.dosages![0].id] })),
   });
   return { chose: pick.name };
+}
+
+/** Lithos's answer when the program has no first-line treatment to pick: you choose. */
+function isClinicianChoiceRefusal(error: unknown): boolean {
+  return error instanceof LithosApiError && error.status === 422 &&
+    error.errors.some((e) => e.code === "sandbox.completion_invalid" && /provider-choice add/.test(e.message ?? ""));
 }
 
 /**
