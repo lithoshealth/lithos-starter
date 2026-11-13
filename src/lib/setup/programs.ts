@@ -147,6 +147,36 @@ export const PROGRAMS: Program[] = [
     supported: true,
     asks: "the relationship, symptoms of their own, pregnancy, medical history, medicine safety, alcohol use, and current medicines and allergies",
   },
+  {
+    key: "urinary_tract_infection",
+    label: "Urinary tract infection",
+    supported: true,
+    asks: "bladder symptoms and when they started, signs of a kidney infection, urinary tract history, pregnancy, past UTIs, medicine safety, diabetes, and current medicines and allergies",
+  },
+  {
+    key: "sinusitis",
+    label: "Sinusitis",
+    supported: true,
+    asks: "sinus symptoms and when they started, whether they got better then worse, emergency signs, past sinus infections and antibiotics, pregnancy, medicine safety, and current medicines and allergies",
+  },
+  {
+    key: "conjunctivitis",
+    label: "Pink eye",
+    supported: true,
+    asks: "which eye, discharge, pain and light sensitivity, emergency and eye warning signs, contact lenses, pregnancy, medicine safety, what they've tried, and current medicines and allergies",
+  },
+  {
+    key: "testosterone_replacement",
+    label: "Testosterone replacement",
+    supported: true,
+    asks: "symptoms and how long, prior testosterone tests and treatment, height and weight, a recent blood pressure reading, hard stops, plans for children, medicine safety, history, and current medicines and allergies",
+  },
+  {
+    key: "menopausal_hormone_therapy",
+    label: "Menopausal hormone therapy",
+    supported: true,
+    asks: "what they want treated and how bad it is, periods and bleeding, contraception, hard stops, pregnancy, breast cancer risk and the last mammogram, height and weight, a recent blood pressure reading, and current medicines and allergies",
+  },
 ];
 
 /**

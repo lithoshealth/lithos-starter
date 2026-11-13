@@ -22,6 +22,17 @@ import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "../intake/wellness";
+import {
+  UTI_FLAGS, UTI_HISTORY, UTI_SCREENING_MEDICINES, UTI_SCREENING_URGENT, UTI_SCREENING_URINARY,
+} from "../intake/uti";
+import {
+  SINUS_FLAGS, SINUS_HISTORY, SINUS_SCREENING_EMERGENCY, SINUS_SCREENING_HEALTH, SINUS_SCREENING_MEDICINES,
+} from "../intake/sinusitis";
+import {
+  PINK_EYE_HISTORY, PINK_EYE_SCREENING_EMERGENCY, PINK_EYE_SCREENING_EYE, PINK_EYE_SCREENING_MEDICINES,
+} from "../intake/pink-eye";
+import { TRT_FLAGS, TRT_HISTORY, TRT_SCREENING_MEDICINES, TRT_SCREENING_STOPS } from "../intake/trt";
+import { HRT_FLAGS, HRT_HISTORY, HRT_SCREENING_MEDICINES, HRT_SCREENING_STOPS } from "../intake/hrt";
 
 const no = (...lists: readonly (readonly (readonly [string, string])[])[]) =>
   Object.fromEntries(lists.flat().map(([name]) => [name, false]));
@@ -36,7 +47,10 @@ const no = (...lists: readonly (readonly (readonly [string, string])[])[]) =>
  */
 
 // Programs that treat men only get a male sample patient.
-const MALE_ONLY = new Set<ProgramKey>(["erectile_dysfunction"]);
+const MALE_ONLY = new Set<ProgramKey>(["erectile_dysfunction", "testosterone_replacement"]);
+
+// A reading from a month before the app started: Lithos wants one from the last 6 months.
+const recentDate = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
 /**
  * A sample patient. Names, email and phone satisfy the synthetic-data guards.
@@ -306,6 +320,78 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     outbreak_impact: "moderate",
     new_sexual_exposure_or_sti_symptoms: false,
     antiviral_history: [],
+    current_medications: [],
+    allergies: [],
+  },
+  // Burning and frequency since yesterday, no warning signs, no recent UTIs.
+  urinary_tract_infection: {
+    ...no(UTI_SCREENING_URGENT, UTI_SCREENING_URINARY, PREGNANCY_QUESTIONS, UTI_SCREENING_MEDICINES, UTI_FLAGS, UTI_HISTORY),
+    urinary_symptoms: ["painful_urination", "frequency"],
+    pelvic_pain: "none",
+    symptoms_started_on: recentDate(1),
+    utis_last_6_months: 0,
+    utis_last_12_months: 0,
+    diabetes: "none",
+    current_medications: [],
+    allergies: [],
+  },
+  // Twelve days of blockage and thick drainage, no warning signs.
+  sinusitis: {
+    ...no(SINUS_SCREENING_EMERGENCY, SINUS_SCREENING_HEALTH, PREGNANCY_QUESTIONS, SINUS_SCREENING_MEDICINES, SINUS_FLAGS, SINUS_HISTORY),
+    sinus_symptoms: ["nasal_blockage", "thick_colored_drainage", "facial_pain_or_pressure"],
+    symptoms_started_on: recentDate(12),
+    episodes_last_12_months: 0,
+    failed_antibiotic_courses: 0,
+    current_medications: [],
+    allergies: [],
+  },
+  // One eye, thick discharge since yesterday, no pain. No photos.
+  conjunctivitis: {
+    ...no(PINK_EYE_SCREENING_EMERGENCY, PINK_EYE_SCREENING_EYE, PREGNANCY_QUESTIONS, PINK_EYE_SCREENING_MEDICINES, PINK_EYE_HISTORY),
+    lids_stuck_shut: true,
+    affected_eyes: "right",
+    symptoms_started_on: recentDate(1),
+    eye_discharge: "thick_pus",
+    eye_pain: "none",
+    light_sensitivity: "none",
+    treatments_tried: [],
+    current_medications: [],
+    allergies: [],
+  },
+  // Tired with a low sex drive for a couple of years; Lithos orders the labs.
+  testosterone_replacement: {
+    ...no(TRT_SCREENING_STOPS, TRT_SCREENING_MEDICINES, TRT_FLAGS, TRT_HISTORY),
+    current_testosterone_other_prescriber: false,
+    symptoms: ["low_libido", "fatigue"],
+    condition_duration: "1_to_5_years",
+    prior_testosterone_tests: [],
+    prior_testosterone_treatment: [],
+    height_cm: 178,
+    weight_kg: 84,
+    blood_pressure_systolic: 122,
+    blood_pressure_diastolic: 78,
+    blood_pressure_measured_on: recentDate(30),
+    blood_pressure_setting: "home",
+    current_medications: [],
+    allergies: [],
+  },
+  // Hot flashes and night sweats for a year, periods stopped, a recent mammogram.
+  menopausal_hormone_therapy: {
+    ...no(HRT_SCREENING_STOPS, PREGNANCY_QUESTIONS, HRT_SCREENING_MEDICINES, HRT_FLAGS, HRT_HISTORY),
+    main_goal: "hot_flashes_night_sweats",
+    symptoms: ["hot_flashes", "night_sweats"],
+    symptom_severity: "moderate",
+    condition_duration: "1_to_5_years",
+    cycle_pattern: "no_periods",
+    contraception: ["none"],
+    prior_hormone_therapy: [],
+    last_mammogram_on: recentDate(180),
+    height_cm: 165,
+    weight_kg: 68,
+    blood_pressure_systolic: 118,
+    blood_pressure_diastolic: 74,
+    blood_pressure_measured_on: recentDate(30),
+    blood_pressure_setting: "pharmacy",
     current_medications: [],
     allergies: [],
   },

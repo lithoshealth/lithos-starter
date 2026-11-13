@@ -12,10 +12,13 @@ only the fallback before the app is connected. Copy is in `src/lib/programs/cont
 and the care-review intake (`src/lib/intake/`, `src/lib/journey.ts`). Lipid
 management, weight management, acne, hyperpigmentation & photoaging, eyelash
 growth, the five longevity protocols (NAD+, Glutathione, Sermorelin,
-Vitamin B12, Oxytocin), erectile dysfunction, hair loss, HSV, and the
-Microdose GLP-1 and Weight Management Low Dose programs have their real intake
-(`src/lib/intake/derm.ts` for the two skin ones, `eyelash.ts`, `wellness.ts`,
-`ed.ts`, `hair-loss.ts`, `hsv.ts` and `glp1.ts`); any other
+Vitamin B12, Oxytocin), erectile dysfunction, hair loss, HSV, ringworm,
+vaginitis, BV partner treatment, UTI, sinusitis, pink eye, testosterone
+replacement, menopausal hormone therapy, and the Microdose GLP-1 and Weight
+Management Low Dose programs have their real intake (`src/lib/intake/derm.ts`
+for the two skin ones, `eyelash.ts`, `wellness.ts`, `ed.ts`, `hair-loss.ts`,
+`hsv.ts`, `ringworm.ts`, `vaginitis.ts`, `bv-partner.ts`, `uti.ts`,
+`sinusitis.ts`, `pink-eye.ts`, `trt.ts`, `hrt.ts` and `glp1.ts`); any other
 category gets an **illustrative** one (`src/lib/intake/generic.ts`), labelled as
 such on `/start`. The skin intakes need photos: they go through `POST /v1/uploads`
 (`src/lib/lithos/uploads.ts`), and the sandbox sends the abstract sample images in

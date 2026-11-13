@@ -52,12 +52,29 @@ import {
 import {
   GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
 } from "@/lib/intake/glp1";
+import {
+  DIABETES as UTI_DIABETES, PELVIC_PAIN, UTI_FLAGS, UTI_HISTORY, UTI_SCREENING_MEDICINES, UTI_SCREENING_URGENT,
+  UTI_SCREENING_URINARY, UTI_SYMPTOMS,
+} from "@/lib/intake/uti";
+import {
+  SINUS_FLAGS, SINUS_HISTORY, SINUS_SCREENING_EMERGENCY, SINUS_SCREENING_HEALTH, SINUS_SCREENING_MEDICINES, SINUS_SYMPTOMS,
+} from "@/lib/intake/sinusitis";
+import {
+  AFFECTED_EYES, EYE_DISCHARGE, EYE_PAIN, LIGHT_SENSITIVITY, PINK_EYE_HISTORY, PINK_EYE_SCREENING_EMERGENCY,
+  PINK_EYE_SCREENING_EYE, PINK_EYE_SCREENING_MEDICINES,
+} from "@/lib/intake/pink-eye";
+import { TRT_FLAGS, TRT_HISTORY, TRT_SCREENING_MEDICINES, TRT_SCREENING_STOPS, TRT_SYMPTOMS } from "@/lib/intake/trt";
+import {
+  HRT_CONTRACEPTION, HRT_CYCLE_PATTERNS, HRT_FLAGS, HRT_GOALS, HRT_HISTORY, HRT_IUD_TYPES, HRT_SCREENING_MEDICINES,
+  HRT_SCREENING_STOPS, HRT_SEVERITIES, HRT_SYMPTOMS, HRT_VAGINAL_SAFETY,
+} from "@/lib/intake/hrt";
 import { newAttemptKey } from "../../idempotency-field";
 
 const FORM_ID = "intake-form";
 
 // A sample blood pressure reading from a month ago: Lithos wants one from the last 6 months.
 const RECENT_READING = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+const YESTERDAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
 /*
  * The intake as a quiz: one question per screen, a progress bar, and
@@ -273,6 +290,20 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         <label className="field">Height (feet)<input name="height_ft" type="number" min="3" max="8" step="1" defaultValue="5" required /></label>
         <label className="field">Height (inches)<input name="height_in" type="number" min="0" max="11" step="1" defaultValue="10" required /></label>
         <label className="field">Weight (lbs)<input name="weight_lb" type="number" min="70" max="1100" step="1" defaultValue="180" required /></label>
+      </div>
+    ),
+  });
+  const bloodPressureScreen = (systolic: string, diastolic: string, setting: string): Screen => ({
+    fields: ["blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"],
+    reply: "{blood_pressure_systolic}/{blood_pressure_diastolic} on {blood_pressure_measured_on}, {blood_pressure_setting}",
+    title: "What was your most recent blood pressure?",
+    hint: "From the last 6 months: at home, at a pharmacy or at a clinic. If you don't have one, get a reading first.",
+    body: (
+      <div className="field-grid">
+        <label className="field">Top number<input name="blood_pressure_systolic" type="number" min="50" max="260" step="1" defaultValue={systolic} required /></label>
+        <label className="field">Bottom number<input name="blood_pressure_diastolic" type="number" min="30" max="160" step="1" defaultValue={diastolic} required /></label>
+        <label className="field">Date<input name="blood_pressure_measured_on" type="date" defaultValue={RECENT_READING} required /></label>
+        <label className="field">Taken<select name="blood_pressure_setting" defaultValue={setting} required>{BLOOD_PRESSURE_SETTINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
       </div>
     ),
   });
@@ -920,6 +951,174 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
       ]
+    : program === "urinary_tract_infection" ? [
+        { fields: ["urinary_symptoms"], title: `Welcome to ${brandName}. Which of these do you have?`, hint: "This is for a simple bladder infection in women. Select all that apply.", body: pickSome("urinary_symptoms", UTI_SYMPTOMS) },
+        {
+          fields: ["symptoms_started_on"], reply: "Since {symptoms_started_on}", title: "When did your symptoms start?",
+          body: <div className="field-grid"><label className="field">Date<input name="symptoms_started_on" type="date" defaultValue={YESTERDAY} required /></label></div>,
+        },
+        { fields: ["pelvic_pain"], autoAdvance: true, title: "Do you have pain in your pelvis?", body: pickOne("pelvic_pain", PELVIC_PAIN) },
+        { fields: UTI_SCREENING_URGENT.map(([n]) => n), checklist: UTI_SCREENING_URGENT, title: "Do you have any of these?", hint: "These can mean the infection has spread. For confusion, fainting or feeling severely ill, call 911. Select all that apply.", body: null },
+        { fields: UTI_SCREENING_URINARY.map(([n]) => n), checklist: UTI_SCREENING_URINARY, title: "Do any of these apply?", hint: "These need an in-person visit. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["utis_last_6_months", "utis_last_12_months"], reply: "{utis_last_6_months} in 6 months, {utis_last_12_months} in 12",
+          title: "Not counting this one, how many UTIs have you had?",
+          body: (
+            <div className="field-grid">
+              <label className="field">In the last 6 months<input name="utis_last_6_months" type="number" min="0" max="52" step="1" defaultValue="0" required /></label>
+              <label className="field">In the last 12 months<input name="utis_last_12_months" type="number" min="0" max="52" step="1" defaultValue="0" required /></label>
+            </div>
+          ),
+        },
+        { fields: UTI_SCREENING_MEDICINES.map(([n]) => n), checklist: UTI_SCREENING_MEDICINES, title: "Do any of these apply?", hint: "These decide which antibiotics are safe for you. Select all that apply.", body: null },
+        { fields: UTI_FLAGS.map(([n]) => n), checklist: UTI_FLAGS, title: "And any of these?", hint: "Select all that apply.", body: null },
+        { fields: UTI_HISTORY.map(([n]) => n), checklist: UTI_HISTORY, title: "Any of these?", hint: "Select all that apply.", body: null },
+        { fields: ["diabetes"], autoAdvance: true, title: "Do you have diabetes?", body: pickOne("diabetes", UTI_DIABETES) },
+        {
+          fields: ["systemic_steroid_details", "current_medications", "allergies"], title: "What do you take?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines and supplements")}
+              <label className="field wide">If you take steroid pills or had steroid injections: why, for how long, and what dose<textarea name="systemic_steroid_details" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+      ]
+    : program === "sinusitis" ? [
+        { fields: ["sinus_symptoms"], title: `Welcome to ${brandName}. Which of these do you have?`, hint: "Select all that apply.", body: pickSome("sinus_symptoms", SINUS_SYMPTOMS) },
+        {
+          fields: ["symptoms_started_on"], reply: "Since {symptoms_started_on}", title: "When did your symptoms start?",
+          body: <div className="field-grid"><label className="field">Date<input name="symptoms_started_on" type="date" required /></label></div>,
+        },
+        { fields: SINUS_SCREENING_EMERGENCY.map(([n]) => n), checklist: SINUS_SCREENING_EMERGENCY, title: "Do you have any of these?", hint: "For these, call 911 or go to the nearest emergency department. Select all that apply.", body: null },
+        { fields: SINUS_SCREENING_HEALTH.map(([n]) => n), checklist: SINUS_SCREENING_HEALTH, title: "Do any of these apply?", hint: "These need an in-person visit. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        { fields: SINUS_HISTORY.map(([n]) => n), checklist: SINUS_HISTORY, title: "Any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["worsened_on_day", "episodes_last_12_months", "failed_antibiotic_courses"], title: "A few numbers",
+          body: (
+            <div className="field-grid">
+              <label className="field">If you got better then worse: on which day of being sick? <small>(day 1 is the first day)</small><input name="worsened_on_day" type="number" min="1" max="28" step="1" /></label>
+              <label className="field">Sinus infections in the last 12 months, not counting this one<input name="episodes_last_12_months" type="number" min="0" max="52" step="1" defaultValue="0" required /></label>
+              <label className="field">Antibiotic courses for a sinus infection that didn&rsquo;t work, last 12 months<input name="failed_antibiotic_courses" type="number" min="0" max="52" step="1" defaultValue="0" required /></label>
+            </div>
+          ),
+        },
+        { fields: SINUS_SCREENING_MEDICINES.map(([n]) => n), checklist: SINUS_SCREENING_MEDICINES, title: "Do any of these apply?", hint: "These decide which antibiotics are safe for you. Select all that apply.", body: null },
+        { fields: SINUS_FLAGS.map(([n]) => n), checklist: SINUS_FLAGS, title: "And any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["systemic_steroid_details", "current_medications", "allergies"], title: "What do you take?",
+          body: (
+            <div className="field-grid">
+              {medicinesText("Medicines and supplements")}
+              <label className="field wide">If you take steroid pills or had steroid injections: why, for how long, and what dose<textarea name="systemic_steroid_details" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+      ]
+    : program === "conjunctivitis" ? [
+        { fields: ["affected_eyes"], autoAdvance: true, title: `Welcome to ${brandName}. Which eye is affected?`, body: pickOne("affected_eyes", AFFECTED_EYES) },
+        {
+          fields: ["symptoms_started_on"], reply: "Since {symptoms_started_on}", title: "When did it start?",
+          body: <div className="field-grid"><label className="field">Date<input name="symptoms_started_on" type="date" defaultValue={YESTERDAY} required /></label></div>,
+        },
+        { fields: ["eye_discharge"], autoAdvance: true, title: "What's the discharge like?", body: pickOne("eye_discharge", EYE_DISCHARGE) },
+        { fields: ["eye_pain"], autoAdvance: true, title: "How much does your eye hurt?", body: pickOne("eye_pain", EYE_PAIN) },
+        { fields: ["light_sensitivity"], autoAdvance: true, title: "Does light bother your eyes?", body: pickOne("light_sensitivity", LIGHT_SENSITIVITY) },
+        { fields: PINK_EYE_SCREENING_EMERGENCY.map(([n]) => n), checklist: PINK_EYE_SCREENING_EMERGENCY, title: "Do you have any of these?", hint: "For these, call 911 or go to the nearest emergency department. Select all that apply.", body: null },
+        { fields: PINK_EYE_SCREENING_EYE.map(([n]) => n), checklist: PINK_EYE_SCREENING_EYE, title: "Do any of these apply?", hint: "These need an in-person exam. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
+        { fields: PINK_EYE_HISTORY.map(([n]) => n), checklist: PINK_EYE_HISTORY, title: "Any of these?", hint: "Select all that apply.", body: null },
+        {
+          fields: ["vision_change_clears_with_blinking", "contact_lenses_overnight"], title: "If you said yes above",
+          body: (
+            <div className="field-grid">
+              <label className="field">Blurry vision: does it clear when you blink or wipe? <small>(if blurry)</small><select name="vision_change_clears_with_blinking" defaultValue=""><option value="">Choose</option><option value="true">Yes</option><option value="false">No</option></select></label>
+              <label className="field">Contact lenses: do you wear them overnight? <small>(if you wear them)</small><select name="contact_lenses_overnight" defaultValue=""><option value="">Choose</option><option value="true">Yes</option><option value="false">No</option></select></label>
+            </div>
+          ),
+        },
+        { fields: PINK_EYE_SCREENING_MEDICINES.map(([n]) => n), checklist: PINK_EYE_SCREENING_MEDICINES, title: "Do any of these apply?", hint: "These decide which drops are safe for you. Select all that apply.", body: null },
+        {
+          fields: ["treatments_tried", "systemic_steroid_details", "current_medications", "allergies"], title: "What have you tried, and what do you take?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">What you&rsquo;ve tried for this <small>(one per line; leave empty for none)</small><textarea name="treatments_tried" rows={2} maxLength={2000} /></label>
+              {medicinesText("Medicines, including eye drops, and supplements")}
+              <label className="field wide">If you take steroid pills or had steroid injections: why, for how long, and what dose<textarea name="systemic_steroid_details" rows={2} maxLength={2000} /></label>
+            </div>
+          ),
+        },
+      ]
+    : program === "testosterone_replacement" ? [
+        { fields: ["symptoms"], title: `Welcome to ${brandName}. Which of these have you noticed?`, hint: "Select all that apply.", body: pickSome("symptoms", TRT_SYMPTOMS) },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had them?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: TRT_SCREENING_STOPS.map(([n]) => n), checklist: TRT_SCREENING_STOPS, title: "Do any of these apply?", hint: "If any do, testosterone isn't safe for you here. Select all that apply.", body: null },
+        { fields: TRT_SCREENING_MEDICINES.map(([n]) => n), checklist: TRT_SCREENING_MEDICINES, title: "And any of these?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
+        { fields: TRT_FLAGS.map(([n]) => n), checklist: TRT_FLAGS, title: "Any of these?", hint: "Select all that apply.", body: null },
+        { fields: TRT_HISTORY.map(([n]) => n), checklist: TRT_HISTORY, title: "A little more history", hint: "Select all that apply.", body: null },
+        heightWeightScreen("Your clinician uses it with your labs."),
+        bloodPressureScreen("122", "78", "home"),
+        {
+          fields: ["prior_testosterone_tests", "prior_testosterone_treatment", "current_medications", "allergies"], title: "What have you had, and what do you take?",
+          hint: "We'll order your labs and book a video visit before a first prescription.",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Testosterone tests you&rsquo;ve had <small>(one per line: the date, the result, the time of day; leave empty for none)</small><textarea name="prior_testosterone_tests" rows={2} maxLength={2000} /></label>
+              <label className="field wide">Testosterone treatment you&rsquo;ve had <small>(one per line: the product, dose, prescriber and last dose; leave empty for none)</small><textarea name="prior_testosterone_treatment" rows={2} maxLength={2000} /></label>
+              {medicinesText("Medicines and supplements")}
+            </div>
+          ),
+        },
+      ]
+    : program === "menopausal_hormone_therapy" ? [
+        { fields: ["main_goal"], autoAdvance: true, title: `Welcome to ${brandName}. What would you like treated?`, body: pickOne("main_goal", HRT_GOALS) },
+        { fields: ["symptoms"], title: "Which of these do you have?", hint: "Select all that apply.", body: pickSome("symptoms", HRT_SYMPTOMS) },
+        { fields: ["symptom_severity"], autoAdvance: true, title: "How bothersome are they?", body: pickOne("symptom_severity", HRT_SEVERITIES) },
+        { fields: ["condition_duration"], autoAdvance: true, title: "How long have you had them?", body: pickOne("condition_duration", DURATIONS) },
+        { fields: ["cycle_pattern"], autoAdvance: true, title: "What have your periods been like over the last 12 months?", body: pickOne("cycle_pattern", HRT_CYCLE_PATTERNS) },
+        {
+          fields: ["last_menstrual_period_on", "last_mammogram_on"], title: "Two dates, if you know them",
+          body: (
+            <div className="field-grid">
+              <label className="field">First day of your last period <small>(an estimate is fine; optional)</small><input name="last_menstrual_period_on" type="date" /></label>
+              <label className="field">Your last mammogram <small>(leave empty if never)</small><input name="last_mammogram_on" type="date" /></label>
+            </div>
+          ),
+        },
+        { fields: HRT_SCREENING_STOPS.map(([n]) => n), checklist: HRT_SCREENING_STOPS, title: "Do any of these apply?", hint: "If any do, hormone therapy isn't safe for you here. Select all that apply.", body: null },
+        { fields: PREGNANCY_QUESTIONS.map(([n]) => n), checklist: PREGNANCY_QUESTIONS, title: "Do any of these apply?", hint: "Hormone therapy doesn't prevent pregnancy. Select all that apply.", body: null },
+        { fields: HRT_SCREENING_MEDICINES.map(([n]) => n), checklist: HRT_SCREENING_MEDICINES, title: "And any of these?", hint: "These decide which medicines are safe for you. Select all that apply.", body: null },
+        { fields: HRT_VAGINAL_SAFETY.map(([n]) => n), checklist: HRT_VAGINAL_SAFETY, title: "If you'd like vaginal symptoms treated: any of these?", hint: "These need checking first. Select all that apply.", body: null },
+        { fields: HRT_FLAGS.map(([n]) => n), checklist: HRT_FLAGS, title: "Any of these?", hint: "Select all that apply.", body: null },
+        { fields: HRT_HISTORY.map(([n]) => n), checklist: HRT_HISTORY, title: "A little more history", hint: "Select all that apply.", body: null },
+        {
+          fields: ["contraception", "contraception_other", "iud_type", "iud_inserted_on"], title: "What contraception do you use now?",
+          hint: "Select all that apply, or None.",
+          body: (
+            <>
+              {pickSome("contraception", HRT_CONTRACEPTION)}
+              <div className="field-grid">
+                <label className="field wide">If something else, which <small>(optional)</small><input name="contraception_other" maxLength={500} /></label>
+                <label className="field">If an IUD, which one<select name="iud_type" defaultValue=""><option value="">Choose</option>{HRT_IUD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+                <label className="field">If an IUD, when it was put in<input name="iud_inserted_on" type="date" /></label>
+              </div>
+            </>
+          ),
+        },
+        heightWeightScreen("Your clinician uses it with your other answers."),
+        bloodPressureScreen("118", "74", "pharmacy"),
+        {
+          fields: ["prior_hormone_therapy", "current_medications", "allergies"], title: "What have you tried, and what do you take?",
+          body: (
+            <div className="field-grid">
+              <label className="field wide">Hormone therapy now or before <small>(one per line: the product, dose and prescriber; leave empty for none)</small><textarea name="prior_hormone_therapy" rows={2} maxLength={2000} /></label>
+              {medicinesText("Medicines and supplements")}
+            </div>
+          ),
+        },
+      ]
     : program === "vaginitis" ? [
         { fields: ["odor"], autoAdvance: true, title: `Welcome to ${brandName}. Is there an unusual odor?`, hint: "This is for bacterial vaginosis and yeast infections.", body: pickOne("odor", VAGINITIS_ODORS) },
         {
@@ -1031,7 +1230,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           <label className="field">First name<input name="first_name" defaultValue="Sample" autoComplete="off" required /></label>
           <label className="field">Last name<input name="last_name" defaultValue="Patient" autoComplete="off" required /></label>
           <label className="field">Date of birth<input name="date_of_birth" type="date" defaultValue="1990-01-15" required /></label>
-          <label className="field">Sex at birth<select name="sex" defaultValue={program === "erectile_dysfunction" ? "male" : "female"} required><option value="female">Female</option><option value="male">Male</option></select></label>
+          <label className="field">Sex at birth<select name="sex" defaultValue={program === "erectile_dysfunction" || program === "testosterone_replacement" ? "male" : "female"} required><option value="female">Female</option><option value="male">Male</option></select></label>
         </div>
       ),
     },

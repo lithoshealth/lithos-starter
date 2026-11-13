@@ -33,6 +33,19 @@ import {
   VAGINITIS_SCREENING_MEDICINES, VAGINITIS_SCREENING_URGENT, VAGINITIS_SCREENING_YEAST,
 } from "./vaginitis";
 import {
+  UTI_FLAGS, UTI_HISTORY, UTI_SCREENING_MEDICINES, UTI_SCREENING_URGENT, UTI_SCREENING_URINARY,
+} from "./uti";
+import {
+  SINUS_FLAGS, SINUS_HISTORY, SINUS_SCREENING_EMERGENCY, SINUS_SCREENING_HEALTH, SINUS_SCREENING_MEDICINES,
+} from "./sinusitis";
+import {
+  PINK_EYE_HISTORY, PINK_EYE_SCREENING_EMERGENCY, PINK_EYE_SCREENING_EYE, PINK_EYE_SCREENING_MEDICINES,
+} from "./pink-eye";
+import { TRT_FLAGS, TRT_HISTORY, TRT_SCREENING_MEDICINES, TRT_SCREENING_STOPS } from "./trt";
+import {
+  HRT_FLAGS, HRT_HISTORY, HRT_SCREENING_MEDICINES, HRT_SCREENING_STOPS, HRT_VAGINAL_SAFETY,
+} from "./hrt";
+import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, GLUTATHIONE_SCREENING, NAD_SCREENING, OXYTOCIN_SCREENING_HEALTH,
   OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SUICIDE_SCREEN, SERMORELIN_SCREENING,
 } from "./wellness";
@@ -248,6 +261,80 @@ function glp1(data: Data): IntakeReview {
   };
 }
 
+const words = (data: Data, name: string) => String(data[name] ?? "—").replaceAll("_", " ");
+const listed = (data: Data, name: string) =>
+  Array.isArray(data[name]) && data[name].length ? (data[name] as unknown[]).map(String).join(", ").replaceAll("_", " ") : "None";
+const bloodPressure = (data: Data) => ({
+  label: "Blood pressure",
+  value: `${data.blood_pressure_systolic ?? "—"}/${data.blood_pressure_diastolic ?? "—"} on ${data.blood_pressure_measured_on ?? "—"}, ${words(data, "blood_pressure_setting")}`,
+});
+
+function uti(data: Data): IntakeReview {
+  return {
+    facts: [
+      { label: "Symptoms", value: listed(data, "urinary_symptoms") },
+      { label: "Started", value: String(data.symptoms_started_on ?? "—") },
+      { label: "Pelvic pain", value: words(data, "pelvic_pain") },
+      { label: "UTIs, last 6 · 12 months", value: `${data.utis_last_6_months ?? "—"} · ${data.utis_last_12_months ?? "—"}` },
+      { label: "Diabetes", value: words(data, "diabetes") },
+    ],
+    flags: yesTo(data, [...UTI_SCREENING_URGENT, ...UTI_SCREENING_URINARY, ...PREGNANCY_QUESTIONS, ...UTI_SCREENING_MEDICINES, ...UTI_FLAGS, ...UTI_HISTORY]),
+  };
+}
+
+function sinusitis(data: Data): IntakeReview {
+  return {
+    facts: [
+      { label: "Symptoms", value: listed(data, "sinus_symptoms") },
+      { label: "Started", value: String(data.symptoms_started_on ?? "—") },
+      ...(data.worsened_after_improving === true ? [{ label: "Worse again on day", value: String(data.worsened_on_day ?? "—") }] : []),
+      { label: "Sinus infections, last 12 months", value: String(data.episodes_last_12_months ?? "—") },
+      { label: "Antibiotic courses that didn't work", value: String(data.failed_antibiotic_courses ?? "—") },
+    ],
+    flags: yesTo(data, [...SINUS_SCREENING_EMERGENCY, ...SINUS_SCREENING_HEALTH, ...PREGNANCY_QUESTIONS, ...SINUS_SCREENING_MEDICINES, ...SINUS_FLAGS, ...SINUS_HISTORY]),
+  };
+}
+
+function pinkEye(data: Data): IntakeReview {
+  return {
+    facts: [
+      { label: "Eye", value: words(data, "affected_eyes") },
+      { label: "Started", value: String(data.symptoms_started_on ?? "—") },
+      { label: "Discharge", value: words(data, "eye_discharge") },
+      { label: "Pain · light sensitivity", value: `${words(data, "eye_pain")} · ${words(data, "light_sensitivity")}` },
+      { label: "Tried", value: listed(data, "treatments_tried") },
+    ],
+    flags: yesTo(data, [...PINK_EYE_SCREENING_EMERGENCY, ...PINK_EYE_SCREENING_EYE, ...PREGNANCY_QUESTIONS, ...PINK_EYE_SCREENING_MEDICINES, ...PINK_EYE_HISTORY]),
+  };
+}
+
+function trt(data: Data): IntakeReview {
+  return {
+    facts: [
+      { label: "Symptoms", value: listed(data, "symptoms") },
+      { label: "For", value: words(data, "condition_duration") },
+      { label: "Height · weight", value: `${data.height_cm ?? "—"} cm · ${data.weight_kg ?? "—"} kg` },
+      bloodPressure(data),
+      { label: "Prior testosterone tests", value: listed(data, "prior_testosterone_tests") },
+    ],
+    flags: yesTo(data, [...TRT_SCREENING_STOPS, ...TRT_SCREENING_MEDICINES, ...TRT_FLAGS, ...TRT_HISTORY]),
+  };
+}
+
+function hrt(data: Data): IntakeReview {
+  return {
+    facts: [
+      { label: "Wants treated", value: words(data, "main_goal") },
+      { label: "Symptoms", value: `${listed(data, "symptoms")} (${words(data, "symptom_severity")})` },
+      { label: "Periods, last 12 months", value: words(data, "cycle_pattern") },
+      { label: "Contraception", value: listed(data, "contraception") },
+      { label: "Last mammogram", value: String(data.last_mammogram_on ?? "Never") },
+      bloodPressure(data),
+    ],
+    flags: yesTo(data, [...HRT_SCREENING_STOPS, ...PREGNANCY_QUESTIONS, ...HRT_SCREENING_MEDICINES, ...HRT_VAGINAL_SAFETY, ...HRT_FLAGS, ...HRT_HISTORY]),
+  };
+}
+
 export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
   switch (intakeKey(program)) {
     case "weight_management": return weight(data);
@@ -261,6 +348,11 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "dermatophyte_infection": return ringworm(data);
     case "vaginitis": return vaginitis(data);
     case "bv_partner_treatment": return bvPartner(data);
+    case "urinary_tract_infection": return uti(data);
+    case "sinusitis": return sinusitis(data);
+    case "conjunctivitis": return pinkEye(data);
+    case "testosterone_replacement": return trt(data);
+    case "menopausal_hormone_therapy": return hrt(data);
     case "glp1_microdose":
     case "weight_management_low_dose": return glp1(data);
     case "nad_plus":

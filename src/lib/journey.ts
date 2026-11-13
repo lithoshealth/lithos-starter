@@ -20,6 +20,11 @@ import { parseHsvIntake } from "./intake/hsv";
 import { parseRingwormIntake } from "./intake/ringworm";
 import { parseVaginitisIntake } from "./intake/vaginitis";
 import { parseBvPartnerIntake } from "./intake/bv-partner";
+import { parseUtiIntake } from "./intake/uti";
+import { parseSinusitisIntake } from "./intake/sinusitis";
+import { parsePinkEyeIntake } from "./intake/pink-eye";
+import { parseTrtIntake } from "./intake/trt";
+import { parseHrtIntake } from "./intake/hrt";
 import { GLP1_PROGRAMS, parseGlp1Intake } from "./intake/glp1";
 import { WELLNESS_PARSERS, WELLNESS_PROGRAMS } from "./intake/wellness";
 import { intakeKey, type ProgramKey } from "./setup/programs";
@@ -43,6 +48,10 @@ export type JourneyState =
   | { status: "complete"; patientId: string; carePlanId: string; encounterId: string; modality: Modality };
 
 export const INITIAL_JOURNEY_STATE: JourneyState = { status: "idle" };
+
+// UTI, sinusitis, pink eye, testosterone replacement and menopausal hormone
+// therapy: each parsed by its own module, with no photos.
+const NEWER_PROGRAMS = ["urinary_tract_infection", "sinusitis", "conjunctivitis", "testosterone_replacement", "menopausal_hormone_therapy"];
 
 export type JourneyInput = {
   patient: Omit<PatientCreate, "external_id" | "telehealth_consented_at" | "identity_verified_at">;
@@ -135,7 +144,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   }
   const intake = program === "weight_management" ? weightIntake(formData)
     : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
-    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || program === "dermatophyte_infection" || program === "vaginitis" || program === "bv_partner_treatment" || GLP1_PROGRAMS.includes(program) || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
+    : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || program === "dermatophyte_infection" || program === "vaginitis" || program === "bv_partner_treatment" || NEWER_PROGRAMS.includes(program) || GLP1_PROGRAMS.includes(program) || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
   if (carePlanId && !patientId) {
@@ -229,6 +238,11 @@ function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermI
     : program === "dermatophyte_infection" ? parseRingwormIntake(read)
     : program === "vaginitis" ? parseVaginitisIntake(read)
     : program === "bv_partner_treatment" ? parseBvPartnerIntake(read)
+    : program === "urinary_tract_infection" ? parseUtiIntake(read)
+    : program === "sinusitis" ? parseSinusitisIntake(read)
+    : program === "conjunctivitis" ? parsePinkEyeIntake(read)
+    : program === "testosterone_replacement" ? parseTrtIntake(read)
+    : program === "menopausal_hormone_therapy" ? parseHrtIntake(read)
     : GLP1_PROGRAMS.includes(program) ? parseGlp1Intake(read, program)
     : WELLNESS_PARSERS[program] ? WELLNESS_PARSERS[program](read)
     : parseHyperpigmentationIntake(read);
