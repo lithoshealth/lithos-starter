@@ -164,6 +164,9 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
   const screenRefs = useRef<Array<HTMLDivElement | null>>([]);
   const logRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState(0);
+  // The furthest screen reached. Going back to change an answer, or to fix one
+  // Lithos refused, offers a way straight back here instead of every screen between.
+  const [furthest, setFurthest] = useState(0);
   // Chat only: each answered screen's reply, as it reads in the transcript.
   const [replies, setReplies] = useState<Record<number, string>>({});
   // Which checklist screens have something ticked — keyed by screen index.
@@ -202,6 +205,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       setReplies((r) => ({ ...r, ...answered }));
     }
     setScreen(to);
+    setFurthest((f) => Math.max(f, to));
     if (chat) {
       requestAnimationFrame(() => {
         const log = logRef.current;
@@ -1288,6 +1292,12 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     if (screenValid(screen)) go(Math.min(screen + 1, last));
   }
 
+  /** After changing an earlier answer: straight back to the furthest screen reached. */
+  function backToFurthest() {
+    if (screenValid(screen)) go(furthest);
+  }
+  const editing = furthest > screen;
+
   // Enter on an earlier screen means "continue", not "submit the whole intake".
   // On the last one, check every screen first — a hidden field can't show its own error.
   // Submitting by hand (rather than via the form's action) also keeps the answers
@@ -1311,6 +1321,8 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     const target = state.errors.map((e) => screenForPointer(screens, e.source?.pointer)).find((i) => i !== null);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the server's answer, once per response
     if (target !== undefined && target !== null) setScreen(target);
+    // The patient reached the end to send it: after the fix, one click goes back there.
+    setFurthest(screens.length - 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the screens are rebuilt every render; their fields are what matter
   }, [state, fieldsKey]);
 
@@ -1374,7 +1386,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           {screens.slice(0, screen).map((s, index) => (
             <Fragment key={index}>
               <Bubble from="bot" brandName={brandName}>{s.title}</Bubble>
-              <Bubble from="me">{replies[index] || "…"}</Bubble>
+              <Bubble from="me" onEdit={pending ? undefined : () => go(index)}>{replies[index] || "…"}</Bubble>
             </Fragment>
           ))}
           <Bubble from="bot" brandName={brandName}>
@@ -1410,6 +1422,9 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
             </button>
           )
         )}
+        {editing && screen !== last && (
+          <button type="button" className="btn btn-ghost" onClick={backToFurthest} disabled={pending}>Done, back to where I was</button>
+        )}
         {screen > 0 && (
           <button type="button" className="link-button" onClick={() => go(screen - 1)} disabled={pending}>Change my last answer</button>
         )}
@@ -1427,6 +1442,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
               {current.checklist && !ticked[screen] ? "None of these apply" : "Continue"}
             </button>
           )
+        )}
+        {editing && screen !== last && (
+          <button type="button" className="btn btn-ghost" onClick={backToFurthest} disabled={pending}>
+            {furthest === last ? "Back to the end" : `Back to question ${furthest + 1}`}
+          </button>
         )}
         <span className="muted quiz-count">{screen + 1} of {screens.length}</span>
       </div>}
@@ -1446,7 +1466,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
 }
 
 /** One message in the chat intake: the company's question, or the patient's reply. */
-function Bubble({ from, brandName, children }: { from: "bot" | "me"; brandName?: string; children: ReactNode }) {
+function Bubble({ from, brandName, onEdit, children }: { from: "bot" | "me"; brandName?: string; onEdit?: () => void; children: ReactNode }) {
   return (
     <div className={`chat-row chat-row-${from}`}>
       {from === "bot" && <span className="chat-avatar" aria-hidden="true">{brandName?.trim().charAt(0).toUpperCase()}</span>}
@@ -1454,6 +1474,8 @@ function Bubble({ from, brandName, children }: { from: "bot" | "me"; brandName?:
         <span className="visually-hidden">{from === "bot" ? `${brandName}: ` : "You: "}</span>
         {children}
       </p>
+      {/* Any earlier answer can be changed; "Done, back to where I was" returns after. */}
+      {onEdit && <button type="button" className="link-button chat-edit" onClick={onEdit}>Edit</button>}
     </div>
   );
 }
