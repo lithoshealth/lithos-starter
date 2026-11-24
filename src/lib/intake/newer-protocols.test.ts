@@ -65,16 +65,17 @@ describe("parsePinkEyeIntake", () => {
 
 describe("parseTrtIntake", () => {
   it("builds Lithos's testosterone_replacement intake", () => {
-    const parsed = parseTrtIntake(read({ ...bp, ...body, symptoms: ["fatigue"], condition_duration: "1_to_5_years" }, ["diabetes"]));
+    const parsed = parseTrtIntake(read({ ...bp, ...body, symptoms: ["fatigue"], condition_duration: "1_to_5_years", treatment_goals: "More energy" }, ["diabetes"]));
     expect(parsed.ok && parsed.value).toMatchObject({
       symptoms: ["fatigue"], diabetes: true, prostate_cancer: false, current_testosterone_other_prescriber: false,
+      severe_kidney_disease: false, sesame_oil_allergy: false, treatment_goals: "More energy",
       height_cm: 178, blood_pressure_systolic: 122, blood_pressure_setting: "home", prior_testosterone_tests: [],
     });
   });
 
-  it("needs a symptom and a blood pressure", () => {
+  it("needs a symptom, the goals and a blood pressure", () => {
     expect(pointers(parseTrtIntake(read({ ...body, condition_duration: "1_to_5_years" }))))
-      .toEqual(["symptoms", "blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"]);
+      .toEqual(["symptoms", "treatment_goals", "blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"]);
   });
 });
 

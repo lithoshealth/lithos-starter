@@ -3,7 +3,7 @@
  * (which asks it) and the journey (which sends it). The field names are
  * Lithos's `menopausal_hormone_therapy` initial contract (the Intake Schemas
  * guide); keep them as they are. The questions follow the Menopausal Hormone
- * Therapy clinical protocol (v0.3, a draft). Lithos orders the labs; a blood
+ * Therapy clinical protocol (v0.4, a draft). Lithos orders the labs; a blood
  * pressure from the last 6 months is required. No photos.
  *
  * Client-safe: no server imports.
@@ -64,12 +64,13 @@ export const HRT_SCREENING_STOPS: Options = [
   ["endometrial_cancer", "Uterine (endometrial) cancer, now or in the past"],
   ["other_estrogen_sensitive_cancer", "Another estrogen-sensitive cancer, now or in the past"],
   ["past_blood_clot", "A blood clot in my leg or lung, ever"],
-  ["past_stroke", "A stroke, ever"],
+  ["past_stroke", "A stroke or mini-stroke (TIA), ever"],
   ["past_heart_attack", "A heart attack, ever"],
   ["clotting_disorder", "A clotting disorder, such as antiphospholipid syndrome"],
   ["liver_disease", "Liver disease"],
   ["past_endometrial_hyperplasia", "Endometrial hyperplasia, in the past"],
   ["estradiol_allergy", "An allergic reaction to estradiol"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 /** Each rules out one medicine. */

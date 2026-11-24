@@ -2,7 +2,7 @@
  * The pink eye intake, shared by the patient-facing intake (which asks it) and
  * the journey (which sends it). The field names are Lithos's `conjunctivitis`
  * initial contract (the Intake Schemas guide); keep them as they are. The
- * questions follow the Conjunctivitis clinical protocol (v1.0). Lithos takes an
+ * questions follow the Conjunctivitis clinical protocol (v1.3). Lithos takes an
  * optional photo of each eye; this sandbox sends none, since it has no sample
  * eye images and must never send a real person's. No labs.
  *
@@ -38,9 +38,9 @@ export const PINK_EYE_SCREENING_EYE: Options = [
   ["blisters_near_eye", "Blisters on the skin near my eye"],
   ["rapidly_returning_heavy_pus", "Heavy pus that comes back quickly after wiping"],
   ["recurring_pink_eye", "Pink eye that keeps coming back"],
-  ["sti_exposure", "Exposure to a sexually transmitted infection, such as gonorrhea or chlamydia"],
   ["fever", "A temperature of 100.4°F (38°C) or higher"],
   ["weakened_immune_system", "A weakened immune system: chemotherapy, a transplant, or HIV with a low CD4 count"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 export const PINK_EYE_SCREENING_MEDICINES: Options = [
@@ -54,6 +54,7 @@ export const PINK_EYE_SCREENING_MEDICINES: Options = [
 ];
 
 export const PINK_EYE_HISTORY: Options = [
+  ["sti_exposure", "Exposure to a sexually transmitted infection, or a partner with one"],
   ["spread_to_other_eye", "It spread from one eye to the other"],
   ["lids_stuck_shut", "My lids are stuck shut in the morning"],
   ["eye_itching", "My eye itches"],

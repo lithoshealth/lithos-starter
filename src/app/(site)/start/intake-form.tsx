@@ -1065,10 +1065,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         heightWeightScreen("Your clinician uses it with your labs."),
         bloodPressureScreen("122", "78", "home"),
         {
-          fields: ["prior_testosterone_tests", "prior_testosterone_treatment", "current_medications", "allergies"], title: "What have you had, and what do you take?",
+          fields: ["treatment_goals", "prior_testosterone_tests", "prior_testosterone_treatment", "current_medications", "allergies"], title: "What have you had, and what do you take?",
           hint: "We'll order your labs and book a video visit before a first prescription.",
           body: (
             <div className="field-grid">
+              <label className="field wide">What you&rsquo;d like from treatment<textarea name="treatment_goals" rows={2} maxLength={2000} required /></label>
               <label className="field wide">Testosterone tests you&rsquo;ve had <small>(one per line: the date, the result, the time of day; leave empty for none)</small><textarea name="prior_testosterone_tests" rows={2} maxLength={2000} /></label>
               <label className="field wide">Testosterone treatment you&rsquo;ve had <small>(one per line: the product, dose, prescriber and last dose; leave empty for none)</small><textarea name="prior_testosterone_treatment" rows={2} maxLength={2000} /></label>
               {medicinesText("Medicines and supplements")}

@@ -313,6 +313,7 @@ function trt(data: Data): IntakeReview {
     facts: [
       { label: "Symptoms", value: listed(data, "symptoms") },
       { label: "For", value: words(data, "condition_duration") },
+      { label: "Goals", value: typeof data.treatment_goals === "string" ? data.treatment_goals : "—" },
       { label: "Height · weight", value: `${data.height_cm ?? "—"} cm · ${data.weight_kg ?? "—"} kg` },
       bloodPressure(data),
       { label: "Prior testosterone tests", value: listed(data, "prior_testosterone_tests") },

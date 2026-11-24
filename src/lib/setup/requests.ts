@@ -364,6 +364,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     current_testosterone_other_prescriber: false,
     symptoms: ["low_libido", "fatigue"],
     condition_duration: "1_to_5_years",
+    treatment_goals: "More energy and a better sex drive",
     prior_testosterone_tests: [],
     prior_testosterone_treatment: [],
     height_cm: 178,

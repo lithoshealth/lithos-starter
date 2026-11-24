@@ -3,7 +3,7 @@
  * (which asks it) and the journey (which sends it). The field names and values
  * are Lithos's `urinary_tract_infection` initial contract (the Intake Schemas
  * guide); keep them as they are. The questions follow the Uncomplicated UTI
- * clinical protocol (v1.0). No photos or labs; the optional temperature and
+ * clinical protocol (v1.3). No photos or labs; the optional temperature and
  * creatinine aren't asked here.
  *
  * Client-safe: no server imports.
@@ -49,6 +49,7 @@ export const UTI_SCREENING_URINARY: Options = [
   ["blood_clots_in_urine", "Blood clots in my urine"],
   ["weakened_immune_system", "A weakened immune system: chemotherapy, a transplant, or HIV with a low CD4 count"],
   ["unable_to_take_oral_medicine", "I can't take medicine by mouth"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 export const UTI_SCREENING_MEDICINES: Options = [
@@ -87,7 +88,7 @@ export const UTI_FLAGS: Options = [
 
 export const UTI_HISTORY: Options = [
   ["nausea", "Nausea"],
-  ["kidney_disease", "Kidney disease or dialysis, or I've been told to take lower doses for my kidneys"],
+  ["kidney_disease", "Kidney disease, or I've been told to take lower doses for my kidneys"],
 ];
 
 export function parseUtiIntake(read: Read): Parsed {

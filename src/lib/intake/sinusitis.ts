@@ -2,7 +2,7 @@
  * The sinusitis intake, shared by the patient-facing intake (which asks it)
  * and the journey (which sends it). The field names are Lithos's `sinusitis`
  * initial contract (the Intake Schemas guide); keep them as they are. The
- * questions follow the Acute Bacterial Sinusitis clinical protocol (v1.0). No
+ * questions follow the Acute Bacterial Sinusitis clinical protocol (v1.3). No
  * photos or labs; the optional temperature and creatinine aren't asked here.
  *
  * Client-safe: no server imports.
@@ -41,6 +41,7 @@ export const SINUS_SCREENING_HEALTH: Options = [
   ["sinus_surgery", "I've had sinus surgery"],
   ["weakened_immune_system", "A weakened immune system: chemotherapy, a transplant, or HIV with a low CD4 count"],
   ["unable_to_take_oral_medicine", "I can't take medicine by mouth"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 export const SINUS_SCREENING_MEDICINES: Options = [
@@ -76,7 +77,7 @@ export const SINUS_HISTORY: Options = [
   ["worsened_after_improving", "I got better, then worse again"],
   ["antibiotic_last_month", "Any antibiotic in the last month"],
   ["antacid_or_mineral_supplement", "I take antacids, or iron, calcium, magnesium or zinc"],
-  ["kidney_disease", "Kidney disease or dialysis, or I've been told to take lower doses for my kidneys"],
+  ["kidney_disease", "Kidney disease, or I've been told to take lower doses for my kidneys"],
   ["nasal_polyps", "Nasal polyps"],
   ["deviated_septum", "A deviated septum"],
 ];
