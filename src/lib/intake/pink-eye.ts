@@ -23,7 +23,7 @@ export const LIGHT_SENSITIVITY: Options = [["none", "No"], ["mild", "A little"],
 export const PINK_EYE_SCREENING_EMERGENCY: Options = [
   ["eye_movement_pain", "Pain when I move my eyes"],
   ["double_vision", "Double vision"],
-  ["sudden_vision_loss", "Sudden loss of vision"],
+  ["sudden_loss_of_vision", "Sudden loss of vision"],
   ["bulging_eye", "A bulging eye"],
   ["eye_injury", "An injury to my eye"],
   ["chemical_in_eye", "A chemical in my eye: start rinsing now"],

@@ -8,8 +8,9 @@
  * Client-safe: no server imports.
  */
 
+import { ISOTRETINOIN_USE } from "./derm";
 import { PREGNANCY_QUESTIONS } from "./pregnancy";
-import { booleans, count, detailWhen, isoDate, lines, picked, pointer, type Options, type Parsed, type Read, type FieldError } from "./shared";
+import { booleans, oneOf, count, detailWhen, isoDate, lines, picked, pointer, type Options, type Parsed, type Read, type FieldError } from "./shared";
 
 export { PREGNANCY_QUESTIONS };
 
@@ -51,11 +52,11 @@ export const SINUS_SCREENING_MEDICINES: Options = [
   ["amoxicillin_clavulanate_jaundice", "Jaundice after amoxicillin/clavulanate (Augmentin)"],
   ["cephalosporin_allergy", "An allergy to a cephalosporin, such as cephalexin"],
   ["tetracycline_allergy", "An allergy to doxycycline, minocycline or another tetracycline"],
-  ["isotretinoin", "I take isotretinoin"],
   ["acne_doxycycline_supply", "I have doxycycline for acne"],
   ["clindamycin_allergy", "An allergy to clindamycin"],
   ["c_difficile_history", "A C. difficile infection, ever"],
-  ["colitis_history", "Colitis of any kind, ever"],
+  ["ibd_diagnosis", "Ulcerative colitis or Crohn's"],
+  ["antibiotic_associated_colitis", "Colitis, or severe diarrhea, after an antibiotic"],
 ];
 
 /** Sent to the clinician with the request. */
@@ -95,6 +96,7 @@ export function parseSinusitisIntake(read: Read): Parsed {
     ...(worsened ? { worsened_on_day: day } : {}),
     ...detailWhen(read, read.checked("systemic_steroids"), "systemic_steroid_details", errors, "Say why, for how long and what dose."),
     sinus_symptoms: picked(read, "sinus_symptoms", SINUS_SYMPTOMS),
+    isotretinoin_use: oneOf(read, "isotretinoin_use", ISOTRETINOIN_USE, errors, "Pick an answer about isotretinoin."),
     symptoms_started_on: isoDate(read, "symptoms_started_on", errors, "Enter the day your symptoms started."),
     episodes_last_12_months: count(read, "episodes_last_12_months", errors, "Enter a number from 0 to 52."),
     failed_antibiotic_courses: count(read, "failed_antibiotic_courses", errors, "Enter a number from 0 to 52."),

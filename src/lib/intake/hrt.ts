@@ -99,16 +99,17 @@ export const HRT_FLAGS: Options = [
 export const HRT_HISTORY: Options = [
   ["hysterectomy", "My uterus has been removed (hysterectomy)"],
   ["ovaries_removed", "Both my ovaries have been removed"],
-  ["period_last_12_months", "I've had a period in the last 12 months"],
   ["bleeding_after_sex", "Bleeding after sex"],
-  ["heavy_or_prolonged_bleeding", "Very heavy or long periods"],
+  ["heavy_or_prolonged_bleeding", "Very heavy or long bleeding"],
   ["bleeding_between_periods", "Bleeding between periods"],
   ["family_breast_cancer", "A mother, sister or daughter with breast cancer"],
+  ["family_ovarian_cancer", "A mother, sister or daughter with ovarian cancer"],
   ["brca_or_high_risk_gene", "A BRCA or other high-risk gene"],
   ["atypical_breast_biopsy", "A breast biopsy that showed atypical cells"],
   ["ovarian_cancer", "Ovarian cancer, now or in the past"],
   ["diabetes", "Diabetes"],
-  ["high_cholesterol_or_triglycerides", "High cholesterol or triglycerides"],
+  ["high_cholesterol", "High cholesterol"],
+  ["high_triglycerides", "High triglycerides"],
   ["thyroid_disease", "Thyroid disease"],
 ];
 

@@ -339,7 +339,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
   // Burning and frequency since yesterday, no warning signs, no recent UTIs.
   urinary_tract_infection: {
     ...no(UTI_SCREENING_URGENT, UTI_SCREENING_URINARY, PREGNANCY_QUESTIONS, UTI_SCREENING_MEDICINES, UTI_FLAGS, UTI_HISTORY),
-    urinary_symptoms: ["painful_urination", "frequency"],
+    bladder_symptoms: ["painful_urination", "frequency"],
     pelvic_pain: "none",
     symptoms_started_on: recentDate(1),
     utis_last_6_months: 0,
@@ -351,6 +351,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
   // Twelve days of blockage and thick drainage, no warning signs.
   sinusitis: {
     ...no(SINUS_SCREENING_EMERGENCY, SINUS_SCREENING_HEALTH, PREGNANCY_QUESTIONS, SINUS_SCREENING_MEDICINES, SINUS_FLAGS, SINUS_HISTORY),
+    isotretinoin_use: "never",
     sinus_symptoms: ["nasal_blockage", "thick_colored_drainage", "facial_pain_or_pressure"],
     symptoms_started_on: recentDate(12),
     episodes_last_12_months: 0,
@@ -377,7 +378,7 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     current_testosterone_other_prescriber: false,
     symptoms: ["low_libido", "fatigue"],
     condition_duration: "1_to_5_years",
-    treatment_goals: "More energy and a better sex drive",
+    treatment_goals_description: "More energy and a better sex drive",
     prior_testosterone_tests: [],
     prior_testosterone_treatment: [],
     height_cm: 178,

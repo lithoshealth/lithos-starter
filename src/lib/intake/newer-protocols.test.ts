@@ -18,12 +18,12 @@ const bp = { blood_pressure_systolic: "122", blood_pressure_diastolic: "78", blo
 const body = { height_ft: "5", height_in: "10", weight_lb: "180" };
 
 describe("parseUtiIntake", () => {
-  const answers = { urinary_symptoms: ["painful_urination", "bogus"], pelvic_pain: "none", symptoms_started_on: "2026-11-12", utis_last_6_months: "0", utis_last_12_months: "1", diabetes: "none" };
+  const answers = { bladder_symptoms: ["painful_urination", "bogus"], pelvic_pain: "none", symptoms_started_on: "2026-11-12", utis_last_6_months: "0", utis_last_12_months: "1", diabetes: "none" };
 
   it("builds Lithos's urinary_tract_infection intake, every yes/no sent", () => {
     const parsed = parseUtiIntake(read(answers, ["flank_pain"]));
     expect(parsed.ok && parsed.value).toMatchObject({
-      urinary_symptoms: ["painful_urination"], flank_pain: true, fever: false, pregnant: false, sulfa_allergy: false,
+      bladder_symptoms: ["painful_urination"], flank_pain: true, fever: false, pregnant: false, sulfa_allergy: false,
       nausea: false, kidney_disease: false, utis_last_12_months: 1, current_medications: [], allergies: [],
     });
     expect(parsed.ok && "systemic_steroid_details" in parsed.value).toBe(false);
@@ -36,7 +36,7 @@ describe("parseUtiIntake", () => {
 });
 
 describe("parseSinusitisIntake", () => {
-  const answers = { sinus_symptoms: ["nasal_blockage"], symptoms_started_on: "2026-11-01", episodes_last_12_months: "0", failed_antibiotic_courses: "0" };
+  const answers = { sinus_symptoms: ["nasal_blockage"], symptoms_started_on: "2026-11-01", episodes_last_12_months: "0", failed_antibiotic_courses: "0", isotretinoin_use: "never" };
 
   it("sends the day it got worse only when it did", () => {
     const plain = parseSinusitisIntake(read(answers));
@@ -65,17 +65,17 @@ describe("parsePinkEyeIntake", () => {
 
 describe("parseTrtIntake", () => {
   it("builds Lithos's testosterone_replacement intake", () => {
-    const parsed = parseTrtIntake(read({ ...bp, ...body, symptoms: ["fatigue"], condition_duration: "1_to_5_years", treatment_goals: "More energy" }, ["diabetes"]));
+    const parsed = parseTrtIntake(read({ ...bp, ...body, symptoms: ["fatigue"], condition_duration: "1_to_5_years", treatment_goals_description: "More energy" }, ["diabetes"]));
     expect(parsed.ok && parsed.value).toMatchObject({
       symptoms: ["fatigue"], diabetes: true, prostate_cancer: false, current_testosterone_other_prescriber: false,
-      severe_kidney_disease: false, sesame_oil_allergy: false, treatment_goals: "More energy",
+      severe_kidney_disease: false, sesame_oil_allergy: false, treatment_goals_description: "More energy",
       height_cm: 178, blood_pressure_systolic: 122, blood_pressure_setting: "home", prior_testosterone_tests: [],
     });
   });
 
   it("needs a symptom, the goals and a blood pressure", () => {
     expect(pointers(parseTrtIntake(read({ ...body, condition_duration: "1_to_5_years" }))))
-      .toEqual(["symptoms", "treatment_goals", "blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"]);
+      .toEqual(["symptoms", "treatment_goals_description", "blood_pressure_systolic", "blood_pressure_diastolic", "blood_pressure_measured_on", "blood_pressure_setting"]);
   });
 });
 

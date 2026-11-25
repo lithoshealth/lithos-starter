@@ -26,6 +26,7 @@ export const TRT_SYMPTOMS: Options = [
   ["poor_concentration", "Trouble concentrating"],
   ["less_muscle_strength", "Less muscle strength"],
   ["less_body_hair", "Less body hair"],
+  ["hot_flashes", "Hot flashes"],
 ];
 
 /** Each a hard stop. */
@@ -37,7 +38,8 @@ export const TRT_SCREENING_STOPS: Options = [
   ["clotting_disorder", "A clotting disorder, such as factor V Leiden"],
   ["severe_urinary_symptoms", "Straining to pee, a very weak stream, or I can't empty my bladder"],
   ["untreated_severe_sleep_apnea", "Severe sleep apnea that isn't treated"],
-  ["heart_attack_or_stroke_last_6_months", "A heart attack or stroke in the last 6 months"],
+  ["heart_attack_last_6_months", "A heart attack in the last 6 months"],
+  ["stroke_last_6_months", "A stroke in the last 6 months"],
   ["uncontrolled_heart_failure", "Heart failure that isn't controlled"],
   ["serious_liver_disease", "Serious liver disease"],
   ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
@@ -56,7 +58,8 @@ export const TRT_SCREENING_MEDICINES: Options = [
   ["sesame_oil_allergy", "An allergy to sesame oil"],
   ["hcg_allergy", "An allergic reaction to hCG"],
   ["liver_disease", "Liver disease of any kind, even mild"],
-  ["thyroid_or_adrenal_disease_uncontrolled", "Thyroid or adrenal disease that isn't controlled"],
+  ["uncontrolled_thyroid_disease", "Thyroid disease that isn't controlled"],
+  ["uncontrolled_adrenal_disease", "Adrenal disease that isn't controlled"],
   ["clomiphene_or_enclomiphene_vision_problems", "Vision problems when I took clomiphene or enclomiphene"],
 ];
 
@@ -75,11 +78,18 @@ export const TRT_FLAGS: Options = [
 export const TRT_HISTORY: Options = [
   ["high_hematocrit_history", "I've been told I have a high red blood cell count (hematocrit)"],
   ["prior_infertility", "Infertility, ever"],
-  ["testicular_history", "Testicle problems or surgery, mumps, chemotherapy or radiation"],
-  ["pituitary_disease_or_head_injury", "Pituitary disease or a head injury"],
+  ["testicular_problems", "Testicle problems, such as an undescended testicle or an injury"],
+  ["testicular_surgery", "Surgery on my testicles"],
+  ["mumps_history", "Mumps, ever"],
+  ["chemotherapy_history", "Chemotherapy, ever"],
+  ["radiation_history", "Radiation treatment, ever"],
+  ["pituitary_disease", "Pituitary disease"],
+  ["head_injury", "A serious head injury"],
   ["loud_snoring_or_breathing_pauses", "Loud snoring, or pauses in my breathing when I sleep"],
-  ["sleep_apnea_treated", "Sleep apnea that's treated, for example with CPAP"],
-  ["prior_abnormal_psa_or_prostate_biopsy", "An abnormal PSA, or a prostate biopsy"],
+  ["sleep_apnea_diagnosed", "I've been diagnosed with sleep apnea"],
+  ["sleep_apnea_treated", "My sleep apnea is treated, for example with CPAP"],
+  ["prior_abnormal_psa", "An abnormal PSA result"],
+  ["prior_prostate_biopsy", "A prostate biopsy"],
   ["family_prostate_cancer", "A father, brother or son with prostate cancer"],
   ["black_or_african_american_ancestry", "I'm Black or African American"],
 ];
@@ -97,13 +107,17 @@ export function parseTrtIntake(read: Read): Parsed {
   const { heightCm, weightKg, errors: measured } = metricHeightWeight(read.text);
   errors.push(...measured);
 
+  if (read.checked("sleep_apnea_treated") && !read.checked("sleep_apnea_diagnosed")) {
+    errors.push({ pointer: pointer("sleep_apnea_diagnosed"), message: "Tick the diagnosis too if your sleep apnea is treated." });
+  }
+
   const value = {
     ...booleans(read, TRT_SCREENING_STOPS, TRT_SCREENING_MEDICINES, TRT_FLAGS, TRT_HISTORY),
     // Already on testosterone needs a label photo this sandbox can't send.
     current_testosterone_other_prescriber: false,
     symptoms,
     condition_duration: oneOf(read, "condition_duration", DURATIONS, errors, "Pick how long you've had the symptoms."),
-    treatment_goals: required(read, "treatment_goals", errors, "Say what you'd like from treatment."),
+    treatment_goals_description: required(read, "treatment_goals_description", errors, "Say what you'd like from treatment."),
     prior_testosterone_tests: lines(read.text("prior_testosterone_tests")),
     prior_testosterone_treatment: lines(read.text("prior_testosterone_treatment")),
     height_cm: heightCm,

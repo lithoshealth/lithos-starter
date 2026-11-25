@@ -100,7 +100,7 @@ export function parseUtiIntake(read: Read): Parsed {
   const value = {
     ...booleans(read, UTI_SCREENING_URGENT, UTI_SCREENING_URINARY, PREGNANCY_QUESTIONS, UTI_SCREENING_MEDICINES, UTI_FLAGS, UTI_HISTORY),
     ...detailWhen(read, read.checked("systemic_steroids"), "systemic_steroid_details", errors, "Say why, for how long and what dose."),
-    urinary_symptoms: picked(read, "urinary_symptoms", UTI_SYMPTOMS),
+    bladder_symptoms: picked(read, "bladder_symptoms", UTI_SYMPTOMS),
     pelvic_pain: oneOf(read, "pelvic_pain", PELVIC_PAIN, errors, "Pick whether you have pelvic pain."),
     symptoms_started_on: isoDate(read, "symptoms_started_on", errors, "Enter the day your symptoms started."),
     utis_last_6_months: sixMonths,

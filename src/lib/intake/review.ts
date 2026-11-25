@@ -271,7 +271,7 @@ const bloodPressure = (data: Data) => ({
 function uti(data: Data): IntakeReview {
   return {
     facts: [
-      { label: "Symptoms", value: listed(data, "urinary_symptoms") },
+      { label: "Symptoms", value: listed(data, "bladder_symptoms") },
       { label: "Started", value: String(data.symptoms_started_on ?? "—") },
       { label: "Pelvic pain", value: words(data, "pelvic_pain") },
       { label: "UTIs, last 6 · 12 months", value: `${data.utis_last_6_months ?? "—"} · ${data.utis_last_12_months ?? "—"}` },
@@ -312,7 +312,7 @@ function trt(data: Data): IntakeReview {
     facts: [
       { label: "Symptoms", value: listed(data, "symptoms") },
       { label: "For", value: words(data, "condition_duration") },
-      { label: "Goals", value: typeof data.treatment_goals === "string" ? data.treatment_goals : "—" },
+      { label: "Goals", value: typeof data.treatment_goals_description === "string" ? data.treatment_goals_description : "—" },
       { label: "Height · weight", value: `${data.height_cm ?? "—"} cm · ${data.weight_kg ?? "—"} kg` },
       bloodPressure(data),
       { label: "Prior testosterone tests", value: listed(data, "prior_testosterone_tests") },

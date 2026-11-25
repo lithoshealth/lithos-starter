@@ -944,7 +944,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         },
       ]
     : program === "urinary_tract_infection" ? [
-        { fields: ["urinary_symptoms"], title: `Welcome to ${brandName}. Which of these do you have?`, hint: "This is for a simple bladder infection in women. Select all that apply.", body: pickSome("urinary_symptoms", UTI_SYMPTOMS) },
+        { fields: ["bladder_symptoms"], title: `Welcome to ${brandName}. Which of these do you have?`, hint: "This is for a simple bladder infection in women. Select all that apply.", body: pickSome("bladder_symptoms", UTI_SYMPTOMS) },
         {
           fields: ["symptoms_started_on"], reply: "Since {symptoms_started_on}", title: "When did your symptoms start?",
           body: <div className="field-grid"><label className="field">Date<input name="symptoms_started_on" type="date" defaultValue={YESTERDAY} required /></label></div>,
@@ -979,6 +979,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
       ]
     : program === "sinusitis" ? [
         { fields: ["sinus_symptoms"], title: `Welcome to ${brandName}. Which of these do you have?`, hint: "Select all that apply.", body: pickSome("sinus_symptoms", SINUS_SYMPTOMS) },
+        { fields: ["isotretinoin_use"], autoAdvance: true, title: "Have you ever taken isotretinoin (Accutane)?", body: pickOne("isotretinoin_use", ISOTRETINOIN_USE) },
         {
           fields: ["symptoms_started_on"], reply: "Since {symptoms_started_on}", title: "When did your symptoms start?",
           body: <div className="field-grid"><label className="field">Date<input name="symptoms_started_on" type="date" required /></label></div>,
@@ -1053,11 +1054,11 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         heightWeightScreen("Your clinician uses it with your labs."),
         bloodPressureScreen("122", "78", "home"),
         {
-          fields: ["treatment_goals", "prior_testosterone_tests", "prior_testosterone_treatment", "current_medications", "allergies"], title: "What have you had, and what do you take?",
+          fields: ["treatment_goals_description", "prior_testosterone_tests", "prior_testosterone_treatment", "current_medications", "allergies"], title: "What have you had, and what do you take?",
           hint: "We'll order your labs and book a video visit before a first prescription.",
           body: (
             <div className="field-grid">
-              <label className="field wide">What you&rsquo;d like from treatment<textarea name="treatment_goals" rows={2} maxLength={2000} required /></label>
+              <label className="field wide">What you&rsquo;d like from treatment<textarea name="treatment_goals_description" rows={2} maxLength={2000} required /></label>
               <label className="field wide">Testosterone tests you&rsquo;ve had <small>(one per line: the date, the result, the time of day; leave empty for none)</small><textarea name="prior_testosterone_tests" rows={2} maxLength={2000} /></label>
               <label className="field wide">Testosterone treatment you&rsquo;ve had <small>(one per line: the product, dose, prescriber and last dose; leave empty for none)</small><textarea name="prior_testosterone_treatment" rows={2} maxLength={2000} /></label>
               {medicinesText("Medicines and supplements")}
