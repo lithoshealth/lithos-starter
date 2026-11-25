@@ -8,21 +8,12 @@ import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../../not-connected";
 import { VisitStep } from "../../../_visit/visit-step";
 import { IdempotencyField } from "@/app/idempotency-field";
+import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
 
 const FORM_ID = "care-review-form";
 
-// Same eight fields the protocol requires, in the member's own words. The field
-// names are the Lithos intake contract — don't rename them.
-const SCREENING: Array<[string, string]> = [
-  ["established_atherosclerotic_cardiovascular_disease", "I've been diagnosed with heart disease, a stroke or TIA, or peripheral artery disease"],
-  ["recent_cardiac_condition", "I've had a cardiac event or hospital stay in the last 12 months, or a heart condition that isn't being actively managed"],
-  ["drug_hypersensitivity", "I've had a serious reaction to a PCSK9 inhibitor, rosuvastatin, or something in them"],
-  ["cirrhosis", "I have cirrhosis"],
-  ["severe_hepatic_impairment", "I have severe liver impairment"],
-  ["severe_renal_impairment", "I have severe kidney impairment"],
-  ["pregnancy", "I'm pregnant, planning a pregnancy, or breastfeeding"],
-  ["currently_taking_cyclosporine", "I currently take cyclosporine"],
-];
+// The protocol's required answers, in the member's own words (lib/intake/lipid.ts).
+const SCREENING = LIPID_SCREENING;
 
 const OPTIONS: Array<[string, string, string]> = [
   ["lerochol", "Lerochol (lerodalcibep)", "A once-monthly injection you give yourself"],
@@ -99,6 +90,9 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
         <div className="check-list">
           {SCREENING.map(([name, label]) => (
             <label key={name} className="check"><input type="checkbox" name={name} /> <span>{label}</span></label>
+          ))}
+          {LIPID_EMERGENCY_SYMPTOMS.map(([value, label]) => (
+            <label key={value} className="check"><input type="checkbox" name="emergency_symptoms_now" value={value} /> <span>Right now: {label.toLowerCase()}</span></label>
           ))}
         </div>
       </fieldset>

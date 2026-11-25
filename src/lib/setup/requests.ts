@@ -1,4 +1,5 @@
 import { intakeKey, type ProgramKey } from "./programs";
+import { LIPID_SCREENING_KEYS } from "../intake/lipid";
 import { WEIGHT_SCREENING_FIELDS } from "../intake/weight";
 import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
@@ -87,14 +88,10 @@ const SAMPLE_INTAKE: Record<string, Record<string, unknown>> = {
     ldl_c: 162,
     ldl_c_date: "2026-08-20",
     familial_hypercholesterolemia: "none",
-    established_atherosclerotic_cardiovascular_disease: false,
-    recent_cardiac_condition: false,
-    drug_hypersensitivity: false,
-    cirrhosis: false,
-    severe_hepatic_impairment: false,
-    severe_renal_impairment: false,
-    pregnancy: false,
-    currently_taking_cyclosporine: false,
+    ...Object.fromEntries(LIPID_SCREENING_KEYS.map((name) => [name, false])),
+    emergency_symptoms_now: [],
+    current_medications: [],
+    allergies: [],
   },
   weight_management: {
     height_cm: 170,

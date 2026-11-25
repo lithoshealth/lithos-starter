@@ -1,3 +1,4 @@
+import type { LipidScreeningKey } from "./intake/lipid";
 import type { MemberRecord } from "./members";
 import type { LipidManagementInitialIntake, PatientCreate } from "./lithos/types";
 
@@ -29,10 +30,7 @@ export type CarriedField = { field: string; value: string; from: string };
 export type Ask = { kind: "question" | "attestation" | "lab"; what: string; why: string };
 export type HardStop = { rule: string; triggered: boolean; basis: string };
 
-type ScreeningKey =
-  | "established_atherosclerotic_cardiovascular_disease" | "recent_cardiac_condition"
-  | "drug_hypersensitivity" | "cirrhosis" | "severe_hepatic_impairment"
-  | "severe_renal_impairment" | "pregnancy" | "currently_taking_cyclosporine";
+type ScreeningKey = Extract<keyof LipidManagementInitialIntake, LipidScreeningKey | "drug_hypersensitivity" | "pregnancy" | "currently_taking_cyclosporine">;
 
 /** Declared intake fields we can fill, plus the protocol's panel as undeclared extras. */
 export type IntakeDraft = Omit<LipidManagementInitialIntake, ScreeningKey> & Record<string, unknown>;
@@ -124,10 +122,8 @@ export function buildEscalationPlan(record: MemberRecord): EscalationPlan {
     ...active.filter((m) => m.kind === "lipid_lowering").map(describe),
     ...stopped.filter((m) => m.kind === "lipid_lowering").map((m) => `PRIOR: ${describe(m)}`),
   ];
-  const medicationsAllergies = [
-    ...active.filter((m) => m.kind === "other").map(describe),
-    ...medications.filter((m) => m.kind === "allergy").map((m) => `ALLERGY: ${m.name}`),
-  ];
+  const otherMedications = active.filter((m) => m.kind === "other").map(describe);
+  const allergies = medications.filter((m) => m.kind === "allergy").map((m) => m.name);
   if (currentLipidMedications.length > 0) {
     carried.push({
       field: "current_lipid_medications",
@@ -135,9 +131,8 @@ export function buildEscalationPlan(record: MemberRecord): EscalationPlan {
       from: "medication record (structured)",
     });
   }
-  if (medicationsAllergies.length > 0) {
-    carried.push({ field: "medications_allergies", value: `${medicationsAllergies.length} entries`, from: "medication record (structured)" });
-  }
+  carried.push({ field: "current_medications", value: `${otherMedications.length + currentLipidMedications.length} entries`, from: "medication record (structured)" });
+  carried.push({ field: "allergies", value: `${allergies.length} entries`, from: "medication record (structured)" });
 
   // A lipid medication stopped with a muscle-symptom note is statin
   // intolerance; coach notes are the fallback for members recorded before the
@@ -281,7 +276,9 @@ export function buildEscalationPlan(record: MemberRecord): EscalationPlan {
       ldl_c_date: drawnOn,
       familial_hypercholesterolemia: familial,
       ...(currentLipidMedications.length > 0 ? { current_lipid_medications: currentLipidMedications } : {}),
-      ...(medicationsAllergies.length > 0 ? { medications_allergies: medicationsAllergies } : {}),
+      // Both lists are required: empty means none.
+      current_medications: [...currentLipidMedications, ...otherMedications],
+      allergies,
       ...(statinIntolerance ? { statin_intolerance: true } : {}),
       ...extras,
     },

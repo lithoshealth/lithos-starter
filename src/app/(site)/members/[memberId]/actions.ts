@@ -1,5 +1,6 @@
 "use server";
 
+import { LIPID_EMERGENCY_KEYS, LIPID_SCREENING_KEYS } from "@/lib/intake/lipid";
 import { connectedOutsideSandbox } from "@/lib/lithos/sandbox";
 import { revalidatePath } from "next/cache";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
@@ -16,10 +17,6 @@ export type ActionState =
   | { status: "blocked"; reasons: string[] }
   | { status: "error"; httpStatus?: number; errors: ApiError[] };
 
-const SCREENING_KEYS: Array<keyof ScreeningAnswers> = [
-  "established_atherosclerotic_cardiovascular_disease", "recent_cardiac_condition", "drug_hypersensitivity",
-  "cirrhosis", "severe_hepatic_impairment", "severe_renal_impairment", "pregnancy", "currently_taking_cyclosporine",
-];
 
 /** The partner's escalation: screening answered now, treatment chosen by the member, hard stops applied before any call. */
 export async function escalateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -29,7 +26,10 @@ export async function escalateAction(_prev: ActionState, formData: FormData): Pr
   if (formData.get("attested") !== "on") {
     return { status: "error", errors: [{ code: "eucardia.consent_required", message: "Telehealth consent and identity confirmation are required before escalating." }] };
   }
-  const screening = Object.fromEntries(SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])) as ScreeningAnswers;
+  const screening = {
+    ...Object.fromEntries(LIPID_SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])),
+    emergency_symptoms_now: formData.getAll("emergency_symptoms_now").filter((v): v is string => typeof v === "string" && LIPID_EMERGENCY_KEYS.includes(v)),
+  } as ScreeningAnswers;
   if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };
 
   // Tri-state on purpose: unanswered stays undefined, so it is never mistaken

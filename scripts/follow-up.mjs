@@ -29,6 +29,8 @@ const result = await followUpMember({
   adherence: "on_schedule",
   sideEffects: [],
   healthChanges: "No new diagnoses. No change to other medications.",
+  // Sample members: asked again at every follow-up (protocol version 2).
+  screening: { severe_renal_impairment: false, pregnant: false, breastfeeding: false, planning_pregnancy: false },
   addAgent: addAgent || undefined,
 });
 

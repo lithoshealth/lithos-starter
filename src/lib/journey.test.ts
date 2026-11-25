@@ -37,9 +37,10 @@ describe("journey payloads", () => {
       patient_id: "pat_1", care_plan_id: "cp_1", intake_form: { data: {
         indication: "hypercholesterolemia", ldl_c: 160, ldl_c_date: "2025-01-15",
         familial_hypercholesterolemia: "none", established_atherosclerotic_cardiovascular_disease: false,
-        recent_cardiac_condition: false, drug_hypersensitivity: false, cirrhosis: false,
-        severe_hepatic_impairment: false, severe_renal_impairment: false, pregnancy: false,
-        currently_taking_cyclosporine: false,
+        recent_cardiac_condition: false, serious_allergic_reaction_to_repatha: false, serious_allergic_reaction_to_lerochol: false,
+        cirrhosis: false, severe_hepatic_impairment: false, severe_renal_impairment: false, pregnant: false, breastfeeding: false,
+        planning_pregnancy: false, rare_or_inherited_lipid_disorder: false, emergency_symptoms_now: [],
+        current_medications: [], allergies: [],
       } }, requested_treatments: [{ action: "add" }],
     });
 

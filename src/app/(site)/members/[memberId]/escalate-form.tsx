@@ -5,17 +5,9 @@ import { escalateAction, type ActionState } from "./actions";
 import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../not-connected";
 import { IdempotencyField } from "@/app/idempotency-field";
+import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
 
-const SCREENING: Array<[string, string]> = [
-  ["established_atherosclerotic_cardiovascular_disease", "Diagnosed heart disease, stroke/TIA, or peripheral artery disease"],
-  ["recent_cardiac_condition", "A cardiac event or hospitalization in the last 12 months, or a heart condition not under active management"],
-  ["drug_hypersensitivity", "A serious reaction to a PCSK9 inhibitor, rosuvastatin, or their components"],
-  ["cirrhosis", "Cirrhosis"],
-  ["severe_hepatic_impairment", "Severe liver impairment"],
-  ["severe_renal_impairment", "Severe kidney impairment"],
-  ["pregnancy", "Pregnant, planning pregnancy, or breastfeeding"],
-  ["currently_taking_cyclosporine", "Currently taking cyclosporine"],
-];
+const SCREENING = LIPID_SCREENING;
 
 const OPTIONS: Array<[string, string, string]> = [
   ["lerochol", "Lerochol (lerodalcibep)", "PCSK9 inhibitor · once-monthly injection · preferred"],
@@ -74,6 +66,9 @@ export function EscalateForm({
         <div className="check-list">
           {SCREENING.map(([name, label]) => (
             <label key={name} className="check"><input type="checkbox" name={name} defaultChecked={defaults?.[name] ?? false} /> <span>{label}</span></label>
+          ))}
+          {LIPID_EMERGENCY_SYMPTOMS.map(([value, label]) => (
+            <label key={value} className="check"><input type="checkbox" name="emergency_symptoms_now" value={value} /> <span>Right now: {label.toLowerCase()}</span></label>
           ))}
         </div>
       </section>

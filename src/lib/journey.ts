@@ -1,4 +1,5 @@
 import { LithosApiError } from "./lithos/errors";
+import { LIPID_EMERGENCY_KEYS, LIPID_SCREENING_KEYS } from "./intake/lipid";
 import type {
   ApiError,
   CarePlan,
@@ -78,16 +79,7 @@ type ParseResult = { ok: true; value: JourneyInput } | { ok: false; errors: ApiE
 
 type IdResponse = { id: string };
 
-const SCREENING_FIELDS = [
-  "established_atherosclerotic_cardiovascular_disease",
-  "recent_cardiac_condition",
-  "drug_hypersensitivity",
-  "cirrhosis",
-  "severe_hepatic_impairment",
-  "severe_renal_impairment",
-  "pregnancy",
-  "currently_taking_cyclosporine",
-] as const;
+const SCREENING_FIELDS = LIPID_SCREENING_KEYS;
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -203,9 +195,8 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
     errors.push(pointerError("/intake_form/data/familial_hypercholesterolemia", "Select a valid FH status."));
   }
   if (errors.length > 0) return { ok: false, errors };
-  const screening = Object.fromEntries(
-    SCREENING_FIELDS.map((name) => [name, formData.get(name) === "on"]),
-  ) as unknown as Pick<LipidManagementInitialIntake, (typeof SCREENING_FIELDS)[number]>;
+  const screening = Object.fromEntries(SCREENING_FIELDS.map((name) => [name, formData.get(name) === "on"]));
+  const lines = (name: string) => field(formData, name).split("\n").map((line) => line.trim()).filter(Boolean);
   return {
     ok: true,
     value: {
@@ -214,7 +205,11 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
       ldl_c_date: ldlCDate,
       familial_hypercholesterolemia: familialHypercholesterolemia as LipidManagementInitialIntake["familial_hypercholesterolemia"],
       ...screening,
-    },
+      emergency_symptoms_now: formData.getAll("emergency_symptoms_now").filter((v): v is string => typeof v === "string" && LIPID_EMERGENCY_KEYS.includes(v)),
+      // Both lists are required: empty means none.
+      current_medications: lines("current_medications"),
+      allergies: lines("allergies"),
+    } as unknown as LipidManagementInitialIntake,
   };
 }
 
