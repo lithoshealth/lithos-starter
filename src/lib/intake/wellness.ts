@@ -32,6 +32,11 @@ const MENTAL_HEALTH: readonly [string, string] = [
   "unmanaged_mental_illness",
   "I have a serious mental health condition that isn't under control (for example schizophrenia or bipolar disorder)",
 ];
+const SEVERE_KIDNEY: readonly [string, string] = [
+  "severe_kidney_disease",
+  "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure",
+];
+const CANCER: readonly [string, string] = ["cancer_history", "I've had cancer, now or in the past"];
 const STEROIDS: readonly [string, string] = ["daily_steroid_use", "I take steroid pills or injections every day (for example prednisone)"];
 
 // ------------------------------------------------------------------ NAD+
@@ -50,6 +55,7 @@ export const NAD_SCREENING: Options = [
   ["active_malignancy", "I have cancer now"],
   ["on_chemotherapy", "I take a chemotherapy medicine"],
   ["kidney_disease", "I have, or have had, kidney disease"],
+  SEVERE_KIDNEY,
   ["cellular_metabolism_medications", "I take a medicine that affects how my cells use energy (my doctor would know)"],
   ["hypersensitivity", "I'm allergic to NAD+ or any of its ingredients"],
   MENTAL_HEALTH,
@@ -69,10 +75,12 @@ export const GLUTATHIONE_GOALS: Options = [
 ];
 
 export const GLUTATHIONE_SCREENING: Options = [
-  ["sulfhydryl_or_sulfur_allergy", "I'm allergic to sulfur compounds or a sulfhydryl medicine"],
+  ["sulfhydryl_medication_allergy", "I'm allergic to a sulfhydryl medicine, such as penicillamine or captopril"],
+  ["sulfur_compound_allergy", "I'm allergic to sulfur compounds"],
   ["hypersensitivity", "I'm allergic to glutathione or any of its ingredients"],
   ["asthma", "I have asthma"],
-  ["active_malignancy", "I have cancer now"],
+  CANCER,
+  SEVERE_KIDNEY,
   ["on_chemotherapy", "I take a chemotherapy medicine"],
   MENTAL_HEALTH,
   ...PREGNANCY_QUESTIONS,
@@ -103,6 +111,7 @@ export const SERMORELIN_SCREENING: Options = [
   ["hypersensitivity", "I'm allergic to sermorelin or any of its ingredients"],
   ["hypothyroidism", "I have an underactive thyroid (hypothyroidism)"],
   ["diabetes", "I have diabetes"],
+  SEVERE_KIDNEY,
   MENTAL_HEALTH,
   ...PREGNANCY_QUESTIONS,
   STEROIDS,
@@ -125,7 +134,11 @@ export const B12_SCREENING_HEALTH: Options = [
   ["hepatitis_liver_disease", "I have liver disease, including hepatitis or cirrhosis"],
   ["polycythemia_vera", "I have polycythemia vera"],
   ["hypokalemia", "I have low potassium (hypokalemia)"],
-  ["active_malignancy", "I have cancer now"],
+  CANCER,
+  ["mic_ingredient_allergy", "I'm allergic to methionine, inositol or choline"],
+  ["homocystinuria", "I have homocystinuria or another inherited problem breaking down methionine"],
+  ["schizophrenia", "I have schizophrenia, even if it's managed"],
+  ["trimethylaminuria", "I have trimethylaminuria (fish odor syndrome)"],
   MENTAL_HEALTH,
   ...PREGNANCY_QUESTIONS,
   STEROIDS,
@@ -147,20 +160,26 @@ export const OXYTOCIN_SLEEP_DISORDERS: Options = [
   ["circadian_rhythm_disorder", "A body-clock (circadian rhythm) sleep disorder"],
 ];
 
-/** The suicide and behavioral health screen. Its hard stop is the first item. */
+/** The suicide and behavioral health screen. */
 export const OXYTOCIN_SUICIDE_SCREEN: Options = [
-  ["suicidal_ideation_or_recent_attempt", "In the past week, or right now, I've had thoughts of killing myself, or I tried to in the past 12 months"],
   ["recent_wish_to_be_dead", "In the past few weeks, I've wished I were dead"],
   ["recent_better_off_dead_thoughts", "In the past few weeks, I've felt my family or I would be better off if I were dead"],
-  ["suicide_attempt_over_a_year_ago", "I tried to kill myself more than a year ago"],
+  ["suicidal_thoughts_past_week", "In the past week, I've had thoughts about killing myself"],
+  ["suicide_attempt_ever", "I've tried to kill myself, at any time"],
+  ["harm_thoughts_past_3_months", "In the past 3 months, I've had thoughts of hurting myself or someone else"],
 ];
 
 export const OXYTOCIN_SCREENING_MENTAL: Options = [
-  ["recent_psychiatric_hospitalization", "I've stayed in a psychiatric hospital in the past 12 months"],
+  ["schizophrenia", "I have schizophrenia, even if it's managed"],
+  ["bipolar_disorder", "I have bipolar disorder, even if it's managed"],
+  ["schizoaffective_disorder", "I have schizoaffective disorder, even if it's managed"],
+  ["psychiatric_hospitalization_ever", "I've stayed in a psychiatric hospital, at any time"],
   ["active_psychosis_or_mania", "I'm hearing or seeing things others don't, or I'm in a manic or hypomanic episode"],
-  ["severe_or_uncontrolled_depression_or_anxiety", "My depression or anxiety isn't under control, or needs more care"],
+  ["feeling_depressed_now", "I'm feeling depressed right now"],
+  ["uncontrolled_anxiety", "My anxiety isn't under control"],
   ["substance_use_disorder", "Alcohol or drug use gets in the way of my life"],
-  ["bipolar_or_mania_history", "I've ever had bipolar disorder, mania or hypomania"],
+  ["mania_or_hypomania_history", "I've had mania or hypomania, without a bipolar diagnosis"],
+  ["mood_medication", "I take an antidepressant or another mood medicine"],
   ["severe_ptsd_or_emotional_dysregulation", "I have severe PTSD, or real trouble controlling my emotions"],
   ["cognitive_impairment", "I have significant memory or thinking problems"],
   MENTAL_HEALTH,
@@ -170,13 +189,26 @@ export const OXYTOCIN_SCREENING_HEALTH: Options = [
   ["uncontrolled_cardiovascular_disease", "I have heart disease that isn't under control"],
   ["uncontrolled_seizure_disorder", "I have seizures that aren't under control"],
   ["severe_nasal_pathology", "I have a severe nose problem (for example severe blockage)"],
-  ["recent_nasal_surgery_or_intranasal_substance_use", "I've had nose or sinus surgery, or use any drugs in the nose"],
+  ["nasal_or_sinus_surgery", "I've had nose or sinus surgery"],
+  ["intranasal_substance_use", "I take a medicine or anything else through my nose"],
   ["uncontrolled_illness_needing_specialist", "I have another serious illness that isn't under control"],
+  ["liver_disease", "Liver disease, such as cirrhosis or raised liver enzymes"],
+  ["hyponatremia", "I've been told I have low sodium in my blood"],
   ["hypersensitivity", "I'm allergic to oxytocin"],
-  ["active_malignancy", "I have cancer now"],
+  CANCER,
+  SEVERE_KIDNEY,
   ...PREGNANCY_QUESTIONS,
   STEROIDS,
 ];
+
+export const OXYTOCIN_CONTRAINDICATED_MEDICATIONS: Options = [
+  ["prostaglandin", "A prostaglandin, such as misoprostol or dinoprostone"],
+  ["ergot_alkaloid", "An ergot medicine, such as ergotamine or methylergonovine"],
+  ["desmopressin", "Desmopressin (DDAVP)"],
+  ["vasopressin", "Vasopressin"],
+];
+
+export const SUICIDE_ATTEMPT_TIMING: Options = [["within_12_months", "In the last 12 months"], ["more_than_12_months", "More than 12 months ago"]];
 
 export const OXYTOCIN_CONSENT =
   "I understand oxytocin for sleep and stress is off-label and investigational, the compounded product is not " +
@@ -227,10 +259,16 @@ function described(read: Read) {
   return text ? { baseline_symptoms: text } : {};
 }
 
+/** Both lists are required: empty means none. */
 function medicines(read: Read) {
-  const meds = lines(read.text("current_medications"));
-  const allergies = lines(read.text("allergies"));
-  return { ...(meds.length ? { current_medications: meds } : {}), ...(allergies.length ? { allergies } : {}) };
+  return { current_medications: lines(read.text("current_medications")), allergies: lines(read.text("allergies")) };
+}
+
+/** The symptoms in the patient's words, required. */
+function describedRequired(read: Read, errors: FieldError[]) {
+  const text = read.text("baseline_symptoms").trim();
+  if (!text) errors.push({ pointer: pointer("baseline_symptoms"), message: "Tell us about your symptoms in your own words." });
+  return { baseline_symptoms: text };
 }
 
 export function parseNadPlusIntake(read: Read): Parsed {
@@ -238,7 +276,7 @@ export function parseNadPlusIntake(read: Read): Parsed {
   const screening = booleans(read, NAD_SCREENING);
   return result({
     treatment_goals: someOf(read, "treatment_goals", NAD_GOALS, errors, "Pick at least one goal."),
-    ...described(read),
+    ...describedRequired(read, errors),
     ...screening,
     // After kidney disease, whether a nephrologist approved it.
     ...(screening.kidney_disease ? { nephrologist_approval: read.text("nephrologist_approval") === "true" } : {}),
@@ -251,7 +289,7 @@ export function parseGlutathioneIntake(read: Read): Parsed {
   const errors: FieldError[] = [];
   return result({
     treatment_goals: someOf(read, "treatment_goals", GLUTATHIONE_GOALS, errors, "Pick at least one goal."),
-    ...described(read),
+    ...describedRequired(read, errors),
     ...booleans(read, GLUTATHIONE_SCREENING),
     ...cancerTreatment(read, errors),
     ...selfInjection(read, errors),
@@ -308,15 +346,34 @@ export function parseOxytocinIntake(read: Read): Parsed {
     errors.push({ pointer: pointer("off_label_understanding_attested"), message: "You need to agree to this to continue." });
   }
   const nasal = read.text("nasal_sinus_history");
+  const screen = { ...booleans(read, OXYTOCIN_SUICIDE_SCREEN), ...booleans(read, OXYTOCIN_SCREENING_MENTAL), ...booleans(read, OXYTOCIN_SCREENING_HEALTH) };
+  const followOn: Record<string, unknown> = {};
+  if (screen.suicide_attempt_ever) {
+    const timing = read.text("suicide_attempt_timing");
+    if (!keys(SUICIDE_ATTEMPT_TIMING).includes(timing)) errors.push({ pointer: pointer("suicide_attempt_timing"), message: "Pick when it was." });
+    followOn.suicide_attempt_timing = timing;
+  }
+  if (OXYTOCIN_SUICIDE_SCREEN.some(([key]) => key !== "harm_thoughts_past_3_months" && screen[key])) {
+    followOn.suicidal_thoughts_current = yes(read, "suicidal_thoughts_current", errors, "Answer whether you're having these thoughts now.");
+  }
+  if (screen.mood_medication) {
+    const details = read.text("mood_medication_details").trim();
+    if (!details) errors.push({ pointer: pointer("mood_medication_details"), message: "Name the medicine and dose." });
+    followOn.mood_medication_details = details;
+  }
+  if (screen.nasal_or_sinus_surgery) {
+    const date = read.text("nasal_or_sinus_surgery_date");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.push({ pointer: pointer("nasal_or_sinus_surgery_date"), message: "Enter the date of the surgery." });
+    followOn.nasal_or_sinus_surgery_date = date;
+  }
   return result({
     treatment_goals: someOf(read, "treatment_goals", OXYTOCIN_CONCERNS, errors, "Pick at least one concern."),
     sleep_history: sleep,
     sleep_disorders: someOf(read, "sleep_disorders", OXYTOCIN_SLEEP_DISORDERS, null, ""),
     psychiatric_history: mentalHealth,
-    ...booleans(read, OXYTOCIN_SUICIDE_SCREEN),
-    ...booleans(read, OXYTOCIN_SCREENING_MENTAL),
-    ...booleans(read, OXYTOCIN_SCREENING_HEALTH),
-    ...cancerTreatment(read, errors),
+    ...screen,
+    ...followOn,
+    contraindicated_medications: someOf(read, "contraindicated_medications", OXYTOCIN_CONTRAINDICATED_MEDICATIONS, null, ""),
     ...(nasal ? { nasal_sinus_history: nasal } : {}),
     ...medicines(read),
     off_label_understanding_attested: true,

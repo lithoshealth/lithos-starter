@@ -22,7 +22,7 @@ import {
 } from "@/lib/intake/eyelash";
 import {
   B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH, B12_SYMPTOMS, GLUTATHIONE_GOALS, GLUTATHIONE_SCREENING, NAD_GOALS,
-  NAD_SCREENING, OXYTOCIN_CONCERNS, OXYTOCIN_CONSENT,
+  NAD_SCREENING, OXYTOCIN_CONCERNS, OXYTOCIN_CONSENT, OXYTOCIN_CONTRAINDICATED_MEDICATIONS, SUICIDE_ATTEMPT_TIMING,
   OXYTOCIN_SCREENING_HEALTH, OXYTOCIN_SCREENING_MENTAL, OXYTOCIN_SLEEP_DISORDERS, OXYTOCIN_SUICIDE_SCREEN,
   SERMORELIN_GOALS, SERMORELIN_INTERACTIONS, SERMORELIN_SCREENING,
 } from "@/lib/intake/wellness";
@@ -606,7 +606,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: (
             <div className="stack">
               {pickSome("treatment_goals", NAD_GOALS)}
-              <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
+              <label className="field wide">In your own words<textarea name="baseline_symptoms" rows={2} maxLength={2000} required /></label>
             </div>
           ),
         },
@@ -628,7 +628,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: (
             <div className="stack">
               {pickSome("treatment_goals", GLUTATHIONE_GOALS)}
-              <label className="field wide">In your own words <small>(optional)</small><textarea name="baseline_symptoms" rows={2} maxLength={2000} /></label>
+              <label className="field wide">In your own words<textarea name="baseline_symptoms" rows={2} maxLength={2000} required /></label>
             </div>
           ),
         },
@@ -695,15 +695,27 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           hint: "Select any that apply. If you're thinking about suicide right now, call or text 988, or call 911 in an emergency.",
           body: null,
         },
+        {
+          fields: ["suicidal_thoughts_current", "suicide_attempt_timing"], title: "If you ticked any of those",
+          hint: "Leave these empty if you didn't.",
+          body: (
+            <div className="field-grid">
+              <label className="field">Are you having these thoughts now?<select name="suicidal_thoughts_current" defaultValue=""><option value="">Choose</option><option value="true">Yes</option><option value="false">No</option></select></label>
+              <label className="field">If you've tried to kill yourself, when was the most recent time?<select name="suicide_attempt_timing" defaultValue=""><option value="">Choose</option>{SUICIDE_ATTEMPT_TIMING.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            </div>
+          ),
+        },
         { fields: OXYTOCIN_SCREENING_MENTAL.map(([n]) => n), checklist: OXYTOCIN_SCREENING_MENTAL, title: "Do any of these apply to you?", hint: "Select all that apply.", body: null },
         { fields: OXYTOCIN_SCREENING_HEALTH.map(([n]) => n), checklist: OXYTOCIN_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician decide whether oxytocin is safe for you. Select all that apply.", body: null },
-        cancerTreatmentScreen,
+        { fields: ["contraindicated_medications"], title: "Do you take any of these?", hint: "Select any you take, or none.", body: pickSome("contraindicated_medications", OXYTOCIN_CONTRAINDICATED_MEDICATIONS) },
         {
-          fields: ["current_medications", "allergies", "nasal_sinus_history"], title: "What do you take, and anything about your nose?",
+          fields: ["current_medications", "allergies", "mood_medication_details", "nasal_or_sinus_surgery_date", "nasal_sinus_history"], title: "What do you take, and anything about your nose?",
           body: (
             <div className="field-grid">
               {medicinesText("Medicines, including sleep aids and supplements")}
-              <label className="field wide">Nose or sinus surgery, with the date <small>(optional)</small><textarea name="nasal_sinus_history" rows={2} maxLength={2000} /></label>
+              <label className="field wide">If you take a mood medicine: which one, and the dose<textarea name="mood_medication_details" rows={2} maxLength={2000} /></label>
+              <label className="field">If you've had nose or sinus surgery: when<input type="date" name="nasal_or_sinus_surgery_date" /></label>
+              <label className="field wide">Anything else about your nose or sinuses <small>(optional)</small><textarea name="nasal_sinus_history" rows={2} maxLength={2000} /></label>
             </div>
           ),
         },
@@ -814,12 +826,6 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
               <label className="field wide">Hair treatments you&rsquo;ve tried or use now <small>(optional, one per line: what, how long, whether it helped)</small><textarea name="prior_hair_treatments" rows={3} maxLength={4000} /></label>
             </div>
           ),
-        },
-        {
-          fields: ["finasteride_12_months_without_stabilization"], autoAdvance: true,
-          title: "Have you taken finasteride for 12 months or more, and your hair loss kept going?",
-          hint: "Dutasteride is only an option after that.",
-          body: yesNoScreen("finasteride_12_months_without_stabilization"),
         },
         { fields: ["finasteride_risks_attested"], autoAdvance: true, title: "Do you understand these side effects?", hint: `${FINASTERIDE_RISKS} If you say no, your clinician won't offer finasteride or dutasteride.`, body: yesNoScreen("finasteride_risks_attested") },
       ]

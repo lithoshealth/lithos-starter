@@ -190,13 +190,19 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
   nad_plus: {
     ...no(NAD_SCREENING),
     treatment_goals: ["brain_fog"],
+    baseline_symptoms: "Foggy by mid-afternoon most days; energy has dipped over the last year.",
     can_self_administer: true,
+    current_medications: [],
+    allergies: [],
   },
   glutathione: {
     ...no(GLUTATHIONE_SCREENING),
     treatment_goals: ["antioxidant_support"],
+    baseline_symptoms: "Low energy after workouts, slow to recover.",
     cancer_treatment_last_3_years: false,
     can_self_administer: true,
+    current_medications: [],
+    allergies: [],
   },
   sermorelin: {
     ...no(SERMORELIN_SCREENING),
@@ -205,6 +211,8 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     weight_kg: 82,
     interacting_medications: [],
     can_self_administer: true,
+    current_medications: [],
+    allergies: [],
   },
   vitamin_b12: {
     ...no(B12_SCREENING_ABSORPTION, B12_SCREENING_HEALTH),
@@ -221,7 +229,9 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     sleep_history: "Bed around 11pm, up at 7am; about 45 minutes to fall asleep; wakes twice most nights.",
     sleep_disorders: [],
     psychiatric_history: "None reported",
-    cancer_treatment_last_3_years: false,
+    contraindicated_medications: [],
+    current_medications: [],
+    allergies: [],
     off_label_understanding_attested: true,
   },
   // A reading from a month before the app started: Lithos wants one from the last 6 months.
@@ -258,7 +268,6 @@ const SAMPLE_DERM_INTAKE: Record<string, Record<string, unknown>> = {
     current_medications: [],
     allergies: [],
     prior_hair_treatments: [],
-    finasteride_12_months_without_stabilization: false,
     finasteride_risks_attested: true,
   },
   // A clean patient who has never used a GLP-1, every hard stop answered no.

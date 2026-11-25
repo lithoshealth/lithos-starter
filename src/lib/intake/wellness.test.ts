@@ -53,9 +53,10 @@ describe("parseOxytocinIntake", () => {
   };
 
   it("sends the suicide screen and the consent", () => {
-    const parsed = parseOxytocinIntake(read(answers, ["recent_wish_to_be_dead"]));
+    const parsed = parseOxytocinIntake(read({ ...answers, suicidal_thoughts_current: "false" }, ["recent_wish_to_be_dead"]));
     expect(parsed.ok && parsed.value).toMatchObject({
-      recent_wish_to_be_dead: true, suicidal_ideation_or_recent_attempt: false, sleep_disorders: [],
+      recent_wish_to_be_dead: true, suicide_attempt_ever: false, suicidal_thoughts_current: false, sleep_disorders: [],
+      contraindicated_medications: [], current_medications: [],
       off_label_understanding_attested: true,
     });
     expect(parsed.ok && parsed.value).not.toHaveProperty("can_self_administer");
@@ -69,7 +70,7 @@ describe("parseOxytocinIntake", () => {
 
 describe("parseNadPlusIntake", () => {
   it("sends the nephrologist's approval only after kidney disease", () => {
-    const answers = { treatment_goals: ["brain_fog"], nephrologist_approval: "true", can_self_administer: "true" };
+    const answers = { treatment_goals: ["brain_fog"], baseline_symptoms: "Foggy afternoons", nephrologist_approval: "true", can_self_administer: "true" };
     expect(parseNadPlusIntake(read(answers, ["kidney_disease"])).ok && parseNadPlusIntake(read(answers, ["kidney_disease"])))
       .toMatchObject({ value: { kidney_disease: true, nephrologist_approval: true } });
     const none = parseNadPlusIntake(read(answers));
@@ -80,9 +81,12 @@ describe("parseNadPlusIntake", () => {
 describe("parseGlutathioneIntake", () => {
   it("asks about sulfur allergies, asthma and recent cancer treatment", () => {
     const parsed = parseGlutathioneIntake(read(
-      { treatment_goals: ["aging_skin"], cancer_treatment_last_3_years: "false", can_self_administer: "true" },
-      ["sulfhydryl_or_sulfur_allergy"],
+      { treatment_goals: ["aging_skin"], baseline_symptoms: "Dull skin", cancer_treatment_last_3_years: "false", can_self_administer: "true" },
+      ["sulfur_compound_allergy"],
     ));
-    expect(parsed.ok && parsed.value).toMatchObject({ sulfhydryl_or_sulfur_allergy: true, asthma: false, cancer_treatment_last_3_years: false });
+    expect(parsed.ok && parsed.value).toMatchObject({
+      sulfur_compound_allergy: true, sulfhydryl_medication_allergy: false, asthma: false, cancer_history: false,
+      cancer_treatment_last_3_years: false, current_medications: [], allergies: [],
+    });
   });
 });

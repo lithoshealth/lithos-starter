@@ -78,8 +78,10 @@ export const ED_SCREENING_HEALTH: Options = [
 export const ED_HISTORY: Options = [
   ["low_libido", "My sex drive is low"],
   ["ejaculation_problems", "I have problems with ejaculation"],
-  ["mood_or_anxiety", "I've been feeling low or anxious"],
-  ["pelvic_surgery_or_radiation", "I've had pelvic surgery or radiation"],
+  ["low_mood", "I've been feeling low"],
+  ["anxiety", "I've been feeling anxious"],
+  ["pelvic_surgery_history", "I've had pelvic surgery"],
+  ["pelvic_radiation_history", "I've had radiation to my pelvis"],
   ["penile_pain_curvature_or_injury", "I have penile pain, curvature or an injury"],
   ["regular_grapefruit", "I eat grapefruit or drink grapefruit juice regularly"],
 ];

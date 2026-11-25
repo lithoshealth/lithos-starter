@@ -12,6 +12,7 @@
  * Client-safe: no server imports.
  */
 
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
 import { DURATIONS } from "./derm";
 
 type Options = readonly (readonly [string, string])[];
@@ -31,7 +32,9 @@ export const HAIR_CHANGES: Options = [["thinning", "Thinning"], ["shedding", "Sh
 /** Signs it may not be pattern hair loss: each answered "yes" or left unticked. */
 export const HAIR_SCREENING_SIGNS: Options = [
   ["atypical_hair_loss", "Patchy loss, scarring, sores, scalp pain or burning, a lot of redness or scaling, sudden shedding all over, or losing eyebrow or body hair"],
-  ["menstrual_irregularity_or_excess_hair", "Irregular periods, new hair on my face or body, or a deeper voice"],
+  ["menstrual_irregularity", "Irregular periods"],
+  ["excess_hair_growth", "New hair growth on my face or body"],
+  ["deepening_voice", "My voice has become deeper"],
   ["breast_lump_pain_or_discharge", "A breast lump, breast pain, or discharge from a nipple"],
   ["recent_shedding_trigger", "Recent childbirth, illness, big weight loss, a strict diet or major stress, with shedding"],
 ];
@@ -44,7 +47,7 @@ export const HAIR_SCREENING_MOOD: Options = [
 ];
 
 export const HAIR_FERTILITY: Options = [
-  ["pregnancy", "I'm pregnant, might be, or I'm breastfeeding"],
+  ...PREGNANCY_QUESTIONS,
   ["trying_to_conceive", "I'm, or my partner is, trying to conceive"],
   ["fertility_plans", "I plan to have children soon"],
 ];
@@ -63,6 +66,7 @@ export const HAIR_SCREENING_HEALTH: Options = [
   ["arrhythmia_fainting_or_swelling", "An irregular heartbeat, fainting, or swelling in my legs or ankles"],
   ["low_blood_pressure_symptoms", "Dizziness or fainting when I stand up"],
   ["kidney_disease", "Kidney disease"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
   ["high_potassium", "High potassium"],
   ["addisons_disease", "Addison's disease"],
   ["hepatitis_liver_disease", "Liver disease, including hepatitis"],
@@ -129,9 +133,6 @@ export function parseHairLossIntake(read: Read): Parsed {
     allergies: lines(read.text("allergies")),
     prior_hair_treatments: lines(read.text("prior_hair_treatments")),
     // A "no" only rules out finasteride and dutasteride: the other treatments don't need it.
-    // Dutasteride is only for someone whose loss kept going after 12 months of finasteride.
-    finasteride_12_months_without_stabilization: yesNo(read, "finasteride_12_months_without_stabilization", errors,
-      "Say whether you've taken finasteride for 12 months or more."),
     finasteride_risks_attested: yesNo(read, "finasteride_risks_attested", errors, "Say whether you understand the side effects."),
   };
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };

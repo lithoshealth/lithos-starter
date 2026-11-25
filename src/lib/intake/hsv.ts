@@ -13,6 +13,8 @@
  * Client-safe: no server imports.
  */
 
+import { PREGNANCY_QUESTIONS } from "./pregnancy";
+
 type Options = readonly (readonly [string, string])[];
 
 export const HSV_WANTS: Options = [
@@ -59,7 +61,7 @@ export const HSV_SCREENING_URGENT: Options = [
 export const HSV_SCREENING_HEALTH: Options = [
   ["kidney_disease", "Kidney disease, dialysis, or I've been told a medicine dose must be lowered for my kidneys"],
   ["immunocompromised", "A transplant, chemotherapy or a medicine that weakens my immune system, or HIV"],
-  ["pregnancy", "I'm pregnant, might be, or I'm breastfeeding"],
+  ...PREGNANCY_QUESTIONS,
   ["kidney_risk_factors", "I take ibuprofen or naproxen regularly, probenecid or cimetidine, or I'm often dehydrated"],
 ];
 

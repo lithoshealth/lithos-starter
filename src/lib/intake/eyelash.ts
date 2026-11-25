@@ -54,6 +54,7 @@ export const EYELASH_SCREENING_HEALTH: Options = [
   ["bimatoprost_or_benzalkonium_allergy", "I'm allergic to bimatoprost (Latisse) or benzalkonium chloride"],
   ["alopecia_areata", "I have alopecia areata"],
   ["thyroid_disease", "I have thyroid disease"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 export const EYELASH_CONSENT =
