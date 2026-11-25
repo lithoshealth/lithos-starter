@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { glp1HardStops } from "./intake/glp1";
 import { LithosApiError } from "./lithos/errors";
 import type { LithosClient } from "./lithos/client";
 import { buildEncounterPayload, buildPatientPayload, parseJourneyForm, runJourney } from "./journey";
@@ -198,8 +199,8 @@ describe("weight-management journey", () => {
     const form = validForm();
     ["indication", "ldl_c", "ldl_c_date", "familial_hypercholesterolemia"].forEach((key) => form.delete(key));
     const values: Record<string, string> = {
-      weight_goal: "20_to_50", height_ft: "5", height_in: "7", weight_lb: "215", already_on_glp1: "false",
-      gallbladder: "on", comorbidity_htn: "on", ...overrides,
+      weight_goal: "20_to_50", height_ft: "5", height_in: "7", weight_lb: "215", glp1_ever_used: "false", already_on_glp1: "false",
+      suicidal_thoughts_current: "false", gallbladder: "on", comorbidity_htn: "on", ...overrides,
     };
     Object.entries(values).forEach(([key, value]) => form.set(key, value));
     return form;
@@ -210,18 +211,20 @@ describe("weight-management journey", () => {
     if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
     expect(parsed.value.program).toBe("weight_management");
     expect(parsed.value.intake).toMatchObject({
-      height_cm: 170, weight_kg: 97.5, gallbladder: true, pregnancy: false, comorbidities: ["htn"], already_on_glp1: false,
+      height_cm: 170, weight_kg: 97.5, gallbladder: true, pregnant: false, comorbidities: ["htn"], already_on_glp1: false,
+      current_medications: [], allergies: [],
     });
     // The lipid fields don't leak into a weight intake, and the UI-only goal isn't sent.
     expect(parsed.value.intake).not.toHaveProperty("ldl_c");
     expect(parsed.value.intake).not.toHaveProperty("weight_goal");
   });
 
-  it("sends all seventeen screening answers, unticked ones as false", () => {
+  it("sends every screening answer, unticked ones as false", () => {
     const parsed = parseJourneyForm(weightForm(), "weight_management");
     if (!parsed.ok) throw new Error("fixture invalid");
-    const booleans = Object.values(parsed.value.intake).filter((v) => typeof v === "boolean");
-    expect(booleans).toHaveLength(17 + 1); // the screens, plus already_on_glp1
+    const intake = parsed.value.intake as Record<string, unknown>;
+    for (const [name] of glp1HardStops("weight_management")) expect(typeof intake[name]).toBe("boolean");
+    expect(intake).toMatchObject({ suicide_attempt_ever: false, ibd_diagnosis: false, glp1_ever_used: false });
   });
 
   it("points a missing weight at the contract field", () => {

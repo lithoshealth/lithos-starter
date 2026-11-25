@@ -30,7 +30,7 @@ export type CarriedField = { field: string; value: string; from: string };
 export type Ask = { kind: "question" | "attestation" | "lab"; what: string; why: string };
 export type HardStop = { rule: string; triggered: boolean; basis: string };
 
-type ScreeningKey = Extract<keyof LipidManagementInitialIntake, LipidScreeningKey | "drug_hypersensitivity" | "pregnancy" | "currently_taking_cyclosporine">;
+type ScreeningKey = Extract<keyof LipidManagementInitialIntake, LipidScreeningKey | "drug_hypersensitivity" | "pregnancy" | "currently_taking_cyclosporine">; // v1 names the generated types still carry
 
 /** Declared intake fields we can fill, plus the protocol's panel as undeclared extras. */
 export type IntakeDraft = Omit<LipidManagementInitialIntake, ScreeningKey> & Record<string, unknown>;
@@ -215,7 +215,7 @@ export function buildEscalationPlan(record: MemberRecord): EscalationPlan {
 
   mustAsk.push({ kind: "attestation", what: "Telehealth consent + identity verification", why: "Required timestamps. Membership signup consent is not telehealth consent." });
   mustAsk.push({
-    kind: "question", what: "Screening: recent cardiac condition, drug hypersensitivity, cirrhosis, hepatic/renal impairment, pregnancy, cyclosporine",
+    kind: "question", what: "Screening: recent cardiac condition, allergic reactions to Repatha or Lerochol, cirrhosis, hepatic/renal impairment, pregnancy, rare lipid disorders, emergency symptoms",
     why: "Required, and hard stops if yes. A coaching record never needed them — and the medical director wants them asked at every encounter anyway.",
   });
 

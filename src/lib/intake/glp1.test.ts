@@ -13,7 +13,7 @@ const clean = {
   goal: "Appetite and metabolic health",
   height_ft: "5", height_in: "7", weight_lb: "135",
   glp1_ever_used: "false", already_on_glp1: "false", suicidal_thoughts_current: "false",
-  current_medications: "", allergies: "", prior_weight_loss_meds: "",
+  current_medications: "", allergies: "", prior_weight_loss_meds: "", bowel_fistula_history: "false",
 };
 
 describe("parseGlp1Intake", () => {
@@ -26,16 +26,21 @@ describe("parseGlp1Intake", () => {
       ibd_diagnosis: true, cancer_treatment_last_3_years: false, daily_steroid_use: false, recent_wish_to_be_dead: false,
       suicide_attempt_ever: false, current_medications: [], allergies: [], prior_weight_loss_meds: [],
     });
-    expect(parsed.value).toMatchObject({ pancreatitis_pancreatic_ca: false, drug_hypersensitivity: false, suicidal_thoughts_current: false });
+    expect(parsed.value).toMatchObject({
+      pancreatitis_history: false, pancreatic_cancer_history: false, naion_history: false, pregnant: false,
+      drug_hypersensitivity: false, suicidal_thoughts_current: false, bowel_fistula_history: false,
+    });
   });
 
   it("sends the GLP-1 history for a patient on one, and Low Dose has no goal", () => {
     const parsed = parseGlp1Intake(read({
       ...clean, goal: "", glp1_ever_used: "true", already_on_glp1: "true", glp1_current_drug: "tirzepatide",
       glp1_current_dose_mg: "2", glp1_length_of_use_weeks: "8", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "increase",
+      glp1_side_effects: "nausea_vomiting",
     }), "weight_management_low_dose");
     expect(parsed.ok && parsed.value).toMatchObject({
       glp1_current_drug: "tirzepatide", glp1_current_dose_mg: 2, glp1_length_of_use_weeks: 8, glp1_desired_direction: "increase",
+      glp1_side_effects: ["nausea_vomiting"],
     });
     expect(parsed.ok && parsed.value).not.toHaveProperty("goal");
   });
@@ -45,20 +50,32 @@ describe("parseGlp1Intake", () => {
       const parsed = parseGlp1Intake(read({ ...clean, ...fields }, checked), "glp1_microdose");
       return parsed.ok ? [] : parsed.errors.map((e) => e.pointer);
     };
-    expect(pointers({}, ["pancreatitis_pancreatic_ca"])).toEqual(["/intake_form/data/pancreatitis_pancreatic_ca"]);
+    expect(pointers({}, ["pancreatitis_history"])).toEqual(["/intake_form/data/pancreatitis_history"]);
     expect(pointers({ suicidal_thoughts_current: "true" })).toEqual(["/intake_form/data/suicidal_thoughts_current"]);
     // Microdose offers no increase.
     expect(pointers({ already_on_glp1: "true", glp1_current_drug: "semaglutide", glp1_current_dose_mg: "0.2",
-      glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "increase" }))
+      glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "increase", glp1_side_effects: "none" }))
       .toEqual(["/intake_form/data/glp1_desired_direction"]);
   });
 
   it("names an other GLP-1 and an other condition, which Lithos needs to read", () => {
     const parsed = parseGlp1Intake(read({ ...clean, comorbidities_other: "Fatty liver", already_on_glp1: "true", glp1_current_drug: "other",
-      glp1_current_dose_mg: "1", glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "same" },
+      glp1_current_dose_mg: "1", glp1_length_of_use_weeks: "4", glp1_last_dose_date: "2026-10-20", glp1_desired_direction: "same",
+      glp1_side_effects: "none" },
     ["comorbidity_htn"]), "glp1_microdose");
     expect(parsed.ok ? [] : parsed.errors.map((e) => e.pointer)).toEqual(["/intake_form/data/glp1_current_drug_other"]);
     const named = parseGlp1Intake(read({ ...clean, comorbidities_other: "Fatty liver" }, ["comorbidity_htn"]), "glp1_microdose");
     expect(named.ok && named.value).toMatchObject({ comorbidities: ["htn", "other"], comorbidities_other: "Fatty liver" });
+  });
+
+  it("serves weight management too: hard stops go to Lithos, with its own allergy question", () => {
+    const parsed = parseGlp1Intake(read({ ...clean, goal: "" }, ["gallbladder"]), "weight_management");
+    expect(parsed.ok && parsed.value).toMatchObject({
+      gallbladder: true, serious_allergic_reaction_to_requested_medication: false, type_1_diabetes: false, glp1_ever_used: false,
+    });
+    expect(parsed.ok && parsed.value).not.toHaveProperty("drug_hypersensitivity");
+    expect(parsed.ok && parsed.value).not.toHaveProperty("suicidal_thoughts_current");
+    const screened = parseGlp1Intake(read({ ...clean, suicidal_thoughts_current: "false" }, ["recent_wish_to_be_dead"]), "weight_management");
+    expect(screened.ok && screened.value).toMatchObject({ recent_wish_to_be_dead: true, suicidal_thoughts_current: false });
   });
 });

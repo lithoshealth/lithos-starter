@@ -8,7 +8,6 @@ import { NotConnected } from "../not-connected";
 import { VisitStep } from "../_visit/visit-step";
 import { intakeKey, type ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
-import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "@/lib/intake/weight";
 import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
 import { GENERIC_SCREENING } from "@/lib/intake/generic";
 import {
@@ -50,7 +49,7 @@ import {
   BV_PARTNER_RELATIONSHIP, BV_PARTNER_SCREENING_HEALTH, BV_PARTNER_SCREENING_MEDICINES, BV_PARTNER_SCREENING_SYMPTOMS,
 } from "@/lib/intake/bv-partner";
 import {
-  GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HARD_STOPS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SUICIDE_SCREEN, glp1Directions,
+  GATED_GLP1_PROGRAMS, GLP1_ATTEMPT_TIMINGS, GLP1_COMORBIDITIES, GLP1_DRUGS, GLP1_HISTORY, GLP1_PROGRAMS, GLP1_SIDE_EFFECTS, glp1HardStops, GLP1_SUICIDE_SCREEN, glp1Directions,
 } from "@/lib/intake/glp1";
 import {
   DIABETES as UTI_DIABETES, PELVIC_PAIN, UTI_FLAGS, UTI_HISTORY, UTI_SCREENING_MEDICINES, UTI_SCREENING_URGENT,
@@ -348,8 +347,8 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
     ),
   });
 
-  const programScreens: Screen[] = program === "weight_management"
-    ? [
+  const programScreens: Screen[] = GLP1_PROGRAMS.includes(program) ? [
+        ...(program === "weight_management" ? [
         {
           fields: ["weight_goal"], autoAdvance: true,
           title: `Welcome to ${brandName}. How much weight do you want to lose?`,
@@ -363,50 +362,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
             </div>
           ),
         },
-        {
-          fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
-          title: "What's your height and weight?",
-          hint: "Your clinician uses these to work out your BMI — one of the things that decides whether a GLP-1 is right for you.",
-          body: (
-            <div className="field-grid">
-              <label className="field">Height (feet)<input name="height_ft" type="number" min="3" max="8" step="1" defaultValue="5" required /></label>
-              <label className="field">Height (inches)<input name="height_in" type="number" min="0" max="11" step="1" defaultValue="7" required /></label>
-              <label className="field">Weight (lbs)<input name="weight_lb" type="number" min="70" max="1100" step="1" defaultValue="215" required /></label>
-            </div>
-          ),
-        },
-        {
-          fields: ["already_on_glp1"], autoAdvance: true,
-          title: "Are you taking a GLP-1 medication right now?",
-          hint: "For example Wegovy, Zepbound, Ozempic or Mounjaro.",
-          body: (
-            <div className="quiz-options">
-              <Option name="already_on_glp1" value="false" onPick={autoAdvance} required>No</Option>
-              <Option name="already_on_glp1" value="true" onPick={autoAdvance}>Yes</Option>
-            </div>
-          ),
-        },
-        {
-          fields: WEIGHT_SCREENING_ORGANS.map(([name]) => name), checklist: WEIGHT_SCREENING_ORGANS,
-          title: "Have you ever had any of these?",
-          hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.",
-          body: null,
-        },
-        {
-          fields: WEIGHT_SCREENING_HEALTH.map(([name]) => name), checklist: WEIGHT_SCREENING_HEALTH,
-          title: "And any of these?",
-          hint: "Select all that apply.",
-          body: null,
-        },
-        {
-          fields: [...WEIGHT_COMORBIDITIES.map(([key]) => `comorbidity_${key}`), "comorbidities"],
-          checklist: WEIGHT_COMORBIDITIES.map(([key, label]) => [`comorbidity_${key}`, label] as const),
-          title: "Do you have any weight-related conditions?",
-          hint: "Losing weight often improves these, so your clinician will want to know. Select all that apply.",
-          body: null,
-        },
-      ]
-    : GLP1_PROGRAMS.includes(program) ? [
+        ] : []),
         ...(program === "glp1_microdose" ? [{
           fields: ["goal"], title: `Welcome to ${brandName}. Why do you want a GLP-1 microdose?`,
           hint: "In your own words. A microdose isn't for weight loss, and its other benefits aren't established.",
@@ -414,8 +370,10 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         }] : []),
         {
           fields: ["height_ft", "height_in", "weight_lb", "height_cm", "weight_kg"], reply: "{height_ft} ft {height_in} in, {weight_lb} lbs",
-          title: program === "glp1_microdose" ? "What's your height and weight?" : `Welcome to ${brandName}. What's your height and weight?`,
-          hint: `Your clinician works out your BMI from these: this program starts at ${program === "glp1_microdose" ? "20" : "22"}.`,
+          title: program === "weight_management_low_dose" ? `Welcome to ${brandName}. What's your height and weight?` : "What's your height and weight?",
+          hint: program === "weight_management"
+            ? "Your clinician uses these to work out your BMI — one of the things that decides whether a GLP-1 is right for you."
+            : `Your clinician works out your BMI from these: this program starts at ${program === "glp1_microdose" ? "20" : "22"}.`,
           body: (
             <div className="field-grid">
               <label className="field">Height (feet)<input name="height_ft" type="number" min="3" max="8" step="1" defaultValue="5" required /></label>
@@ -424,11 +382,17 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
             </div>
           ),
         },
-        { fields: GLP1_HARD_STOPS.map(([n]) => n), checklist: GLP1_HARD_STOPS, title: "Have you ever had any of these?", hint: "If any applies, this program isn't safe for you and we won't send your request. Select all that apply.", body: null },
+        {
+          fields: glp1HardStops(program).map(([n]) => n), checklist: glp1HardStops(program), title: "Have you ever had any of these?",
+          hint: GATED_GLP1_PROGRAMS.includes(program)
+            ? "If any applies, this program isn't safe for you and we won't send your request. Select all that apply."
+            : "These help your clinician choose a treatment that's safe for you. Select all that apply.",
+          body: null,
+        },
         { fields: ["glp1_ever_used"], autoAdvance: true, title: "Have you ever used a GLP-1 medication?", hint: "For example Wegovy, Ozempic, Zepbound, Mounjaro, or a compounded one.", body: yesNoScreen("glp1_ever_used") },
         { fields: ["already_on_glp1"], autoAdvance: true, title: "Are you taking one now?", body: yesNoScreen("already_on_glp1") },
         {
-          fields: ["glp1_current_drug", "glp1_current_drug_other", "glp1_current_dose_mg", "glp1_length_of_use_weeks", "glp1_last_dose_date", "glp1_desired_direction", "current_glp1_dosage_upload_id"],
+          fields: ["glp1_current_drug", "glp1_current_drug_other", "glp1_current_dose_mg", "glp1_length_of_use_weeks", "glp1_last_dose_date", "glp1_desired_direction", "glp1_side_effects", "glp1_side_effects_other", "current_glp1_dosage_upload_id"],
           title: "If you've used one, tell us about the most recent",
           hint: "Skip this if you've never used a GLP-1. We'll also send your most recent prescription.",
           body: (
@@ -439,10 +403,17 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
               <label className="field">Weeks you took it<input name="glp1_length_of_use_weeks" type="number" min="0" max="520" step="1" /></label>
               <label className="field">Last dose<input name="glp1_last_dose_date" type="date" /></label>
               <label className="field">If you take it now, your dose should<select name="glp1_desired_direction" defaultValue=""><option value="">Not taking one now</option>{glp1Directions(program).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+              <fieldset className="field wide"><legend>Side effects you had on it</legend>{GLP1_SIDE_EFFECTS.map(([v, l]) => <label key={v} className="check"><input type="checkbox" name="glp1_side_effects" value={v} /> <span>{l}</span></label>)}</fieldset>
+              <label className="field wide">If something else, what? <small>(its name)</small><input name="glp1_side_effects_other" autoComplete="off" /></label>
             </div>
           ),
         },
         { fields: [...GLP1_HISTORY.map(([n]) => n), "gi_clearance_upload_id"], checklist: GLP1_HISTORY, title: "Do any of these apply?", hint: "With ulcerative colitis or Crohn's, we'll send your GI doctor's clearance. Select all that apply.", body: null },
+        {
+          fields: ["bowel_fistula_history"], title: "If you have ulcerative colitis or Crohn's: have you had a bowel fistula?",
+          hint: "An abnormal opening from the bowel. Skip this if you don't have either.",
+          body: <div className="field-grid"><label className="field wide">Bowel fistula<select name="bowel_fistula_history" defaultValue=""><option value="">Doesn&rsquo;t apply</option><option value="false">No</option><option value="true">Yes</option></select></label></div>,
+        },
         {
           fields: [...GLP1_COMORBIDITIES.map(([key]) => `comorbidity_${key}`), "comorbidities"],
           checklist: GLP1_COMORBIDITIES.map(([key, label]) => [`comorbidity_${key}`, label] as const),
@@ -712,7 +683,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           body: (
             <div className="field-grid">
               <label className="field">Are you having these thoughts now?<select name="suicidal_thoughts_current" defaultValue=""><option value="">Choose</option><option value="true">Yes</option><option value="false">No</option></select></label>
-              <label className="field">If you've tried to kill yourself, when was the most recent time?<select name="suicide_attempt_timing" defaultValue=""><option value="">Choose</option>{SUICIDE_ATTEMPT_TIMING.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label className="field">If you&rsquo;ve tried to kill yourself, when was the most recent time?<select name="suicide_attempt_timing" defaultValue=""><option value="">Choose</option>{SUICIDE_ATTEMPT_TIMING.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             </div>
           ),
         },
@@ -725,7 +696,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
             <div className="field-grid">
               {medicinesText("Medicines, including sleep aids and supplements")}
               <label className="field wide">If you take a mood medicine: which one, and the dose<textarea name="mood_medication_details" rows={2} maxLength={2000} /></label>
-              <label className="field">If you've had nose or sinus surgery: when<input type="date" name="nasal_or_sinus_surgery_date" /></label>
+              <label className="field">If you&rsquo;ve had nose or sinus surgery: when<input type="date" name="nasal_or_sinus_surgery_date" /></label>
               <label className="field wide">Anything else about your nose or sinuses <small>(optional)</small><textarea name="nasal_sinus_history" rows={2} maxLength={2000} /></label>
             </div>
           ),

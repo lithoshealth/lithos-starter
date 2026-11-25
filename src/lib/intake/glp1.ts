@@ -1,14 +1,17 @@
 /**
- * The Microdose GLP-1 and Weight Management Low Dose intakes, shared by the
+ * The weight management, Microdose GLP-1 and Weight Management Low Dose intakes, shared by the
  * patient-facing intake (which asks them) and the journey (which sends them).
  * The field names and values are Lithos's `glp1_microdose` and
  * `weight_management_low_dose` initial contracts (the Intake Schemas guide);
- * keep them as they are. The questions follow the two clinical protocols
- * (v1.0). Low Dose is Microdose with a capped step-up, so one intake serves
- * both: Microdose also asks the patient's goal, and offers no increase.
+ * keep them as they are. The questions follow the protocols' intake version 2
+ * (from Dec 3). Low Dose is Microdose with a capped step-up, and weight
+ * management asks nearly the same questions, so one intake serves all three:
+ * Microdose also asks the patient's goal and offers no increase; weight
+ * management names its own allergy question and asks no "other GLP-1" one.
  *
- * A hard stop, or current thoughts of suicide, stops this intake before
- * anything reaches Lithos. Every hard-stop answer is still sent, as `false`:
+ * For Microdose and Low Dose, a hard stop, or current thoughts of suicide,
+ * stops this intake before anything reaches Lithos. Weight management sends
+ * them, and Lithos rules the treatments out. Every hard-stop answer is still sent, as `false`:
  * an unanswered question isn't a no, so Lithos is moving to require them, as
  * it does for every other protocol (ENG-804). The rest (a BMI below the program's floor,
  * a dose above its cap) goes to Lithos, which rules the treatments out for the
@@ -22,14 +25,33 @@ import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS,
 
 type Options = readonly (readonly [string, string])[];
 
-export const GLP1_PROGRAMS = ["glp1_microdose", "weight_management_low_dose"];
+export const GLP1_PROGRAMS = ["glp1_microdose", "weight_management_low_dose", "weight_management"];
 
-/** Weight management's screens, plus the two these protocols add. Any one ticked is a hard stop. */
-export const GLP1_HARD_STOPS: Options = [
-  ...WEIGHT_SCREENING_ORGANS,
-  ...WEIGHT_SCREENING_HEALTH,
-  ["drug_hypersensitivity", "A serious allergic reaction to semaglutide, tirzepatide or an ingredient"],
-  ["active_other_glp1_prescription", "Another GLP-1 prescription I'll keep taking alongside this one"],
+/** The programs whose hard stops this app applies itself, before anything is sent. */
+export const GATED_GLP1_PROGRAMS = ["glp1_microdose", "weight_management_low_dose"];
+
+/** The organ and health screens, plus each program's own. Any one ticked is a hard stop. */
+export function glp1HardStops(program: string): Options {
+  return [
+    ...WEIGHT_SCREENING_ORGANS,
+    ...WEIGHT_SCREENING_HEALTH,
+    ...(program === "weight_management"
+      ? [["serious_allergic_reaction_to_requested_medication", "A serious allergic reaction to semaglutide, tirzepatide, orforglipron or an ingredient"] as const]
+      : [
+          ["drug_hypersensitivity", "A serious allergic reaction to semaglutide, tirzepatide or an ingredient"] as const,
+          ["active_other_glp1_prescription", "Another GLP-1 prescription I'll keep taking alongside this one"] as const,
+        ]),
+  ];
+}
+export const GLP1_HARD_STOPS: Options = glp1HardStops("glp1_microdose");
+
+export const GLP1_SIDE_EFFECTS: Options = [
+  ["none", "None"],
+  ["nausea_vomiting", "Nausea or vomiting"],
+  ["severe_abdominal_pain", "Severe belly pain"],
+  ["gallbladder_symptoms", "Gallbladder symptoms"],
+  ["dehydration", "Dehydration"],
+  ["other", "Something else"],
 ];
 
 export const GLP1_HISTORY: Options = [
@@ -82,14 +104,17 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
   const { heightCm, weightKg, errors: measureErrors } = metricHeightWeight(read.text);
   errors.push(...measureErrors);
 
+  const hardStops = glp1HardStops(program);
+  const gated = GATED_GLP1_PROGRAMS.includes(program);
   // The partner's own gate: these never reach Lithos.
-  const stop = GLP1_HARD_STOPS.find(([name]) => read.checked(name));
+  const stop = gated ? hardStops.find(([name]) => read.checked(name)) : undefined;
   if (stop) {
     errors.push({ pointer: pointer(stop[0]), message: `${stop[1]}: this program isn't safe for you, so we can't send your request. Talk to your doctor about other options.` });
   }
-  if (read.text("suicidal_thoughts_current") === "true") {
+  const thoughtsNow = read.text("suicidal_thoughts_current");
+  if (gated && thoughtsNow === "true") {
     errors.push({ pointer: pointer("suicidal_thoughts_current"), message: "Please call or text 988 now, or call 911 if you're in danger. We can't send this request today." });
-  } else if (read.text("suicidal_thoughts_current") !== "false") {
+  } else if (thoughtsNow !== "true" && thoughtsNow !== "false") {
     errors.push({ pointer: pointer("suicidal_thoughts_current"), message: "Say whether you're having thoughts of killing yourself right now." });
   }
 
@@ -115,6 +140,14 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
     const last = read.text("glp1_last_dose_date");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(last)) errors.push({ pointer: pointer("glp1_last_dose_date"), message: "Enter the date of your last dose." });
     Object.assign(history, { glp1_current_drug: drug, glp1_current_dose_mg: dose, glp1_length_of_use_weeks: weeks, glp1_last_dose_date: last });
+    const effects = read.all("glp1_side_effects").filter((v) => keys(GLP1_SIDE_EFFECTS).includes(v));
+    if (effects.length === 0) errors.push({ pointer: pointer("glp1_side_effects"), message: "Pick any side effects you had, or none." });
+    history.glp1_side_effects = effects;
+    if (effects.includes("other")) {
+      const other = read.text("glp1_side_effects_other");
+      if (!other) errors.push({ pointer: pointer("glp1_side_effects_other"), message: "Name the other side effect." });
+      history.glp1_side_effects_other = other;
+    }
   }
   if (onNow) {
     const direction = read.text("glp1_desired_direction");
@@ -125,6 +158,11 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
   }
 
   const screen = booleans(read, GLP1_SUICIDE_SCREEN);
+  const anyScreen = Object.values(screen).some(Boolean);
+  const historyAnswers = booleans(read, GLP1_HISTORY);
+  const fistula = historyAnswers.ibd_diagnosis
+    ? { bowel_fistula_history: yesNo(read, "bowel_fistula_history", errors, "Say whether you've had a bowel fistula.") }
+    : {};
   const timing = read.text("suicide_attempt_timing");
   if (screen.suicide_attempt_ever && !keys(GLP1_ATTEMPT_TIMINGS).includes(timing)) {
     errors.push({ pointer: pointer("suicide_attempt_timing"), message: "Say when the most recent attempt was." });
@@ -139,10 +177,12 @@ export function parseGlp1Intake(read: Read, program: string): Parsed {
     ...(comorbidities.length > 0 ? { comorbidities } : {}),
     ...(otherCondition ? { comorbidities_other: otherCondition } : {}),
     ...(program === "glp1_microdose" ? { goal } : {}),
-    // Only reached with every hard stop answered no; sent so the record shows it.
-    ...booleans(read, GLP1_HARD_STOPS),
-    suicidal_thoughts_current: false,
-    ...booleans(read, GLP1_HISTORY),
+    // For the gated programs, only reached with every hard stop answered no; sent so the record shows it.
+    ...booleans(read, hardStops),
+    // Asked of everyone here; Lithos requires it after any yes in the screen.
+    ...(gated || anyScreen ? { suicidal_thoughts_current: thoughtsNow === "true" } : {}),
+    ...historyAnswers,
+    ...fistula,
     glp1_ever_used: everUsed || onNow,
     already_on_glp1: onNow,
     ...history,

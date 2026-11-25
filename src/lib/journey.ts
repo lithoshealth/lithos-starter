@@ -11,7 +11,6 @@ import type {
 } from "./lithos/types";
 import type { LithosClient } from "./lithos/client";
 import { readModality, type VisitOffer } from "./sync-visits";
-import { parseWeightIntake, type WeightManagementInitialIntake } from "./intake/weight";
 import { parseGenericIntake, type GenericIntake } from "./intake/generic";
 import { DERM_PROGRAMS, parseAcneIntake, parseHyperpigmentationIntake } from "./intake/derm";
 import { parseEyelashIntake } from "./intake/eyelash";
@@ -59,7 +58,7 @@ export type JourneyInput = {
   /** The care plan's category — and the protocol the intake is written for. */
   program: ProgramKey;
   /** The program's real intake, or the illustrative one for a program without a written-out intake. */
-  intake: LipidManagementInitialIntake | WeightManagementInitialIntake | GenericIntake | DermIntake;
+  intake: LipidManagementInitialIntake | GenericIntake | DermIntake;
   attestationsConfirmed: true;
   resume: { patientId?: string; carePlanId?: string };
   /** The hold the encounter is created with — only for a sync encounter. */
@@ -134,8 +133,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   if (formData.get("attestations_confirmed") !== "on") {
     errors.push(pointerError("/attestations", "Confirm both sample attestations before submitting."));
   }
-  const intake = program === "weight_management" ? weightIntake(formData)
-    : intakeKey(program) === "lipid_management" ? lipidIntake(formData)
+  const intake = intakeKey(program) === "lipid_management" ? lipidIntake(formData)
     : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || program === "dermatophyte_infection" || program === "vaginitis" || program === "bv_partner_treatment" || NEWER_PROGRAMS.includes(program) || GLP1_PROGRAMS.includes(program) || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
@@ -211,12 +209,6 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
       allergies: lines("allergies"),
     } as unknown as LipidManagementInitialIntake,
   };
-}
-
-function weightIntake(formData: FormData): IntakeResult<WeightManagementInitialIntake> {
-  const parsed = parseWeightIntake((name) => field(formData, name), (name) => formData.get(name) === "on");
-  if (parsed.ok) return parsed;
-  return { ok: false, errors: parsed.errors.map((e) => pointerError(e.pointer, e.message)) };
 }
 
 function dermIntake(formData: FormData, program: ProgramKey): IntakeResult<DermIntake> {
