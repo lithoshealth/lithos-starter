@@ -61,7 +61,9 @@ export const ACNE_SCREENING_SKIN: Options = [
   ["rapid_worsening", "It has got much worse quickly"],
   ["severe_nodulocystic_acne", "I have many deep, painful lumps or cysts"],
   ["systemic_symptoms", "I have fever, joint pain or feel unwell along with it"],
-  ["menstrual_irregularity_or_excess_hair", "I have irregular periods, or new hair growth on my face or body"],
+  ["menstrual_irregularity", "I have irregular periods"],
+  ["excess_hair_growth", "I have new hair growth on my face or body"],
+  ["suspicious_mole_or_growth", "A mole, growth or dark spot (not an acne bump) that's new or changing, irregular, bleeding, or larger than a pencil eraser"],
   ["current_prescription_retinoid", "I use a prescription retinoid now"],
   ["eczema_rosacea_or_broken_skin", "I have eczema, rosacea, or sunburned or broken skin there"],
 ];
@@ -76,6 +78,7 @@ export const ACNE_SCREENING_HEALTH: Options = [
   ["trouble_swallowing_pills", "I have trouble swallowing pills"],
   ["intracranial_hypertension", "I've had raised pressure in the skull (intracranial hypertension)"],
   ["hepatitis_liver_disease", "I have active hepatitis or liver disease"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 // ------------------------------------------------------------------ hyperpigmentation & photoaging
@@ -115,20 +118,15 @@ export const HP_SKIN_CANCER: Options = [
   ["other_skin_cancer", "Yes, another skin cancer"],
 ];
 
-/** "Do you have a spot that…" — any one ticked means `atypical_spot`, and the ticks are its signs. */
-export const HP_ATYPICAL_SIGNS: Options = [
-  ["new_or_changing", "Is new or changing"],
-  ["irregular_border", "Has an irregular border"],
-  ["multiple_colors", "Has several colors"],
-  ["raised", "Is raised"],
-  ["bleeding", "Bleeds"],
-  ["itching", "Itches"],
-  ["larger_than_pencil_eraser", "Is larger than a pencil eraser"],
+/** Moles and spots: each a hard stop. */
+export const HP_SPOTS: Options = [
+  ["atypical_mole_or_growth", "A mole or growth, other than the spots I want treated, that's new, changing, irregular, multicolored, raised, bleeding, itching, or larger than a pencil eraser"],
+  ["treated_spot_changed", "A spot I want treated has recently bled, grown quickly, or changed shape or color"],
 ];
 
 export const HP_SCREENING_RECENT: Options = [
   ["hydroquinone_last_2_months", "I've used hydroquinone in the last 2 months"],
-  ["hydroquinone_over_4_months_continuous", "I've used hydroquinone for more than 4 months without a break"],
+  ["hydroquinone_over_12_weeks_continuous", "I've used hydroquinone or Tri-Luma for more than 12 weeks without a break"],
   ["peel_or_laser_last_4_weeks", "I've had a chemical peel or laser treatment in the last 4 weeks"],
   ["current_prescription_retinoid", "I use a prescription retinoid now"],
 ];
@@ -142,6 +140,7 @@ export const HP_SCREENING_HEALTH: Options = [
   ["persistent_redness_or_flushing", "My face is often red or flushed"],
   ["eczema_rosacea_or_broken_skin", "I have eczema, rosacea, or sunburned or broken skin there"],
   ["active_acne", "I have acne that needs treatment"],
+  ["severe_kidney_disease", "Severe kidney disease: dialysis, or stage 4 or 5 kidney disease or kidney failure"],
 ];
 
 // ------------------------------------------------------------------ photos
@@ -199,15 +198,12 @@ function yesNo(read: Read, name: string, errors: FieldError[], message: string):
 
 const booleans = (read: Read, options: Options) => Object.fromEntries(keys(options).map((name) => [name, read.checked(name)]));
 
-/** Free-text lists — medicines and allergies, products tried — one per line, left out when empty. */
+/** Free-text lists — medicines and allergies, products tried — one per line, empty for none. */
 function freeLists(read: Read) {
-  const meds = lines(read.text("current_medications"));
-  const allergies = lines(read.text("allergies"));
-  const products = lines(read.text("prior_products"));
   return {
-    ...(meds.length ? { current_medications: meds } : {}),
-    ...(allergies.length ? { allergies } : {}),
-    ...(products.length ? { prior_products: products } : {}),
+    current_medications: lines(read.text("current_medications")),
+    allergies: lines(read.text("allergies")),
+    prior_products: lines(read.text("prior_products")),
   };
 }
 
@@ -228,13 +224,13 @@ export function parseAcneIntake(read: Read): Parsed {
     ...booleans(read, ACNE_SCREENING_SKIN),
     ...booleans(read, ACNE_SCREENING_HEALTH),
     ...freeLists(read),
+    recent_procedures: read.text("recent_procedures").trim() || "none",
   };
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value };
 }
 
 export function parseHyperpigmentationIntake(read: Read): Parsed {
   const errors: FieldError[] = [];
-  const signs = someOf(read, "atypical_spot_signs", HP_ATYPICAL_SIGNS, null, "");
   const value = {
     main_concerns: someOf(read, "main_concerns", HP_CONCERNS, errors, "Pick at least one concern."),
     affected_areas: someOf(read, "affected_areas", HP_AREAS, errors, "Pick at least one area."),
@@ -245,8 +241,7 @@ export function parseHyperpigmentationIntake(read: Read): Parsed {
     skin_cancer_history: oneOf(read, "skin_cancer_history", HP_SKIN_CANCER, errors, "Pick an answer about skin cancer."),
     daily_sunscreen_use: yesNo(read, "daily_sunscreen_use", errors, "Answer whether you use sunscreen every day."),
     sunscreen_attested: yesNo(read, "sunscreen_attested", errors, "Answer whether you'll use sunscreen during treatment."),
-    atypical_spot: signs.length > 0,
-    atypical_spot_signs: signs,
+    ...booleans(read, HP_SPOTS),
     ...booleans(read, HP_SCREENING_RECENT),
     ...booleans(read, HP_SCREENING_HEALTH),
     ...freeLists(read),

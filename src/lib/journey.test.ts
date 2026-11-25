@@ -287,14 +287,17 @@ describe("dermatology journeys", () => {
     });
   });
 
-  it("derives atypical_spot from the signs ticked", () => {
+  it("sends the two spot questions, every list and severe kidney disease", () => {
     const parsed = parseJourneyForm(dermForm({
       main_concerns: ["melasma"], affected_areas: ["face"], condition_duration: "over_5_years", fitzpatrick_skin_type: "3",
       isotretinoin_use: "never", skin_cancer_history: "none", daily_sunscreen_use: "true", sunscreen_attested: "true",
-      atypical_spot_signs: ["raised"],
+      treated_spot_changed: "on",
     }), "hyperpigmentation_photoaging");
     if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
-    expect(parsed.value.intake).toMatchObject({ fitzpatrick_skin_type: 3, atypical_spot: true, atypical_spot_signs: ["raised"], triggers: [] });
+    expect(parsed.value.intake).toMatchObject({
+      fitzpatrick_skin_type: 3, treated_spot_changed: true, atypical_mole_or_growth: false, severe_kidney_disease: false,
+      current_medications: [], allergies: [], triggers: [],
+    });
   });
 
   it("adds the uploaded photos just before the encounter", async () => {

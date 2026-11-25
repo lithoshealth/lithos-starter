@@ -14,7 +14,7 @@ import { intakeKey, type ProgramKey } from "../setup/programs";
 import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
 import { GENERIC_SCREENING } from "./generic";
-import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT } from "./derm";
+import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SPOTS } from "./derm";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "./eyelash";
 import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "./ed";
 import {
@@ -340,7 +340,7 @@ export function reviewIntake(program: ProgramKey, data: Data): IntakeReview {
     case "weight_management": return weight(data);
     case "lipid_management": return lipid(data);
     case "acne": return derm(data, [...ACNE_SCREENING_SKIN, ...ACNE_SCREENING_HEALTH]);
-    case "hyperpigmentation_photoaging": return derm(data, [...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
+    case "hyperpigmentation_photoaging": return derm(data, [...HP_SPOTS, ...HP_SCREENING_RECENT, ...HP_SCREENING_HEALTH]);
     case "eyelash_growth": return eyelash(data);
     case "erectile_dysfunction": return ed(data);
     case "hair_loss": return hairLoss(data);

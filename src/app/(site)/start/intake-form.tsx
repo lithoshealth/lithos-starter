@@ -13,7 +13,7 @@ import { LIPID_SCREENING } from "@/lib/intake/lipid";
 import { GENERIC_SCREENING } from "@/lib/intake/generic";
 import {
   ACNE_AREAS, ACNE_IMPACT, ACNE_LESIONS, ACNE_SCARRING, ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, DURATIONS, FITZPATRICK,
-  HP_AREAS, HP_ATYPICAL_SIGNS, HP_CONCERNS, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SKIN_CANCER, HP_TRIGGERS,
+  HP_AREAS, HP_CONCERNS, HP_SPOTS, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SKIN_CANCER, HP_TRIGGERS,
   ISOTRETINOIN_USE, photosFor, SPOT_PHOTO, TRUNK_PHOTO, type PhotoField,
 } from "@/lib/intake/derm";
 import {
@@ -531,7 +531,12 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: ["benzoyl_peroxide_attested"], autoAdvance: true, title: "Do you use a benzoyl peroxide wash every morning?", hint: "An over-the-counter acne wash, such as PanOxyl.", body: yesNoScreen("benzoyl_peroxide_attested") },
         { fields: ACNE_SCREENING_SKIN.map(([n]) => n), checklist: ACNE_SCREENING_SKIN, title: "Do any of these apply?", hint: "Select all that apply.", body: null },
         { fields: ACNE_SCREENING_HEALTH.map(([n]) => n), checklist: ACNE_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
-        { fields: ["current_medications", "allergies", "prior_products"], title: "What do you take, and what have you tried?", body: freeText },
+        { fields: ["current_medications", "allergies", "prior_products", "recent_procedures"], title: "What do you take, and what have you tried?", body: (
+            <>
+              {freeText}
+              <label className="field wide">Peels, laser, waxing, harsh scrubs or other procedures in the last 3 months <small>(leave empty for none)</small><textarea name="recent_procedures" rows={2} maxLength={2000} /></label>
+            </>
+          ) },
         photoScreen([...photosFor("acne", {}), TRUNK_PHOTO], "The chest, back or shoulders photo is only sent if you picked one of those."),
       ]
     : program === "hyperpigmentation_photoaging" ? [
@@ -548,7 +553,7 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
         { fields: ["isotretinoin_use"], autoAdvance: true, title: "Have you ever taken isotretinoin (Accutane)?", body: pickOne("isotretinoin_use", ISOTRETINOIN_USE) },
         { fields: ["daily_sunscreen_use"], autoAdvance: true, title: "Do you wear sunscreen every day?", body: yesNoScreen("daily_sunscreen_use") },
         { fields: ["sunscreen_attested"], autoAdvance: true, title: "Will you wear SPF 30 or higher every day during treatment?", hint: "Treatment works far better, and is safer, with daily sunscreen.", body: yesNoScreen("sunscreen_attested") },
-        { fields: ["atypical_spot", "atypical_spot_signs"], title: "Do you have a spot that…", hint: "Select any that apply, or none.", body: pickSome("atypical_spot_signs", HP_ATYPICAL_SIGNS) },
+        { fields: HP_SPOTS.map(([n]) => n), checklist: HP_SPOTS, title: "Do either of these apply?", hint: "Select any that apply. If one does, see a dermatologist in person.", body: null },
         { fields: ["skin_cancer_history"], autoAdvance: true, title: "Have you ever had skin cancer?", body: pickOne("skin_cancer_history", HP_SKIN_CANCER) },
         { fields: HP_SCREENING_RECENT.map(([n]) => n), checklist: HP_SCREENING_RECENT, title: "Any of these recently?", hint: "Select all that apply.", body: null },
         { fields: HP_SCREENING_HEALTH.map(([n]) => n), checklist: HP_SCREENING_HEALTH, title: "And any of these?", hint: "These help your clinician choose a treatment that's safe for you. Select all that apply.", body: null },
