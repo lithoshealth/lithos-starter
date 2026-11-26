@@ -43,8 +43,6 @@ export type FollowUpInput = {
   adherence: LipidManagementFollowUpIntake["adherence"];
   sideEffects?: string[];
   healthChanges?: string;
-  /** The answers protocol version 2 asks again at every follow-up. */
-  screening: { severe_renal_impairment: boolean; pregnant: boolean; breastfeeding: boolean; planning_pregnancy: boolean };
   /** Catalog slug to add as a second agent when still above target (the protocol's "suggest the complementary agent"). */
   addAgent?: string;
   fhResponsive?: LipidManagementFollowUpIntake["familial_hypercholesterolemia_responsive"];
@@ -60,7 +58,7 @@ export type FollowUpResult =
 export async function followUpMember(input: FollowUpInput): Promise<FollowUpResult> {
   const record = await getMemberRecord(input.memberId);
   if (!record) throw new Error(`No member ${input.memberId}`);
-  const { member, panels, target, medications } = record;
+  const { member, panels, target } = record;
   if (!member.lithos_patient_id) return { status: "blocked", reason: "member is not linked to a Lithos patient" };
 
   const sql = getDb();
@@ -117,10 +115,6 @@ export async function followUpMember(input: FollowUpInput): Promise<FollowUpResu
     ...(input.fhResponsive ? { familial_hypercholesterolemia_responsive: input.fhResponsive } : {}),
     side_effects: input.sideEffects ?? [],
     health_changes: input.healthChanges || "None reported",
-    ...input.screening,
-    // Both lists are required, from the medication record: empty means none.
-    current_medications: medications.filter((m) => m.stopped_on === null && m.kind !== "allergy").map((m) => m.name),
-    allergies: medications.filter((m) => m.kind === "allergy").map((m) => m.name),
     // The rest of the recheck panel, undeclared: stored and shown, validated by nobody.
     ...(input.recheck.apo_b != null ? { apo_b: input.recheck.apo_b } : {}),
     ...(input.recheck.hba1c != null ? { hba1c: input.recheck.hba1c } : {}),

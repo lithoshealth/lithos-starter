@@ -1,5 +1,5 @@
 import { buildEscalationPlan, type EscalationPlan } from "./escalation";
-import { LIPID_HARD_STOPS, type LipidScreeningKey } from "./intake/lipid";
+import { LEGACY_LIPID_HARD_STOPS, type LegacyLipidScreeningKey } from "./intake/lipid";
 import { getLithosClient } from "./lithos/client";
 import { LithosApiError } from "./lithos/errors";
 import type { ApiError, CarePlan, Encounter, EncounterCreate, Modality, PatientCreate } from "./lithos/types";
@@ -16,8 +16,11 @@ import { stepKeys, type Attempt } from "./lithos/idempotency";
  * patient's id, so we link to it rather than creating a duplicate.
  */
 
-/** The required screening answers (lib/intake/lipid.ts). Not held by a coaching business; asked at escalation. */
-export type ScreeningAnswers = Record<LipidScreeningKey, boolean> & { emergency_symptoms_now: string[] };
+/**
+ * The required screening answers of lipid_management, the deprecated intake a
+ * membership plan uses (lib/intake/lipid.ts). Not held by a coaching business; asked at escalation.
+ */
+export type ScreeningAnswers = Record<LegacyLipidScreeningKey, boolean>;
 
 export type EscalateInput = {
   memberId: string;
@@ -47,7 +50,7 @@ export type EscalateResult =
   | { status: "complete"; patientId: string; carePlanId: string; encounterId: string; linkedToExisting: boolean; plan: EscalationPlan; encounter: Encounter; modality?: Modality };
 
 // The protocol's screening hard stops. Answered yes → do not create the encounter.
-const SCREENING_HARD_STOPS = LIPID_HARD_STOPS;
+const SCREENING_HARD_STOPS = LEGACY_LIPID_HARD_STOPS;
 
 export async function escalateMember(input: EscalateInput): Promise<EscalateResult> {
   const key = stepKeys(input.attempt);
@@ -64,9 +67,6 @@ export async function escalateMember(input: EscalateInput): Promise<EscalateResu
   for (const key of SCREENING_HARD_STOPS) {
     plan.hardStops.push({ rule: `Screening: ${key.replace(/_/g, " ")}`, triggered: input.screening[key], basis: input.screening[key] ? "answered yes" : "answered no" });
   }
-  const emergency = input.screening.emergency_symptoms_now;
-  plan.hardStops.push({ rule: "Screening: emergency symptoms now", triggered: emergency.length > 0, basis: emergency.length > 0 ? emergency.join(", ") : "none" });
-
   if (plan.hardStops.some((h) => h.triggered)) return { status: "blocked", plan: { ...plan, eligible: false } };
 
   const client = getLithosClient();

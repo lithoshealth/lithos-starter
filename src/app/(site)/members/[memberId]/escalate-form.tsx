@@ -5,9 +5,10 @@ import { escalateAction, type ActionState } from "./actions";
 import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../not-connected";
 import { IdempotencyField } from "@/app/idempotency-field";
-import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
+import { LEGACY_LIPID_SCREENING } from "@/lib/intake/lipid";
 
-const SCREENING = LIPID_SCREENING;
+// A membership plan is lipid_management, the deprecated intake (lib/intake/lipid.ts).
+const SCREENING = LEGACY_LIPID_SCREENING;
 
 const OPTIONS: Array<[string, string, string]> = [
   ["lerochol", "Lerochol (lerodalcibep)", "PCSK9 inhibitor · once-monthly injection · preferred"],
@@ -66,9 +67,6 @@ export function EscalateForm({
         <div className="check-list">
           {SCREENING.map(([name, label]) => (
             <label key={name} className="check"><input type="checkbox" name={name} defaultChecked={defaults?.[name] ?? false} /> <span>{label}</span></label>
-          ))}
-          {LIPID_EMERGENCY_SYMPTOMS.map(([value, label]) => (
-            <label key={value} className="check"><input type="checkbox" name="emergency_symptoms_now" value={value} /> <span>Right now: {label.toLowerCase()}</span></label>
           ))}
         </div>
       </section>

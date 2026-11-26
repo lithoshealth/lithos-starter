@@ -8,12 +8,12 @@ import { NOT_CONNECTED_CODE } from "@/lib/lithos/connection";
 import { NotConnected } from "../../../not-connected";
 import { VisitStep } from "../../../_visit/visit-step";
 import { IdempotencyField } from "@/app/idempotency-field";
-import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
+import { LEGACY_LIPID_SCREENING } from "@/lib/intake/lipid";
 
 const FORM_ID = "care-review-form";
 
-// The protocol's required answers, in the member's own words (lib/intake/lipid.ts).
-const SCREENING = LIPID_SCREENING;
+// The required answers of lipid_management, the intake a membership plan uses, in the member's own words (lib/intake/lipid.ts).
+const SCREENING = LEGACY_LIPID_SCREENING;
 
 const OPTIONS: Array<[string, string, string]> = [
   ["lerochol", "Lerochol (lerodalcibep)", "A once-monthly injection you give yourself"],
@@ -90,9 +90,6 @@ export function CareReviewForm({ memberId, askInsurance }: { memberId: string; a
         <div className="check-list">
           {SCREENING.map(([name, label]) => (
             <label key={name} className="check"><input type="checkbox" name={name} /> <span>{label}</span></label>
-          ))}
-          {LIPID_EMERGENCY_SYMPTOMS.map(([value, label]) => (
-            <label key={value} className="check"><input type="checkbox" name="emergency_symptoms_now" value={value} /> <span>Right now: {label.toLowerCase()}</span></label>
           ))}
         </div>
       </fieldset>

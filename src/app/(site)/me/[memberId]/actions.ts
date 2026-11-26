@@ -1,6 +1,6 @@
 "use server";
 
-import { LIPID_EMERGENCY_KEYS, LIPID_SCREENING_KEYS } from "@/lib/intake/lipid";
+import { LEGACY_LIPID_SCREENING_KEYS } from "@/lib/intake/lipid";
 import { redirect } from "next/navigation";
 import { escalateMember, type ScreeningAnswers } from "@/lib/escalate";
 import type { CareRequestState } from "@/lib/care-request-state";
@@ -34,10 +34,7 @@ export async function requestCareAction(_prev: CareRequestState, formData: FormD
     };
   }
 
-  const screening = {
-    ...Object.fromEntries(LIPID_SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])),
-    emergency_symptoms_now: formData.getAll("emergency_symptoms_now").filter((v): v is string => typeof v === "string" && LIPID_EMERGENCY_KEYS.includes(v)),
-  } as ScreeningAnswers;
+  const screening = Object.fromEntries(LEGACY_LIPID_SCREENING_KEYS.map((k) => [k, formData.get(k) === "on"])) as ScreeningAnswers;
 
   // The answers are valid; whether there's anywhere to send them is a separate question.
   if (!lithosConnection().connected) return { status: "error", errors: [notConnectedError()] };

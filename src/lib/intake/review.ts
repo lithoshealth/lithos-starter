@@ -11,7 +11,7 @@
  */
 
 import { intakeKey, type ProgramKey } from "../setup/programs";
-import { FH_STATUS, LIPID_INDICATIONS, LIPID_SCREENING } from "./lipid";
+import { FH_STATUS, LEGACY_LIPID_SCREENING, LIPID_INDICATIONS, LIPID_SCREENING, LIPID_SCREENING_KEYS } from "./lipid";
 import { WEIGHT_COMORBIDITIES, WEIGHT_SCREENING_HEALTH, WEIGHT_SCREENING_ORGANS } from "./weight";
 import { GENERIC_SCREENING } from "./generic";
 import { ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, HP_SCREENING_HEALTH, HP_SCREENING_RECENT, HP_SPOTS } from "./derm";
@@ -68,7 +68,7 @@ function lipid(data: Data): IntakeReview {
       { label: "LDL-C", value: data.ldl_c ? `${data.ldl_c} mg/dL${data.ldl_c_date ? `, measured ${data.ldl_c_date}` : ""}` : "—" },
       { label: "Familial hypercholesterolemia", value: FH_STATUS[String(data.familial_hypercholesterolemia)] ?? "—" },
     ],
-    flags: yesTo(data, LIPID_SCREENING),
+    flags: yesTo(data, [...LIPID_SCREENING, ...LEGACY_LIPID_SCREENING.filter(([key]) => !(LIPID_SCREENING_KEYS as string[]).includes(key))]),
   };
 }
 

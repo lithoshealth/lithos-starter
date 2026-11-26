@@ -1,12 +1,18 @@
 /**
- * The lipid-management initial intake's wording, shared by the patient-facing
- * intake (which asks it) and the setup page's review card (which reads it back).
- * The field names are Lithos's lipid_management contract — keep them as they are.
+ * The two lipid intakes' wording, shared by the patient-facing intake (which
+ * asks it) and the setup page's review card (which reads it back). The field
+ * names are Lithos's contracts — keep them as they are.
+ *
+ * - `lipid_pcsk9`, the PCSK9 intake: LIPID_SCREENING and the emergency symptoms
+ *   (protocol version 2, in effect Dec 3 2026).
+ * - `lipid_management`, the deprecated intake that existing plans keep, unchanged:
+ *   LEGACY_LIPID_SCREENING. It has no version 2. The membership side creates
+ *   these plans, so it asks this one.
  *
  * Client-safe: no server imports.
  */
 
-/** The intake's required yes/no answers (protocol version 2), one fact each. */
+/** The PCSK9 intake's required yes/no answers (protocol version 2), one fact each. */
 export const LIPID_SCREENING = [
   ["established_atherosclerotic_cardiovascular_disease", "I've been diagnosed with heart disease, a stroke or TIA, or peripheral artery disease"],
   ["recent_cardiac_condition", "I've had a cardiac event or hospital stay in the last 12 months, or a heart condition that isn't being actively managed"],
@@ -39,6 +45,33 @@ export const LIPID_HARD_STOPS: LipidScreeningKey[] = [
   "pregnant", "breastfeeding", "planning_pregnancy", "cirrhosis", "severe_hepatic_impairment", "severe_renal_impairment",
   "rare_or_inherited_lipid_disorder",
 ];
+
+/** The deprecated lipid_management intake's eight required yes/no answers. */
+export const LEGACY_LIPID_SCREENING = [
+  ["established_atherosclerotic_cardiovascular_disease", "I've been diagnosed with heart disease, stroke, or peripheral artery disease"],
+  ["recent_cardiac_condition", "I've had a recent cardiac event or hospitalization (heart attack, stent, bypass)"],
+  ["drug_hypersensitivity", "I've had an allergic reaction to a cholesterol medication"],
+  ["cirrhosis", "I have cirrhosis"],
+  ["severe_hepatic_impairment", "I have severe liver impairment"],
+  ["severe_renal_impairment", "I have severe kidney impairment"],
+  ["pregnancy", "I'm pregnant, breastfeeding, or planning a pregnancy"],
+  ["currently_taking_cyclosporine", "I currently take cyclosporine"],
+] as const;
+
+export type LegacyLipidScreeningKey = (typeof LEGACY_LIPID_SCREENING)[number][0];
+export const LEGACY_LIPID_SCREENING_KEYS = LEGACY_LIPID_SCREENING.map(([key]) => key) as LegacyLipidScreeningKey[];
+
+/** The starter's own hard stops for the deprecated intake: a yes means no encounter. */
+export const LEGACY_LIPID_HARD_STOPS: LegacyLipidScreeningKey[] = [
+  "drug_hypersensitivity", "pregnancy", "cirrhosis", "severe_hepatic_impairment", "severe_renal_impairment",
+];
+
+/** Which lipid intake a category sends: the PCSK9 one asks the emergency symptoms too. */
+export function lipidScreening(program: string) {
+  return program === "lipid_pcsk9"
+    ? { screening: LIPID_SCREENING as readonly (readonly [string, string])[], emergency: true }
+    : { screening: LEGACY_LIPID_SCREENING as readonly (readonly [string, string])[], emergency: false };
+}
 
 export const LIPID_INDICATIONS: Record<string, string> = {
   hypercholesterolemia: "High cholesterol",

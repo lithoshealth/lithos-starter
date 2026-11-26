@@ -1,5 +1,5 @@
 import { intakeKey, type ProgramKey } from "./programs";
-import { LIPID_SCREENING_KEYS } from "../intake/lipid";
+import { LEGACY_LIPID_SCREENING_KEYS, LIPID_SCREENING_KEYS } from "../intake/lipid";
 import { GENERIC_SCREENING } from "../intake/generic";
 import { EYELASH_SCREENING_EYES, EYELASH_SCREENING_HEALTH, EYELASH_SCREENING_LIDS } from "../intake/eyelash";
 import { ED_HISTORY, ED_SCREENING_HEALTH, ED_SCREENING_HEART, ED_SCREENING_MEDICINES } from "../intake/ed";
@@ -81,12 +81,16 @@ export function carePlanRequest(patientId: string, category: string) {
  * A sample intake for each program that passes its protocol's shape check —
  * the fields are the program's, so the intake changes with the program.
  */
+const LIPID_SAMPLE = { indication: "hypercholesterolemia", ldl_c: 162, ldl_c_date: "2026-08-20", familial_hypercholesterolemia: "none" };
+
 const SAMPLE_INTAKE: Record<string, Record<string, unknown>> = {
+  // The deprecated lipid intake, unchanged for existing plans (lib/intake/lipid.ts).
   lipid_management: {
-    indication: "hypercholesterolemia",
-    ldl_c: 162,
-    ldl_c_date: "2026-08-20",
-    familial_hypercholesterolemia: "none",
+    ...LIPID_SAMPLE,
+    ...Object.fromEntries(LEGACY_LIPID_SCREENING_KEYS.map((name) => [name, false])),
+  },
+  lipid_pcsk9: {
+    ...LIPID_SAMPLE,
     ...Object.fromEntries(LIPID_SCREENING_KEYS.map((name) => [name, false])),
     emergency_symptoms_now: [],
     current_medications: [],
@@ -430,7 +434,7 @@ export function encounterRequest(program: ProgramKey, patientId: string, carePla
   return {
     patient_id: patientId,
     care_plan_id: carePlanId,
-    intake_form: { data: SAMPLE_INTAKE[intakeKey(program)] ?? SAMPLE_DERM_INTAKE[program] ?? SAMPLE_GENERIC_INTAKE },
+    intake_form: { data: SAMPLE_INTAKE[program] ?? SAMPLE_INTAKE[intakeKey(program)] ?? SAMPLE_DERM_INTAKE[program] ?? SAMPLE_GENERIC_INTAKE },
     requested_treatments: [{ action: "add", catalog_treatment_id: catalogTreatmentId }],
   };
 }

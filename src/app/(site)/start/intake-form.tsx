@@ -8,7 +8,7 @@ import { NotConnected } from "../not-connected";
 import { VisitStep } from "../_visit/visit-step";
 import { intakeKey, type ProgramKey } from "@/lib/setup/programs";
 import type { IntakeStyle } from "@/lib/intake/styles";
-import { LIPID_EMERGENCY_SYMPTOMS, LIPID_SCREENING } from "@/lib/intake/lipid";
+import { LIPID_EMERGENCY_SYMPTOMS, lipidScreening } from "@/lib/intake/lipid";
 import { GENERIC_SCREENING } from "@/lib/intake/generic";
 import {
   ACNE_AREAS, ACNE_IMPACT, ACNE_LESIONS, ACNE_SCARRING, ACNE_SCREENING_HEALTH, ACNE_SCREENING_SKIN, DURATIONS, FITZPATRICK,
@@ -471,16 +471,16 @@ export function IntakeForm({ brandName, program, style }: { brandName: string; p
           ),
         },
         {
-          fields: LIPID_SCREENING.map(([name]) => name), checklist: LIPID_SCREENING,
+          fields: lipidScreening(program).screening.map(([name]) => name), checklist: lipidScreening(program).screening,
           title: "Do any of these apply to you?",
           hint: "These help your clinician choose a treatment that’s safe for you. Select all that apply.",
           body: null,
         },
-        {
+        ...(lipidScreening(program).emergency ? [{
           fields: ["emergency_symptoms_now"], title: "Are you having any of these right now?",
           hint: "If you are, call 911 or go to the nearest emergency department. Select any that apply, or none.",
           body: pickSome("emergency_symptoms_now", LIPID_EMERGENCY_SYMPTOMS),
-        },
+        }] : []),
         { fields: ["current_medications", "allergies"], title: "What do you take?", body: <div className="field-grid">{medicinesText("Medicines and supplements, including any cholesterol medicine")}</div> },
       ]
     : program === "acne" ? [

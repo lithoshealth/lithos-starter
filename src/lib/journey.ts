@@ -1,5 +1,5 @@
 import { LithosApiError } from "./lithos/errors";
-import { LIPID_EMERGENCY_KEYS, LIPID_SCREENING_KEYS } from "./intake/lipid";
+import { LIPID_EMERGENCY_KEYS, lipidScreening } from "./intake/lipid";
 import type {
   ApiError,
   CarePlan,
@@ -78,8 +78,6 @@ type ParseResult = { ok: true; value: JourneyInput } | { ok: false; errors: ApiE
 
 type IdResponse = { id: string };
 
-const SCREENING_FIELDS = LIPID_SCREENING_KEYS;
-
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
@@ -133,7 +131,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
   if (formData.get("attestations_confirmed") !== "on") {
     errors.push(pointerError("/attestations", "Confirm both sample attestations before submitting."));
   }
-  const intake = intakeKey(program) === "lipid_management" ? lipidIntake(formData)
+  const intake = intakeKey(program) === "lipid_management" ? lipidIntake(formData, program)
     : DERM_PROGRAMS.includes(program) || program === "eyelash_growth" || program === "erectile_dysfunction" || program === "hair_loss" || program === "herpes_simplex" || program === "dermatophyte_infection" || program === "vaginitis" || program === "bv_partner_treatment" || NEWER_PROGRAMS.includes(program) || GLP1_PROGRAMS.includes(program) || WELLNESS_PROGRAMS.includes(program) ? dermIntake(formData, program)
     : genericIntake(formData);
   if (!intake.ok) errors.push(...intake.errors);
@@ -178,7 +176,7 @@ export function parseJourneyForm(formData: FormData, program: ProgramKey = "lipi
 
 type IntakeResult<T> = { ok: true; value: T } | { ok: false; errors: ApiError[] };
 
-function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialIntake> {
+function lipidIntake(formData: FormData, program: ProgramKey): IntakeResult<LipidManagementInitialIntake> {
   const ldlC = Number(field(formData, "ldl_c"));
   const ldlCDate = field(formData, "ldl_c_date");
   const indication = field(formData, "indication");
@@ -193,7 +191,9 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
     errors.push(pointerError("/intake_form/data/familial_hypercholesterolemia", "Select a valid FH status."));
   }
   if (errors.length > 0) return { ok: false, errors };
-  const screening = Object.fromEntries(SCREENING_FIELDS.map((name) => [name, formData.get(name) === "on"]));
+  // lipid_pcsk9 asks version 2; lipid_management is the deprecated intake (lib/intake/lipid.ts).
+  const { screening: questions, emergency } = lipidScreening(program);
+  const screening = Object.fromEntries(questions.map(([name]) => [name, formData.get(name) === "on"]));
   const lines = (name: string) => field(formData, name).split("\n").map((line) => line.trim()).filter(Boolean);
   return {
     ok: true,
@@ -203,8 +203,8 @@ function lipidIntake(formData: FormData): IntakeResult<LipidManagementInitialInt
       ldl_c_date: ldlCDate,
       familial_hypercholesterolemia: familialHypercholesterolemia as LipidManagementInitialIntake["familial_hypercholesterolemia"],
       ...screening,
-      emergency_symptoms_now: formData.getAll("emergency_symptoms_now").filter((v): v is string => typeof v === "string" && LIPID_EMERGENCY_KEYS.includes(v)),
-      // Both lists are required: empty means none.
+      ...(emergency ? { emergency_symptoms_now: formData.getAll("emergency_symptoms_now").filter((v): v is string => typeof v === "string" && LIPID_EMERGENCY_KEYS.includes(v)) } : {}),
+      // Both lists: required by the PCSK9 intake, optional in the deprecated one. Empty means none.
       current_medications: lines("current_medications"),
       allergies: lines("allergies"),
     } as unknown as LipidManagementInitialIntake,
