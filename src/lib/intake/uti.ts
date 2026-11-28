@@ -43,8 +43,8 @@ export const UTI_SCREENING_URINARY: Options = [
   ["kidney_stones", "Kidney stones"],
   ["urinary_blockage", "A known blockage in my urinary tract"],
   ["unable_to_urinate", "I can't pee"],
-  ["urologic_surgery", "I've had urologic surgery"],
-  ["recent_urinary_procedure", "A recent procedure on my bladder or urinary tract, such as a cystoscopy"],
+  ["urologic_surgery", "Urologic surgery in the last 3 months"],
+  ["recent_urinary_procedure", "A procedure on my bladder or urinary tract in the last 30 days, such as a cystoscopy"],
   ["heavy_blood_in_urine", "Heavy bleeding in my urine"],
   ["blood_clots_in_urine", "Blood clots in my urine"],
   ["weakened_immune_system", "A weakened immune system: chemotherapy, a transplant, or HIV with a low CD4 count"],
@@ -62,7 +62,7 @@ export const UTI_SCREENING_MEDICINES: Options = [
   ["potassium_raising_medicine", "I take an ACE inhibitor, an ARB, spironolactone or potassium"],
   ["drug_induced_low_platelets", "Low platelets caused by a medicine, ever"],
   ["folate_deficiency_anemia", "Anemia from low folate"],
-  ["marked_liver_disease", "Serious liver disease"],
+  ["hepatitis_liver_disease", "Liver disease, including hepatitis"],
   ["fosfomycin_allergy", "An allergy to fosfomycin"],
   ["cephalosporin_allergy", "An allergy to a cephalosporin, such as cephalexin"],
   ["severe_penicillin_reaction", "Anaphylaxis, hives, swelling or trouble breathing after a penicillin"],
@@ -70,7 +70,7 @@ export const UTI_SCREENING_MEDICINES: Options = [
 
 /** Sent to the clinician with the request. */
 export const UTI_FLAGS: Options = [
-  ["failed_recent_uti_course", "A recent UTI antibiotic didn't work"],
+  ["failed_recent_uti_course", "A UTI antibiotic in the last 30 days didn't work"],
   ["antimicrobial_last_90_days", "Any antibiotic or antifungal in the last 90 days"],
   ["resistant_infection_history", "A resistant infection in the past"],
   ["vaginal_discharge", "Vaginal discharge"],

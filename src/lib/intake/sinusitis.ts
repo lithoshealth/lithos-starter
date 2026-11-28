@@ -62,10 +62,10 @@ export const SINUS_SCREENING_MEDICINES: Options = [
 /** Sent to the clinician with the request. */
 export const SINUS_FLAGS: Options = [
   ["antibiotic_last_90_days", "Any antibiotic in the last 90 days"],
-  ["recent_hospitalization", "A recent hospital stay"],
+  ["recent_hospitalization", "A hospital stay in the last 90 days"],
   ["resistant_infection_history", "A resistant infection in the past"],
   ["one_sided_tooth_pain", "Tooth pain on one side"],
-  ["recent_dental_work", "Recent dental work"],
+  ["recent_dental_work", "Dental work in the last 30 days"],
   ["unclear_allergy", "An allergy where I'm not sure of the medicine or the reaction"],
   ["liver_disease", "Liver disease"],
   ["warfarin", "I take warfarin"],
@@ -79,8 +79,6 @@ export const SINUS_HISTORY: Options = [
   ["antibiotic_last_month", "Any antibiotic in the last month"],
   ["antacid_or_mineral_supplement", "I take antacids, or iron, calcium, magnesium or zinc"],
   ["kidney_disease", "Kidney disease, or I've been told to take lower doses for my kidneys"],
-  ["nasal_polyps", "Nasal polyps"],
-  ["deviated_septum", "A deviated septum"],
 ];
 
 export function parseSinusitisIntake(read: Read): Parsed {
